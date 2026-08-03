@@ -587,7 +587,7 @@ AimbotTab:Toggle({ Title = "墙体检测", Value = false, Callback = function(s)
 AimbotTab:Toggle({ Title = "子弹追踪", Value = false, Callback = function(s) AimbotSettings.BulletTrack = s end })
 AimbotTab:Slider({ Title = "圆圈大小", Value = { Min = 30, Max = 500, Default = 100 }, Callback = function(v) AimbotSettings.CircleRadius = v end })
 AimbotTab:Slider({ Title = "圆圈厚度", Value = { Min = 1, Max = 10, Default = 2 }, Callback = function(v) AimbotSettings.CircleThickness = v end })
-AimbotTab:Dropdown({ Title = "圆圈颜色", Values = { "灰", "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "灰", Callback = function(v) AimbotSettings.CircleColor = v end })
+AimbotTab:Dropdown({ Title = "圆圈颜色", Values = { "灰色", "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "灰色", Callback = function(v) AimbotSettings.CircleColor = v end })
      
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
