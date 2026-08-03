@@ -359,30 +359,27 @@ local function updateESP()
             data.healthBg.Visible = true
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                local hp = humanoid.Health / humanoid.MaxHealth
-                data.health.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
-                data.health.Position = UDim2.new(0, minX, 0, minY - 8)
-                data.healthBg.Size = UDim2.new(0, w, 0, 3)
-                data.healthBg.Position = UDim2.new(0, minX, 0, minY - 8)
-                data.health.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
-            else
-                data.health.Visible = false
-                data.healthBg.Visible = false
-            end
-        else
-            data.health.Visible = false
-            data.healthBg.Visible = false
-        end
-        if settings.highlights then
-            data.highlight.Enabled = true
-            data.highlight.Adornee = player.Character
-            data.highlight.OutlineColor = Color3.new(1,1,1)
-            data.highlight.OutlineTransparency = 0.5
-        else
-            data.highlight.Enabled = false
-            data.highlight.Adornee = nil
-        end
-    end
+local hp = humanoid.Health / humanoid.MaxHealth
+data.health.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
+data.health.Position = UDim2.new(0, minX, 0, minY - 8)
+data.healthBg.Size = UDim2.new(0, w, 0, 3)
+data.healthBg.Position = UDim2.new(0, minX, 0, minY - 8)
+data.health.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
+else
+    data.health.Visible = false
+    data.healthBg.Visible = false
+end
+if settings.highlights then
+    data.highlight.Enabled = true
+    data.highlight.Adornee = player.Character
+    data.highlight.OutlineColor = Color3.new(1, 1, 1)
+    data.highlight.OutlineTransparency = 0.5
+else
+    data.highlight.Enabled = false
+    data.highlight.Adornee = nil
+end
+data.gui.Enabled = true
+end
 end
 
 RunService.RenderStepped:Connect(updateESP)
@@ -409,7 +406,7 @@ espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) set
 espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
 espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
 
-local AimbotTab = D:Tab({Title="自瞄子追", Icon="target"})
+local AimbotTab = D:Tab({Title="自瞄子追", Icon="crosshair"})
 
 local AimbotSettings = {
     Enabled = false,
@@ -419,14 +416,20 @@ local AimbotSettings = {
     CircleEnabled = false,
     CircleRadius = 100,
     CircleThickness = 2,
-    CircleColor = "彩色",
+    CircleColor = "灰色",
     BulletTrack = false
 }
 
 local Colors = {
-    ["红"] = Color3.fromRGB(255,0,0), ["橙"] = Color3.fromRGB(255,150,0), ["黄"] = Color3.fromRGB(255,255,15),
-    ["绿"] = Color3.fromRGB(0,255,0), ["青"] = Color3.fromRGB(0,255,219), ["蓝"] = Color3.fromRGB(0,0,255),
-    ["紫"] = Color3.fromRGB(183,0,255), ["彩色"] = nil,
+    ["灰色"] = Color3.fromRGB(128,128,128),
+    ["红"] = Color3.fromRGB(255,0,0),
+    ["橙"] = Color3.fromRGB(255,150,0),
+    ["黄"] = Color3.fromRGB(255,255,15),
+    ["绿"] = Color3.fromRGB(0,255,0),
+    ["青"] = Color3.fromRGB(0,255,219),
+    ["蓝"] = Color3.fromRGB(0,0,255),
+    ["紫"] = Color3.fromRGB(183,0,255),
+    ["彩色"] = nil,
 }
 
 local Circle = Drawing.new("Circle")
@@ -473,11 +476,6 @@ local function isValidTarget(player)
                 if v:IsA("BasePart") then table.insert(filter, v) end
             end
         end
-        if player.Character then
-            for _, v in ipairs(player.Character:GetDescendants()) do
-                if v:IsA("BasePart") then table.insert(filter, v) end
-            end
-        end
         params.FilterDescendantsInstances = filter
         params.FilterType = Enum.RaycastFilterType.Blacklist
         local origin = Camera.CFrame.Position
@@ -485,9 +483,11 @@ local function isValidTarget(player)
         local result = workspace:Raycast(origin, direction, params)
         if result then
             local hitPart = result.Instance
-            local hitChar = hitPart and hitPart:FindFirstAncestorOfClass("Model")
-            if hitChar ~= player.Character then
-                return false
+            if hitPart then
+                local hitChar = hitPart:FindFirstAncestorOfClass("Model")
+                if hitChar ~= player.Character then
+                    return false
+                end
             end
         end
     end
@@ -548,28 +548,36 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
-if AimbotSettings.BulletTrack then
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if not AimbotSettings.Enabled then return end
-        if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then return end
-        local target = getClosestPlayer()
-        if not target then return end
-        local targetPart = target.Character:FindFirstChild(AimbotSettings.TargetPart)
-        if not targetPart then return end
-        local weapon = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if not weapon then return end
-        local WeaponEvent = game:GetService("ReplicatedStorage"):FindFirstChild("Events") and game:GetService("ReplicatedStorage").Events:FindFirstChild("WeaponEvent")
-        if not WeaponEvent then
-            WeaponEvent = game:GetService("ReplicatedStorage"):FindFirstChild("WeaponEvent")
-        end
-        if not WeaponEvent then return end
-        local cam = workspace.CurrentCamera
-        local direction = (targetPart.Position - cam.CFrame.Position).Unit
-        pcall(function()
-            WeaponEvent:FireServer(direction, true)
-        end)
-    end)
+local function findWeaponEvent()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local paths = {
+        ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("WeaponEvent"),
+        ReplicatedStorage:FindFirstChild("WeaponEvent"),
+        ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("WeaponEvent"),
+        ReplicatedStorage:FindFirstChild("Remote") and ReplicatedStorage.Remote:FindFirstChild("WeaponEvent"),
+    }
+    for _, event in ipairs(paths) do
+        if event then return event end
+    end
+    return nil
 end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if not AimbotSettings.Enabled or not AimbotSettings.BulletTrack then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+    local target = getClosestPlayer()
+    if not target then return end
+    local targetPart = target.Character:FindFirstChild(AimbotSettings.TargetPart)
+    if not targetPart then return end
+    local WeaponEvent = findWeaponEvent()
+    if not WeaponEvent then return end
+    local cam = workspace.CurrentCamera
+    local direction = (targetPart.Position - cam.CFrame.Position).Unit
+    pcall(function()
+        WeaponEvent:FireServer(direction, true)
+    end)
+end)
 
 AimbotTab:Toggle({ Title = "开启自瞄", Value = false, Callback = function(s) AimbotSettings.Enabled = s end })
 AimbotTab:Toggle({ Title = "自瞄圆圈", Value = false, Callback = function(s) AimbotSettings.CircleEnabled = s end })
@@ -579,7 +587,7 @@ AimbotTab:Toggle({ Title = "墙体检测", Value = false, Callback = function(s)
 AimbotTab:Toggle({ Title = "子弹追踪", Value = false, Callback = function(s) AimbotSettings.BulletTrack = s end })
 AimbotTab:Slider({ Title = "圆圈大小", Value = { Min = 30, Max = 500, Default = 100 }, Callback = function(v) AimbotSettings.CircleRadius = v end })
 AimbotTab:Slider({ Title = "圆圈厚度", Value = { Min = 1, Max = 10, Default = 2 }, Callback = function(v) AimbotSettings.CircleThickness = v end })
-AimbotTab:Dropdown({ Title = "圆圈颜色", Values = { "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "彩色", Callback = function(v) AimbotSettings.CircleColor = v end }) 
+AimbotTab:Dropdown({ Title = "圆圈颜色", Values = { "灰", "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "灰", Callback = function(v) AimbotSettings.CircleColor = v end })
      
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
