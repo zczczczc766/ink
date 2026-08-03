@@ -153,6 +153,8 @@ end})
 
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
 
+E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
+
 E:Button({Title="无敌少侠飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/Script/refs/heads/main/MobileFly.lua"))()end})
 
 E:Button({Title="无敌少侠大全",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/invincible-characters-animations-by-GioBolqv1-/refs/heads/main/universal.lua"))()end})
@@ -199,6 +201,173 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
+local P = D:Tab({Title="透视", Icon="eye"})
+
+local espEnabled = false
+local espThread = nil
+
+P:Toggle({
+    Title = "玩家透视",
+    Value = false,
+    Callback = function(state)
+        if state then
+            espEnabled = true
+            _G.StopESP = false
+            espThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local RunService = game:GetService("RunService")
+                local espObjects = {}
+                while not _G.StopESP do
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                            local head = player.Character.Head
+                            if not espObjects[player.UserId] then
+                                local bill = Instance.new("BillboardGui")
+                                bill.Size = UDim2.new(0, 200, 0, 40)
+                                bill.AlwaysOnTop = true
+                                bill.StudsOffset = Vector3.new(0, 3, 0)
+                                bill.Parent = head
+                                local label = Instance.new("TextLabel")
+                                label.Size = UDim2.new(1, 0, 1, 0)
+                                label.BackgroundTransparency = 1
+                                label.Text = player.Name .. " | " .. string.format("%.1f", (head.Position - (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") and LocalPlayer.Character.Head.Position or Vector3.new(0,0,0))).Magnitude / 3) .. "m"
+                                label.TextColor3 = Color3.new(1,1,1)
+                                label.TextScaled = true
+                                label.Font = Enum.Font.GothamBold
+                                label.Parent = bill
+                                espObjects[player.UserId] = bill
+                            end
+                        else
+                            if espObjects[player.UserId] then
+                                espObjects[player.UserId]:Destroy()
+                                espObjects[player.UserId] = nil
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+                for _, obj in pairs(espObjects) do
+                    if obj then obj:Destroy() end
+                end
+                espObjects = {}
+            end)
+        else
+            _G.StopESP = true
+            if espThread then
+                task.cancel(espThread)
+                espThread = nil
+            end
+        end
+    end
+})
+
+local lineEnabled = false
+local lineThread = nil
+local lineObjects = {}
+
+P:Toggle({
+    Title = "射线透视",
+    Value = false,
+    Callback = function(state)
+        if state then
+            lineEnabled = true
+            _G.StopLine = false
+            lineThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local RunService = game:GetService("RunService")
+                while not _G.StopLine do
+                    for _, obj in pairs(lineObjects) do
+                        if obj then obj:Remove() end
+                    end
+                    lineObjects = {}
+                    local cam = workspace.CurrentCamera
+                    local origin = cam.CFrame.Position
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                            local headPos = player.Character.Head.Position
+                            local line = Drawing.new("Line")
+                            line.From = Vector2.new(cam:WorldToViewportPoint(origin).X, cam:WorldToViewportPoint(origin).Y)
+                            line.To = Vector2.new(cam:WorldToViewportPoint(headPos).X, cam:WorldToViewportPoint(headPos).Y)
+                            line.Color = Color3.new(1,0,0)
+                            line.Thickness = 1.5
+                            line.Transparency = 0.5
+                            table.insert(lineObjects, line)
+                        end
+                    end
+                    task.wait(0.05)
+                end
+                for _, obj in pairs(lineObjects) do
+                    if obj then obj:Remove() end
+                end
+                lineObjects = {}
+            end)
+        else
+            _G.StopLine = true
+            if lineThread then
+                task.cancel(lineThread)
+                lineThread = nil
+            end
+        end
+    end
+})
+
+local itemEspEnabled = false
+local itemEspThread = nil
+local itemEspObjects = {}
+
+P:Toggle({
+    Title = "物品透视",
+    Value = false,
+    Callback = function(state)
+        if state then
+            itemEspEnabled = true
+            _G.StopItemESP = false
+            itemEspThread = task.spawn(function()
+                while not _G.StopItemESP do
+                    for _, obj in pairs(itemEspObjects) do
+                        if obj then obj:Destroy() end
+                    end
+                    itemEspObjects = {}
+                    local items = workspace:GetDescendants()
+                    for _, item in ipairs(items) do
+                        if item:IsA("Tool") or item:IsA("Part") and item:FindFirstChild("Handle") then
+                            if item.Parent ~= game.Players.LocalPlayer.Character then
+                                local bill = Instance.new("BillboardGui")
+                                bill.Size = UDim2.new(0, 150, 0, 30)
+                                bill.AlwaysOnTop = true
+                                bill.StudsOffset = Vector3.new(0, 2, 0)
+                                bill.Parent = item
+                                local label = Instance.new("TextLabel")
+                                label.Size = UDim2.new(1, 0, 1, 0)
+                                label.BackgroundTransparency = 1
+                                label.Text = item.Name
+                                label.TextColor3 = Color3.new(0,1,0)
+                                label.TextScaled = true
+                                label.Font = Enum.Font.GothamBold
+                                label.Parent = bill
+                                table.insert(itemEspObjects, bill)
+                            end
+                        end
+                    end
+                    task.wait(0.5)
+                end
+                for _, obj in pairs(itemEspObjects) do
+                    if obj then obj:Destroy() end
+                end
+                itemEspObjects = {}
+            end)
+        else
+            _G.StopItemESP = true
+            if itemEspThread then
+                task.cancel(itemEspThread)
+                itemEspThread = nil
+            end
+        end
+    end
+})
+
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
 local selectedPlayer=nil
@@ -232,7 +401,8 @@ TransTab:Button({Title="传送",Callback=function()
     end
     local target=game:GetService("Players"):FindFirstChild(selectedPlayer)
     if not target or not target.Character then
-A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没有角色",Duration=2})
+        A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没有角色",Duration=2})
+              A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没有角色",Duration=2})
         return
     end
     local targetRoot=target.Character:FindFirstChild("HumanoidRootPart")
@@ -254,11 +424,97 @@ A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没�
     A:SetCore("SendNotification",{Title="传送成功",Text="已传送到 "..selectedPlayer.." 旁边",Duration=2})
 end})
 
+local MusicTab = D:Tab({Title="音乐播放器", Icon="music"})
+
+local currentSound = nil
+local currentVolume = 0.5
+local currentSpeed = 1
+local musicId = ""
+
+MusicTab:Input({
+    Title = "音乐ID",
+    Placeholder = "请输入音乐ID",
+    Callback = function(text)
+        musicId = text
+    end
+})
+
+MusicTab:Input({
+    Title = "音量",
+    Placeholder = "请输入数字",
+    Callback = function(text)
+        local val = tonumber(text)
+        if val then
+            val = math.clamp(val, 0, 10000000000)
+            currentVolume = val
+            if currentSound then
+                currentSound.Volume = currentVolume
+            end
+        end
+    end
+})
+
+MusicTab:Input({
+    Title = "速度",
+    Placeholder = "请输入数字",
+    Callback = function(text)
+        local val = tonumber(text)
+        if val then
+            val = math.clamp(val, 0.01, 2)
+            currentSpeed = val
+            if currentSound then
+                currentSound.PlaybackSpeed = currentSpeed
+            end
+        end
+    end
+})
+
+MusicTab:Button({
+    Title = "播放音乐",
+    Callback = function()
+        if musicId == "" then
+            A:SetCore("SendNotification",{Title="提示", Text="请先输入音乐ID", Duration=2})
+            return
+        end
+        if currentSound then
+            currentSound:Destroy()
+            currentSound = nil
+        end
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. musicId
+        sound.Volume = currentVolume
+        sound.PlaybackSpeed = currentSpeed
+        sound.Looped = true   
+        sound.Parent = game.Players.LocalPlayer.Character or workspace
+        sound:Play()
+        currentSound = sound
+        A:SetCore("SendNotification",{Title="播放中", Text="音乐ID: " .. musicId .. "（循环播放）", Duration=2})
+    end
+})
+
+MusicTab:Button({
+    Title = "停止音乐",
+    Callback = function()
+        if currentSound then
+            currentSound:Stop()
+            currentSound:Destroy()
+            currentSound = nil
+            A:SetCore("SendNotification",{Title="已停止", Text="音乐已停止", Duration=2})
+        else
+            A:SetCore("SendNotification",{Title="提示", Text="当前没有正在播放的音乐", Duration=2})
+        end
+    end
+})
+
 local L=D:Tab({Title="FE",Icon="zap"})
 L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
 L:Button({Title="被遗弃人物",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))()end})
 L:Button({Title="R15下蹲",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Azizanzz0/Scripts/refs/heads/main/Crouching.txt"))()end})
 L:Button({Title="爬行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_vZDX8j5ggfAf58QhdJ59BVEmF6nmZgq4Mcjt2l8wn16CiStIW2P6EkNc605qv9K4.lua.txt"))()end})
+L:Button({Title="免费动作",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Gazer-Ha/Free-emote/refs/heads/main/Delta%20mad%20stuffs"))()end})
+L:Button({Title="假延迟",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/RENZXW/RENZXW-SCRIPTS/main/fakeLAGRENZXW.txt"))()end})
+L:Button({Title="假VR(仅自然灾害)",Callback=function()loadstring(game:HttpGet("https://pastefy.app/MvKHpycG/raw"))()end})
+L:Button({Title="冲刺",Callback=function()loadstring(game:HttpGet("https://pastefy.app/ZhKVgCK3/raw"))()end})
 
 local M=D:Tab({Title="漏洞",Icon="bug"})
 M:Button({Title="AC6音乐播放器",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-FE-Ac6-Music-Vulnerability-25536"))()end})
@@ -266,6 +522,11 @@ M:Button({Title="后门执行器1",Callback=function()loadstring(game:HttpGet("h
 M:Button({Title="后门执行器2",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Starlight-Scanner-213808"))()end})
 M:Button({Title="UnethicalNetworks f3x gui v9",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-UnethicalNetworks-f3x-gui-v9-124640"))()end})
 M:Button({Title="UnethicalNetworks f3x gui v6 v7 v8",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-UnethicalNetworks-f3x-gui-v6v7v8-121690"))()end})
+
+local P=D:Tab({Title="其它脚本",Icon="code"})
+P:Button({Title="被遗弃角色|皮肤修改器",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E8%A2%AB%E9%81%97%E5%BC%83%E8%A7%92%E8%89%B2or%E7%9A%AE%E8%82%A4%E5%88%87%E6%8D%A2%E5%99%A8.lua"))()end})
+P:Button({Title="夜脚本",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/ylt410/roblox-Script/refs/heads/main/yejiaoben"))()end})
+P:Button({Title="ROB脚本",Callback=function()loadstring(game:HttpGet("https://raw.gitcode.com/ROB5201314/robscript/raw/main/ROB.V3"))()end})
 
 local N=D:Tab({Title="末日砖块",Icon="target"})
 local O=D:Tab({Title="被遗弃",Icon="ghost"})
@@ -300,8 +561,7 @@ end})
 local guestChargeEnabled=false
 local guestChargeThread=nil
 
-O:Toggle({Title="访客大运",Value=false,Callback=function(s)
-    guestChargeEnabled=s
+O:Toggle({Title="访客大运",Value=false,Callback=function(s)    guestChargeEnabled=s
     if s then
         if guestChargeThread then task.cancel(guestChargeThread) end
         guestChargeThread=task.spawn(function()
@@ -432,8 +692,7 @@ end})
 local guest666Enabled=false
 local guest666Thread=nil
 
-O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
-    guest666Enabled=s
+O:Toggle({Title="访客666大运",Value=false,Callback=function(s)    guest666Enabled=s
     if s then
         if guest666Thread then task.cancel(guest666Thread) end
         guest666Thread=task.spawn(function()
@@ -448,37 +707,113 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
-local NicoTab=D:Tab({Title="Nico的下一个机器人",Icon="cpu"})
+local CatTab = D:Tab({Title="猫入侵者", Icon="cat"})
 
-local autoJumpEnabled=false
-local autoJumpThread=nil
+local weaponCDEnabled = false
+local weaponCDThread = nil
 
-NicoTab:Toggle({Title="自动跳跃",Value=false,Callback=function(s)
-    autoJumpEnabled=s
-    if s then
-        if autoJumpThread then task.cancel(autoJumpThread) end
-        autoJumpThread=task.spawn(function()
-            while autoJumpEnabled do
-                local char=game.Players.LocalPlayer.Character
-                if char then
-                    local hum=char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.Health>0 then
-                        local state=hum:GetState()
-                        if state==Enum.HumanoidStateType.Landed or state==Enum.HumanoidStateType.Running or state==Enum.HumanoidStateType.Walking then
-                            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                        end
+CatTab:Toggle({
+    Title = "武器无CD",
+    Value = false,
+    Callback = function(state)
+        if state then
+            weaponCDEnabled = true
+            _G.StopWeaponCD = false
+            weaponCDThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
+                for _, weapon in pairs(Weapons) do
+                    if type(weapon) == "table" then
+                        weapon.Cooldown = 0
                     end
                 end
-                task.wait(0.1)
+
+                local oldGetServerTimeNow = workspace.GetServerTimeNow
+                workspace.GetServerTimeNow = function(self, ...)
+                    return oldGetServerTimeNow(self, ...) + 999999
+                end
+
+                local CooldownEvent = ReplicatedStorage.Events.Cooldown
+                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
+                    conn:Disable()
+                end
+
+                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
+                _G.WeaponFiring = false
+
+                function startRapidFire()
+                    if _G.WeaponFiring then return end
+                    _G.WeaponFiring = true
+                    task.spawn(function()
+                        while _G.WeaponFiring and not _G.StopWeaponCD do
+                            local cam = workspace.CurrentCamera
+                            local mouse = LocalPlayer:GetMouse()
+                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+                            WeaponEvent:FireServer(ray.Direction.Unit, true)
+                            task.wait(0.01)
+                        end
+                        _G.WeaponFiring = false
+                    end)
+                end
+
+                function stopRapidFire()
+                    _G.WeaponFiring = false
+                end
+
+                startRapidFire()
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        local char = LocalPlayer.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
+                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
+                        task.wait(0.1)
+                    end
+                end)
+
+                while not _G.StopWeaponCD do
+                    task.wait(1)
+                end
+            end)
+        else
+            weaponCDEnabled = false
+            _G.StopWeaponCD = true
+            if weaponCDThread then
+                task.cancel(weaponCDThread)
+                weaponCDThread = nil
             end
-        end)
-    else
-        if autoJumpThread then
-            task.cancel(autoJumpThread)
-            autoJumpThread=nil
+            if _G.WeaponFiring then
+                _G.WeaponFiring = false
+            end
         end
     end
-end})
+})
 
 local Players=game:GetService("Players")
 local player=Players.LocalPlayer
