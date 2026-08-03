@@ -203,393 +203,299 @@ E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('http
 
 local P = D:Tab({Title="透视专区", Icon="eye"})
 
-local colorEnabled = false
-local colorThread = nil
-local savedColors = {}
+local Workspace, RunService, Players, CoreGui = game:GetService("Workspace"), game:GetService("RunService"), game:GetService("Players"), game:GetService("CoreGui")
 
-P:Toggle({
-    Title = "人物高亮",
-    Value = false,
-    Callback = function(state)
-        if state then
-            colorEnabled = true
-            _G.StopColor = false
-            colorThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                local highlightGuis = {}  -- 存储每个玩家的光晕GUI
-                while not _G.StopColor do
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            local char = player.Character
-                            -- 修改角色部件颜色和透明度
-                            if not savedColors[player.UserId] then
-                                savedColors[player.UserId] = {}
-                            end
-                            for _, part in ipairs(char:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    if not savedColors[player.UserId][part] then
-                                        savedColors[player.UserId][part] = {Color = part.Color, Transparency = part.Transparency}
-                                    end
-                                    part.Color = Color3.new(0.8, 0.8, 0.8)
-                                    part.Transparency = 0.3
-                                end
-                            end
-                            -- 添加头顶光晕（透视标记）
-                            if not highlightGuis[player.UserId] then
-                                local head = char.Head
-                                local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 60, 0, 60)
-                                bill.AlwaysOnTop = true
-                                bill.StudsOffset = Vector3.new(0, 3.5, 0)
-                                bill.Parent = head
-                                local image = Instance.new("ImageLabel")
-                                image.Size = UDim2.new(1, 0, 1, 0)
-                                image.BackgroundTransparency = 1
-                                image.Image = "rbxassetid://13111545594"  -- 圆形光晕
-                                image.ImageColor3 = Color3.new(0.8, 0.8, 0.8)
-                                image.ImageTransparency = 0.3
-                                image.Parent = bill
-                                highlightGuis[player.UserId] = bill
-                            end
-                        else
-                            -- 清理已离开的玩家
-                            if highlightGuis[player.UserId] then
-                                highlightGuis[player.UserId]:Destroy()
-                                highlightGuis[player.UserId] = nil
-                            end
-                            if savedColors[player.UserId] then
-                                for part, data in pairs(savedColors[player.UserId]) do
-                                    if part and part.Parent then
-                                        part.Color = data.Color
-                                        part.Transparency = data.Transparency
-                                    end
-                                end
-                                savedColors[player.UserId] = nil
-                            end
-                        end
-                    end
-                    task.wait(0.2)
-                end
-                -- 关闭循环时清理所有
-                for uid, gui in pairs(highlightGuis) do
-                    if gui then gui:Destroy() end
-                end
-                highlightGuis = {}
-                for uid, tbl in pairs(savedColors) do
-                    for part, data in pairs(tbl) do
-                        if part and part.Parent then
-                            part.Color = data.Color
-                            part.Transparency = data.Transparency
-                        end
-                    end
-                end
-                savedColors = {}
-            end)
+local ESP = {
+    Enabled = false, TeamCheck = true, MaxDistance = 2000, FontSize = 11,
+    FadeOut = { OnDistance = true, OnDeath = false, OnLeave = false },
+    Options = { Teamcheck = true, TeamcheckRGB = Color3.fromRGB(119, 120, 255), Friendcheck = true, FriendcheckRGB = Color3.fromRGB(119, 120, 255), Highlight = true, HighlightRGB = Color3.fromRGB(119, 120, 255) },
+    Drawing = {
+        Chams = { Enabled = false, Thermal = false, FillRGB = Color3.fromRGB(119, 120, 255), Fill_Transparency = 100, OutlineRGB = Color3.fromRGB(119, 120, 255), Outline_Transparency = 0, VisibleCheck = true },
+        Names = { Enabled = false, RGB = Color3.fromRGB(255, 255, 255) },
+        Flags = { Enabled = false },
+        Distances = { Enabled = false, Position = "Text", RGB = Color3.fromRGB(255, 255, 255) },
+        Weapons = { Enabled = false, WeaponTextRGB = Color3.fromRGB(119, 120, 255), Outlined = false, Gradient = false, GradientRGB1 = Color3.fromRGB(255, 255, 255), GradientRGB2 = Color3.fromRGB(119, 120, 255) },
+        Healthbar = { Enabled = false, HealthText = true, Lerp = false, HealthTextRGB = Color3.fromRGB(255, 255, 255), Width = 1.25, Gradient = false, GradientRGB1 = Color3.fromRGB(200, 0, 0), GradientRGB2 = Color3.fromRGB(60, 60, 125), GradientRGB3 = Color3.fromRGB(119, 120, 255) },
+        Boxes = { Animate = true, RotationSpeed = 300, Gradient = true, GradientRGB1 = Color3.fromRGB(140, 180, 255), GradientRGB2 = Color3.fromRGB(180, 120, 255), GradientFill = false, GradientFillRGB1 = Color3.fromRGB(119, 120, 255), GradientFillRGB2 = Color3.fromRGB(0,0,0), Filled = { Enabled = false, Transparency = 0.75, RGB = Color3.fromRGB(119, 120, 255) }, Full = { Enabled = false, RGB = Color3.fromRGB(255,255,255) }, Corner = { Enabled = false, RGB = Color3.fromRGB(255,255,255) } }
+    },
+    Connections = { RunService = RunService },
+    Fonts = {}
+}
+
+local lplayer = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+local Cam = Workspace.CurrentCamera
+local RotationAngle, Tick = -45, tick()
+
+local Functions = {}
+do
+    function Functions:Create(Class, Properties)
+        local _Instance = typeof(Class) == 'string' and Instance.new(Class) or Class
+        for Property, Value in pairs(Properties) do _Instance[Property] = Value end
+        return _Instance
+    end
+    function Functions:FadeOutOnDist(element, distance)
+        local transparency = math.max(0.1, 1 - (distance / ESP.MaxDistance))
+        if element:IsA("TextLabel") then element.TextTransparency = 1 - transparency
+        elseif element:IsA("ImageLabel") then element.ImageTransparency = 1 - transparency
+        elseif element:IsA("UIStroke") then element.Transparency = 1 - transparency
+        elseif element:IsA("Frame") then element.BackgroundTransparency = 1 - transparency
+        elseif element:IsA("Highlight") then element.FillTransparency = 1; element.OutlineTransparency = 1 - transparency end
+    end
+    function Functions:GetRainbow()
+        local t = tick() * 1.5
+        local r = 0.7 + 0.3 * math.sin(t * 2 + 0)
+        local g = 0.7 + 0.3 * math.sin(t * 2 + 2)
+        local b = 0.9 + 0.1 * math.sin(t * 2 + 4)
+        return Color3.new(r, g, b)
+    end
+end
+
+local ScreenGui = Functions:Create("ScreenGui", { Parent = CoreGui, Name = "ESPHolder" })
+
+local function DupeCheck(plr)
+    if ScreenGui:FindFirstChild(plr.Name) then ScreenGui[plr.Name]:Destroy() end
+end
+
+local function ESPRender(plr)
+    coroutine.wrap(DupeCheck)(plr)
+    local Name = Functions:Create("TextLabel", {Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, -11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
+    local Distance = Functions:Create("TextLabel", {Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 11), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
+    local Weapon = Functions:Create("TextLabel", {Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 31), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), RichText = true})
+    local Box = Functions:Create("Frame", {Parent = ScreenGui, BackgroundTransparency = 1, BorderSizePixel = 0})
+    local Outline = Functions:Create("UIStroke", {Parent = Box, Enabled = true, Transparency = 0, Color = Color3.fromRGB(255,255,255), Thickness = 1, LineJoinMode = Enum.LineJoinMode.Miter})
+    local Gradient2 = Functions:Create("UIGradient", {Parent = Outline, Enabled = true, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 180, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 120, 255))})})
+    local Healthbar = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0})
+    local BehindHealthbar = Functions:Create("Frame", {Parent = ScreenGui, ZIndex = -1, BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 0})
+    local HealthbarGradient = Functions:Create("UIGradient", {Parent = Healthbar, Enabled = ESP.Drawing.Healthbar.Gradient, Rotation = -90, Color = ColorSequence.new{ColorSequenceKeypoint.new(0, ESP.Drawing.Healthbar.GradientRGB1), ColorSequenceKeypoint.new(0.5, ESP.Drawing.Healthbar.GradientRGB2), ColorSequenceKeypoint.new(1, ESP.Drawing.Healthbar.GradientRGB3)}})
+    local HealthText = Functions:Create("TextLabel", {Parent = ScreenGui, Position = UDim2.new(0.5, 0, 0, 31), Size = UDim2.new(0, 100, 0, 20), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.Code, TextSize = ESP.FontSize, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0, 0, 0)})
+    local Chams = Functions:Create("Highlight", {Parent = ScreenGui, FillTransparency = 1, OutlineTransparency = 0, OutlineColor = Color3.fromRGB(255,255,255), DepthMode = "AlwaysOnTop"})
+    local LeftTop = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local LeftSide = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local RightTop = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local RightSide = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local BottomSide = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local BottomDown = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local BottomRightSide = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local BottomRightDown = Functions:Create("Frame", {Parent = ScreenGui, BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB, Position = UDim2.new(0, 0, 0, 0)})
+    local Flag1 = Functions:Create("TextLabel", {Parent = ScreenGui, Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0.5, 0, 0, -25), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 11, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0,0,0), TextColor3 = Color3.fromRGB(255,255,255)})
+    local Flag2 = Functions:Create("TextLabel", {Parent = ScreenGui, Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0.5, 0, 0, -25), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 11, TextStrokeTransparency = 0, TextStrokeColor3 = Color3.fromRGB(0,0,0), TextColor3 = Color3.fromRGB(255,255,255)})
+
+    local function UpdateESP()
+        local function Updater()
+            if not ESP.Enabled then
+                Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+                Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+                LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+                RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+                Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+                return
+            end
+            if not plr.Character or not plr.Character:FindFirstChild("Humanoid") then
+                Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+                Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+                LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+                RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+                Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+                return
+            end
+        if ESP.TeamCheck and plr.Team == lplayer.Team and plr ~= lplayer then
+            Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+            Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+            Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+            return
+        end
+        local Humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+        if not Humanoid or Humanoid.Health <= 0 then
+            Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+            Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+            Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+            return
+        end
+        local Head = plr.Character:FindFirstChild("Head")
+        local Root = plr.Character:FindFirstChild("HumanoidRootPart")
+        if not Head or not Root then
+            Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+            Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+            Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+            return
+        end
+        local Dist = (Root.Position - (lplayer.Character and lplayer.Character:FindFirstChild("HumanoidRootPart") and lplayer.Character.HumanoidRootPart.Position or Vector3.new(0,0,0))).Magnitude
+        if Dist > ESP.MaxDistance then
+            Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+            Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+            Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+            return
+        end
+        local Pos, OnScreen = camera:WorldToViewportPoint(Root.Position)
+        if not OnScreen then
+            Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+            Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+            Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+            return
+        end
+        local RootPos = Root.Position
+        local HeadPos = Head.Position
+        local bottom = RootPos - Vector3.new(0, 1.8, 0)
+        local top = HeadPos + Vector3.new(0, 0.8, 0)
+        local width = 1.5
+        local half = width / 2
+        local corners = {
+            top + Vector3.new(-half, 0, -half), top + Vector3.new(half, 0, -half),
+            top + Vector3.new(half, 0, half), top + Vector3.new(-half, 0, half),
+            bottom + Vector3.new(-half, 0, -half), bottom + Vector3.new(half, 0, -half),
+            bottom + Vector3.new(half, 0, half), bottom + Vector3.new(-half, 0, half)
+        }
+        local screen = {}
+        for _, p in ipairs(corners) do
+            local v, on = camera:WorldToViewportPoint(p)
+            if not on then
+                Box.Visible = false; Name.Visible = false; Distance.Visible = false; Weapon.Visible = false
+                Healthbar.Visible = false; BehindHealthbar.Visible = false; HealthText.Visible = false
+                LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+                RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
+                Flag1.Visible = false; Chams.Enabled = false; Flag2.Visible = false
+                return
+            end
+            table.insert(screen, Vector2.new(v.X, v.Y))
+        end
+        local minX, maxX = screen[1].X, screen[1].X
+        local minY, maxY = screen[1].Y, screen[1].Y
+        for i = 2, #screen do
+            local v = screen[i]
+            if v.X < minX then minX = v.X end
+            if v.X > maxX then maxX = v.X end
+            if v.Y < minY then minY = v.Y end
+            if v.Y > maxY then maxY = v.Y end
+        end
+        local w = maxX - minX
+        local h = maxY - minY
+        Box.Position = UDim2.new(0, minX, 0, minY)
+        Box.Size = UDim2.new(0, w, 0, h)
+        Box.Visible = ESP.Drawing.Boxes.Full.Enabled or ESP.Drawing.Boxes.Corner.Enabled
+        if ESP.Drawing.Boxes.Full.Enabled then
+            Outline.Enabled = true
+            Outline.Color = ESP.Drawing.Boxes.Full.RGB
+            Outline.Thickness = 1
+            if ESP.Drawing.Boxes.Gradient then
+                Gradient2.Enabled = true
+                Gradient2.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, ESP.Drawing.Boxes.GradientRGB1), ColorSequenceKeypoint.new(1, ESP.Drawing.Boxes.GradientRGB2)})
+            else
+                Gradient2.Enabled = false
+            end
         else
-            _G.StopColor = true
-            if colorThread then task.cancel(colorThread); colorThread = nil end
-            -- 恢复颜色并移除光晕（需在关闭时做，但上面循环会处理，不过以防万一）
-            for uid, gui in pairs(_G.highlightGuis or {}) do
-                if gui then gui:Destroy() end
-            end
-            for uid, tbl in pairs(savedColors) do
-                for part, data in pairs(tbl) do
-                    if part and part.Parent then
-                        part.Color = data.Color
-                        part.Transparency = data.Transparency
-                    end
-                end
-            end
-            savedColors = {}
-            _G.highlightGuis = {}
+            Outline.Enabled = false
         end
-    end
-})
-
-local nameEnabled = false
-local nameThread = nil
-local nameGuis = {}
-
-P:Toggle({
-    Title = "玩家名字",
-    Value = false,
-    Callback = function(state)
-        if state then
-            nameEnabled = true
-            _G.StopName = false
-            nameThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                while not _G.StopName do
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            if not nameGuis[player.UserId] then
-                                local head = player.Character.Head
-                                local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 100, 0, 20)
-                                bill.AlwaysOnTop = true
-                                bill.StudsOffset = Vector3.new(0, 2.5, 0)
-                                bill.Parent = head
-                                local label = Instance.new("TextLabel")
-                                label.Size = UDim2.new(1, 0, 1, 0)
-                                label.BackgroundTransparency = 1
-                                label.Text = player.Name
-                                label.TextSize = 14
-                                label.Font = Enum.Font.GothamBold
-                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
-                                    label.TextColor3 = Color3.new(1,0,0)
-                                else
-                                    label.TextColor3 = Color3.new(1,1,1)
-                                end
-                                label.Parent = bill
-                                nameGuis[player.UserId] = bill
-                            else
-                                local bill = nameGuis[player.UserId]
-                                if bill and bill:FindFirstChildOfClass("TextLabel") then
-                                    local label = bill:FindFirstChildOfClass("TextLabel")
-                                    if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
-                                        label.TextColor3 = Color3.new(1,0,0)
-                                    else
-                                        label.TextColor3 = Color3.new(1,1,1)
-                                    end
-                                end
-                            end
-                        else
-                            if nameGuis[player.UserId] then
-                                nameGuis[player.UserId]:Destroy()
-                                nameGuis[player.UserId] = nil
-                            end
-                        end
-                    end
-                    task.wait(0.3)
-                end
-                for _, gui in pairs(nameGuis) do
-                    if gui then gui:Destroy() end
-                end
-                nameGuis = {}
-            end)
+        if ESP.Drawing.Boxes.Corner.Enabled then
+            LeftTop.Visible = true; LeftSide.Visible = true; BottomSide.Visible = true; BottomDown.Visible = true
+            RightTop.Visible = true; RightSide.Visible = true; BottomRightSide.Visible = true; BottomRightDown.Visible = true
+            LeftTop.Size = UDim2.new(0, 6, 0, 1); LeftTop.Position = UDim2.new(0, minX, 0, minY)
+            LeftSide.Size = UDim2.new(0, 1, 0, 6); LeftSide.Position = UDim2.new(0, minX, 0, minY)
+            BottomSide.Size = UDim2.new(0, 6, 0, 1); BottomSide.Position = UDim2.new(0, minX + w - 6, 0, minY)
+            BottomDown.Size = UDim2.new(0, 1, 0, 6); BottomDown.Position = UDim2.new(0, minX + w - 1, 0, minY)
+            RightTop.Size = UDim2.new(0, 6, 0, 1); RightTop.Position = UDim2.new(0, minX, 0, minY + h - 1)
+            RightSide.Size = UDim2.new(0, 1, 0, 6); RightSide.Position = UDim2.new(0, minX, 0, minY + h - 6)
+            BottomRightSide.Size = UDim2.new(0, 6, 0, 1); BottomRightSide.Position = UDim2.new(0, minX + w - 6, 0, minY + h - 1)
+            BottomRightDown.Size = UDim2.new(0, 1, 0, 6); BottomRightDown.Position = UDim2.new(0, minX + w - 1, 0, minY + h - 6)
+            LeftTop.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            LeftSide.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            BottomSide.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            BottomDown.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            RightTop.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            RightSide.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            BottomRightSide.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
+            BottomRightDown.BackgroundColor3 = ESP.Drawing.Boxes.Corner.RGB
         else
-            _G.StopName = true
-            if nameThread then task.cancel(nameThread); nameThread = nil end
-            for _, gui in pairs(nameGuis) do
-                if gui then gui:Destroy() end
-            end
-            nameGuis = {}
+            LeftTop.Visible = false; LeftSide.Visible = false; BottomSide.Visible = false; BottomDown.Visible = false
+            RightTop.Visible = false; RightSide.Visible = false; BottomRightSide.Visible = false; BottomRightDown.Visible = false
         end
-    end
-})
-
-local boxEnabled = false
-local boxThread = nil
-local boxDrawings = {}
-
-P:Toggle({
-    Title = "人物方框",
-    Value = false,
-    Callback = function(state)
-        if state then
-            boxEnabled = true
-            _G.StopBox = false
-            boxThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                local camera = workspace.CurrentCamera
-                local function getBox(player)
-                    local char = player.Character
-                    if not char then return nil end
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    local head = char:FindFirstChild("Head")
-                    if not hrp or not head then return nil end
-                    local rootPos = hrp.Position
-                    local topPos = head.Position + Vector3.new(0, 1.1, 0)
-                    local bottomPos = rootPos - Vector3.new(0, 2.1, 0)
-                    local width = 2.5
-                    local half = width / 2
-                    local corners = {
-                        topPos + Vector3.new(-half,0,-half), topPos + Vector3.new(half,0,-half),
-                        topPos + Vector3.new(half,0,half), topPos + Vector3.new(-half,0,half),
-                        bottomPos + Vector3.new(-half,0,-half), bottomPos + Vector3.new(half,0,-half),
-                        bottomPos + Vector3.new(half,0,half), bottomPos + Vector3.new(-half,0,half)
-                    }
-                    local screen = {}
-                    for _, p in ipairs(corners) do
-                        local v, on = camera:WorldToViewportPoint(p)
-                        if not on then return nil end
-                        table.insert(screen, Vector2.new(v.X, v.Y))
-                    end
-                    local minX, maxX = screen[1].X, screen[1].X
-                    local minY, maxY = screen[1].Y, screen[1].Y
-                    for i = 2, #screen do
-                        local v = screen[i]
-                        if v.X < minX then minX = v.X end
-                        if v.X > maxX then maxX = v.X end
-                        if v.Y < minY then minY = v.Y end
-                        if v.Y > maxY then maxY = v.Y end
-                    end
-                    return {X = minX, Y = minY, W = maxX - minX, H = maxY - minY}
-                end
-                while not _G.StopBox do
-                    for _, list in pairs(boxDrawings) do
-                        for _, line in ipairs(list) do
-                            if line then line:Remove() end
-                        end
-                    end
-                    boxDrawings = {}
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer then
-                            local box = getBox(player)
-                            if box then
-                                local color = Color3.new(0.5,0.5,0.5)
-                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
-                                    color = Color3.new(1,0,0)
-                                end
-                                local lines = {}
-                                local x, y, w, h = box.X, box.Y, box.W, box.H
-                                local l1 = Drawing.new("Line")
-                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 6; l1.Transparency = 0.7
-                                table.insert(lines, l1)
-                                local l2 = Drawing.new("Line")
-                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 6; l2.Transparency = 0.7
-                                table.insert(lines, l2)
-                                local l3 = Drawing.new("Line")
-                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 6; l3.Transparency = 0.7
-                                table.insert(lines, l3)
-                                local l4 = Drawing.new("Line")
-                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 6; l4.Transparency = 0.7
-                                table.insert(lines, l4)
-                                boxDrawings[player.UserId] = lines
-                            end
-                        end
-                    end
-                    task.wait(0.05)
-                end
-                for _, list in pairs(boxDrawings) do
-                    for _, line in ipairs(list) do
-                        if line then line:Remove() end
-                    end
-                end
-                boxDrawings = {}
-            end)
-        else
-            _G.StopBox = true
-            if boxThread then task.cancel(boxThread); boxThread = nil end
-            for _, list in pairs(boxDrawings) do
-                for _, line in ipairs(list) do
-                    if line then line:Remove() end
-                end
-            end
-            boxDrawings = {}
+        Name.Visible = ESP.Drawing.Names.Enabled
+        if Name.Visible then
+            Name.Text = plr.Name
+            Name.Position = UDim2.new(0, minX + w/2 - 50, 0, minY - 20)
+            Name.TextColor3 = ESP.Drawing.Names.RGB
+            if ESP.FadeOut.OnDistance then Functions:FadeOutOnDist(Name, Dist) end
         end
-    end
-})
-
-local distEnabled = false
-local distThread = nil
-local distGuis = {}
-
-P:Toggle({
-    Title = "人物距离",
-    Value = false,
-    Callback = function(state)
-        if state then
-            distEnabled = true
-            _G.StopDist = false
-            distThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                while not _G.StopDist do
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            if not distGuis[player.UserId] then
-                                local head = player.Character.Head
-                                local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 60, 0, 16)
-                                bill.AlwaysOnTop = true
-                                bill.StudsOffset = Vector3.new(0, 0.5, 0)
-                                bill.Parent = head
-                                local label = Instance.new("TextLabel")
-                                label.Size = UDim2.new(1,0,1,0)
-                                label.BackgroundTransparency = 1
-                                label.TextSize = 10
-                                label.Font = Enum.Font.GothamBold
-                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
-                                    label.TextColor3 = Color3.new(1,0,0)
-                                else
-                                    label.TextColor3 = Color3.new(1,1,1)
-                                end
-                                label.Parent = bill
-                                distGuis[player.UserId] = bill
-                            else
-                                local bill = distGuis[player.UserId]
-                                if bill and bill:FindFirstChildOfClass("TextLabel") then
-                                    local label = bill:FindFirstChildOfClass("TextLabel")
-                                    local head = player.Character and player.Character:FindFirstChild("Head")
-                                    local localHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
-                                    if head and localHead then
-                                        local dist = (head.Position - localHead.Position).Magnitude / 3
-                                        label.Text = string.format("%.1f", dist) .. "m"
-                                    else
-                                        label.Text = "?"
-                                    end
-                                    if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
-                                        label.TextColor3 = Color3.new(1,0,0)
-                                    else
-                                        label.TextColor3 = Color3.new(1,1,1)
-                                    end
-                                end
-                            end
-                        else
-                            if distGuis[player.UserId] then
-                                distGuis[player.UserId]:Destroy()
-                                distGuis[player.UserId] = nil
-                            end
-                        end
-                    end
-                    task.wait(0.2)
-                end
-                for _, gui in pairs(distGuis) do
-                    if gui then gui:Destroy() end
-                end
-                distGuis = {}
-            end)
-        else
-            _G.StopDist = true
-            if distThread then task.cancel(distThread); distThread = nil end
-            for _, gui in pairs(distGuis) do
-                if gui then gui:Destroy() end
-            end
-            distGuis = {}
+        Distance.Visible = ESP.Drawing.Distances.Enabled
+        if Distance.Visible then
+            Distance.Text = math.floor(Dist) .. "m"
+            Distance.Position = UDim2.new(0, minX + w/2 - 30, 0, maxY + 4)
+            Distance.TextColor3 = ESP.Drawing.Distances.RGB
+            if ESP.FadeOut.OnDistance then Functions:FadeOutOnDist(Distance, Dist) end
         end
-    end
-})
-
-local teamEnabled = false
-
-P:Toggle({
-    Title = "区分阵营",
-    Value = false,
-    Callback = function(state)
-        teamEnabled = state
-        if not state then
-            for _, gui in pairs(nameGuis) do
-                if gui and gui:FindFirstChildOfClass("TextLabel") then
-                    gui:FindFirstChildOfClass("TextLabel").TextColor3 = Color3.new(1,1,1)
-                end
-            end
-            for _, list in pairs(boxDrawings) do
-                for _, line in ipairs(list) do
-                    if line then line.Color = Color3.new(0.5,0.5,0.5) end
-                end
-            end
-            for _, gui in pairs(distGuis) do
-                if gui and gui:FindFirstChildOfClass("TextLabel") then
-                    gui:FindFirstChildOfClass("TextLabel").TextColor3 = Color3.new(1,1,1)
-                end
-            end
+        Weapon.Visible = ESP.Drawing.Weapons.Enabled
+        if Weapon.Visible then
+            local tool = plr.Character:FindFirstChildOfClass("Tool")
+            Weapon.Text = tool and tool.Name or "none"
+            Weapon.Position = UDim2.new(0, minX + w/2 + 30, 0, maxY + 4)
+            Weapon.TextColor3 = ESP.Drawing.Weapons.WeaponTextRGB
+            if ESP.FadeOut.OnDistance then Functions:FadeOutOnDist(Weapon, Dist) end
         end
+        Healthbar.Visible = ESP.Drawing.Healthbar.Enabled
+        BehindHealthbar.Visible = Healthbar.Visible
+        if Healthbar.Visible then
+            local hp = Humanoid.Health / Humanoid.MaxHealth
+            Healthbar.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
+            Healthbar.Position = UDim2.new(0, minX, 0, minY - 6)
+            Healthbar.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
+            BehindHealthbar.Size = UDim2.new(0, w, 0, 3)
+            BehindHealthbar.Position = UDim2.new(0, minX, 0, minY - 6)
+            HealthText.Visible = ESP.Drawing.Healthbar.HealthText
+if HealthText.Visible then
+    HealthText.Text = math.floor(Humanoid.Health) .. "/" .. math.floor(Humanoid.MaxHealth)
+    HealthText.Position = UDim2.new(0, minX + w/2 - 50, 0, minY - 25)
+    HealthText.TextColor3 = ESP.Drawing.Healthbar.HealthTextRGB
+end
+Chams.Enabled = ESP.Drawing.Chams.Enabled
+if Chams.Enabled then
+    Chams.Adornee = plr.Character
+    Chams.OutlineColor = ESP.Drawing.Chams.OutlineRGB
+    Chams.FillColor = ESP.Drawing.Chams.FillRGB
+    Chams.OutlineTransparency = ESP.Drawing.Chams.Outline_Transparency
+    Chams.FillTransparency = ESP.Drawing.Chams.Fill_Transparency / 100
+end
+Flag1.Visible = false
+Flag2.Visible = false
+end
+Updater()
+end
+local connection
+connection = RunService.RenderStepped:Connect(function()
+    UpdateESP()
+end)
+plr.AncestryChanged:Connect(function()
+    if not plr.Parent then
+        connection:Disconnect()
+        ScreenGui:FindFirstChild(plr.Name):Destroy()
     end
-})                       
+end)
+end
+
+for _, v in pairs(Players:GetPlayers()) do
+    if v.Name ~= lplayer.Name then coroutine.wrap(ESPRender)(v) end
+end
+Players.PlayerAdded:Connect(function(v) coroutine.wrap(ESPRender)(v) end)
+
+local espGroup = P:Section({ Title = "透视设置", Opened = true })
+espGroup:Toggle({ Title = "ESP 总开关", Value = ESP.Enabled, Callback = function(s) ESP.Enabled = s end })
+espGroup:Toggle({ Title = "队伍检测", Value = ESP.TeamCheck, Callback = function(s) ESP.TeamCheck = s end })
+espGroup:Toggle({ Title = "名字显示", Value = ESP.Drawing.Names.Enabled, Callback = function(s) ESP.Drawing.Names.Enabled = s end })
+espGroup:Toggle({ Title = "距离显示", Value = ESP.Drawing.Distances.Enabled, Callback = function(s) ESP.Drawing.Distances.Enabled = s end })
+espGroup:Toggle({ Title = "武器显示", Value = ESP.Drawing.Weapons.Enabled, Callback = function(s) ESP.Drawing.Weapons.Enabled = s end })
+espGroup:Toggle({ Title = "血量条", Value = ESP.Drawing.Healthbar.Enabled, Callback = function(s) ESP.Drawing.Healthbar.Enabled = s end })
+espGroup:Toggle({ Title = "方框", Value = ESP.Drawing.Boxes.Full.Enabled, Callback = function(s) ESP.Drawing.Boxes.Full.Enabled = s end })
+espGroup:Toggle({ Title = "角标", Value = ESP.Drawing.Boxes.Corner.Enabled, Callback = function(s) ESP.Drawing.Boxes.Corner.Enabled = s end })
+espGroup:Toggle({ Title = "高亮描边", Value = ESP.Drawing.Chams.Enabled, Callback = function(s) ESP.Drawing.Chams.Enabled = s end })
       
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
