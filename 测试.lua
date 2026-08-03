@@ -227,9 +227,10 @@ P:Toggle({
                             for _, part in ipairs(char:GetDescendants()) do
                                 if part:IsA("BasePart") then
                                     if not savedColors[player.UserId][part] then
-                                        savedColors[player.UserId][part] = part.Color
+                                        savedColors[player.UserId][part] = {Color = part.Color, Transparency = part.Transparency}
                                     end
                                     part.Color = Color3.new(0.5, 0.5, 0.5)
+                                    part.Transparency = 0.4
                                 end
                             end
                         end
@@ -237,9 +238,10 @@ P:Toggle({
                     task.wait(0.2)
                 end
                 for uid, tbl in pairs(savedColors) do
-                    for part, col in pairs(tbl) do
+                    for part, data in pairs(tbl) do
                         if part and part.Parent then
-                            part.Color = col
+                            part.Color = data.Color
+                            part.Transparency = data.Transparency
                         end
                     end
                 end
@@ -249,9 +251,10 @@ P:Toggle({
             _G.StopColor = true
             if colorThread then task.cancel(colorThread); colorThread = nil end
             for uid, tbl in pairs(savedColors) do
-                for part, col in pairs(tbl) do
+                for part, data in pairs(tbl) do
                     if part and part.Parent then
-                        part.Color = col
+                        part.Color = data.Color
+                        part.Transparency = data.Transparency
                     end
                 end
             end
@@ -355,9 +358,9 @@ P:Toggle({
                     local head = char:FindFirstChild("Head")
                     if not hrp or not head then return nil end
                     local rootPos = hrp.Position
-                    local topPos = head.Position + Vector3.new(0, 0.8, 0)
-                    local bottomPos = rootPos - Vector3.new(0, 1.8, 0)
-                    local width = 1.5
+                    local topPos = head.Position + Vector3.new(0, 1.1, 0)
+                    local bottomPos = rootPos - Vector3.new(0, 2.1, 0)
+                    local width = 2.5
                     local half = width / 2
                     local corners = {
                         topPos + Vector3.new(-half,0,-half), topPos + Vector3.new(half,0,-half),
@@ -542,7 +545,7 @@ P:Toggle({
             end
         end
     end
-})     
+})                       
       
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
