@@ -56,6 +56,7 @@ Z:Button({Title="欢迎使用 ink_HUB\n作者：墨水依旧\n快手号：zczczc
 Z:Button({Title="复制作者QQ",Callback=function()setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制",Text="作者QQ：2047955671",Duration=2})end})
 Z:Button({Title="复制作者QQ群",Callback=function()setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制",Text="作者QQ群：1101093219",Duration=2})end})
 Z:Button({Title="复制作者QQ副群",Callback=function()setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制",Text="作者QQ副群：1063828524",Duration=2})end})
+
 local E=D:Tab({Title="通用",Icon="settings"})
 
 local LocalPlayer=game.Players.LocalPlayer
@@ -64,73 +65,51 @@ local jumpEnabled=false
 local speedValue=16
 local jumpValue=50
 
-E:Toggle({
-    Title="启用修改速度",
-    Value=false,
-    Callback=function(s)
-        speedEnabled=s
+E:Toggle({Title="启用修改速度",Value=false,Callback=function(s)
+    speedEnabled=s
+    local char=LocalPlayer.Character
+    if char then
+        local hum=char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if s then hum.WalkSpeed=speedValue else hum.WalkSpeed=16 end
+        end
+    end
+end})
+
+E:Slider({Title="修改速度",Value={Min=16,Max=100,Default=16},Callback=function(v)
+    speedValue=v
+    if speedEnabled then
         local char=LocalPlayer.Character
         if char then
             local hum=char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                if s then
-                    hum.WalkSpeed=speedValue
-                else
-                    hum.WalkSpeed=16
-                end
-            end
+            if hum then hum.WalkSpeed=v end
         end
     end
-})
+end})
 
-E:Slider({
-    Title="修改速度",
-    Value={Min=16,Max=100,Default=16},
-    Callback=function(v)
-        speedValue=v
-        if speedEnabled then
-            local char=LocalPlayer.Character
-            if char then
-                local hum=char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed=v end
-            end
+E:Toggle({Title="启用修改跳跃高度",Value=false,Callback=function(s)
+    jumpEnabled=s
+    local char=LocalPlayer.Character
+    if char then
+        local hum=char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if s then hum.JumpPower=jumpValue else hum.JumpPower=50 end
         end
     end
-})
+end})
 
-E:Toggle({
-    Title="启用修改跳跃高度",
-    Value=false,
-    Callback=function(s)
-        jumpEnabled=s
+E:Slider({Title="修改跳跃高度",Value={Min=20,Max=200,Default=50},Callback=function(v)
+    jumpValue=v
+    if jumpEnabled then
         local char=LocalPlayer.Character
         if char then
             local hum=char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                if s then
-                    hum.JumpPower=jumpValue
-                else
-                    hum.JumpPower=50
-                end
-            end
+            if hum then hum.JumpPower=v end
         end
     end
-})
+end})
 
-E:Slider({
-    Title="修改跳跃高度",
-    Value={Min=20,Max=200,Default=50},
-    Callback=function(v)
-        jumpValue=v
-        if jumpEnabled then
-            local char=LocalPlayer.Character
-            if char then
-                local hum=char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.JumpPower=v end
-            end
-        end
-    end
-})
+E:Button({Title="飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E9%A3%9E%E8%A1%8C%E8%84%9A%E6%9C%AC.lua"))()end})
 
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.1)
@@ -140,8 +119,6 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         hum.JumpPower=jumpEnabled and jumpValue or 50
     end
 end)
-
-E:Button({Title="飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/mciklw/mciklwscript/refs/heads/main/flyvthree"))()end})
 
 local noclipEnabled=false
 local function applyNoClip(s)
@@ -169,8 +146,7 @@ E:Toggle({Title="高亮",Value=false,Callback=function(s)
         Lighting.Ambient=Color3.new(1,1,1)
         Lighting.OutdoorAmbient=Color3.new(1,1,1)
     else
-        Lighting.Brightness=origBright
-        Lighting.Ambient=Color3.new(0.5,0.5,0.5)
+        Lighting.Brightness=origBright        Lighting.Ambient=Color3.new(0.5,0.5,0.5)
         Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
     end
 end})
@@ -240,21 +216,12 @@ local function getPlayerNames()
     return names
 end
 
-local playerDropdown=TransTab:Dropdown({
-    Title="选择玩家",
-    Values=getPlayerNames(),
-    Value="无其他玩家",
-    Callback=function(v)
-        selectedPlayer=v
-    end
-})
+local playerDropdown=TransTab:Dropdown({Title="选择玩家",Values=getPlayerNames(),Value="无其他玩家",Callback=function(v)selectedPlayer=v end})
 
 TransTab:Button({Title="刷新列表",Callback=function()
     local newNames=getPlayerNames()
     playerDropdown:SetValues(newNames)
-    if #newNames>0 then
-        selectedPlayer=newNames[1]
-    end
+    if #newNames>0 then selectedPlayer=newNames[1] end
     A:SetCore("SendNotification",{Title="已刷新",Text="玩家列表已更新",Duration=2})
 end})
 
@@ -265,7 +232,7 @@ TransTab:Button({Title="传送",Callback=function()
     end
     local target=game:GetService("Players"):FindFirstChild(selectedPlayer)
     if not target or not target.Character then
-        A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没有角色",Duration=2})
+A:SetCore("SendNotification",{Title="错误",Text="目标玩家不存在或没有角色",Duration=2})
         return
     end
     local targetRoot=target.Character:FindFirstChild("HumanoidRootPart")
@@ -302,6 +269,216 @@ M:Button({Title="UnethicalNetworks f3x gui v6 v7 v8",Callback=function()loadstri
 
 local N=D:Tab({Title="末日砖块",Icon="target"})
 local O=D:Tab({Title="被遗弃",Icon="ghost"})
+
+O:Toggle({Title="改视野",Value=false,Callback=function()
+    local player=game.Players.LocalPlayer
+    local remote=game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent")
+    local fovObject=player:WaitForChild("PlayerData"):WaitForChild("Settings"):WaitForChild("Game"):WaitForChild("FieldOfView")
+    local bytes=string.char(0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x5E,0x40)
+    remote:FireServer("UpdateSettings",{fovObject,buffer.fromstring(bytes)})
+end})
+
+local guestBlockEnabled=false
+local guestBlockThread=nil
+
+O:Toggle({Title="访客格挡",Value=false,Callback=function(s)
+    guestBlockEnabled=s
+    if s then
+        if guestBlockThread then task.cancel(guestBlockThread) end
+        guestBlockThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while guestBlockEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,5,0,0,0,66,108,111,99,107})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if guestBlockThread then task.cancel(guestBlockThread) guestBlockThread=nil end
+    end
+end})
+
+local guestChargeEnabled=false
+local guestChargeThread=nil
+
+O:Toggle({Title="访客大运",Value=false,Callback=function(s)
+    guestChargeEnabled=s
+    if s then
+        if guestChargeThread then task.cancel(guestChargeThread) end
+        guestChargeThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while guestChargeEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,6,0,0,0,67,104,97,114,103,101})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if guestChargeThread then task.cancel(guestChargeThread) guestChargeThread=nil end
+    end
+end})
+
+local shedletskySlashEnabled=false
+local shedletskySlashThread=nil
+
+O:Toggle({Title="谢德大运",Value=false,Callback=function(s)
+    shedletskySlashEnabled=s
+    if s then
+        if shedletskySlashThread then task.cancel(shedletskySlashThread) end
+        shedletskySlashThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while shedletskySlashEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,5,0,0,0,83,108,97,115,104})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if shedletskySlashThread then task.cancel(shedletskySlashThread) shedletskySlashThread=nil end
+    end
+end})
+
+local pizzaThrowEnabled=false
+local pizzaThrowThread=nil
+
+O:Toggle({Title="披萨投喂",Value=false,Callback=function(s)
+    pizzaThrowEnabled=s
+    if s then
+        if pizzaThrowThread then task.cancel(pizzaThrowThread) end
+        pizzaThrowThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while pizzaThrowEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,10,0,0,0,84,104,114,111,119,80,105,122,122,97})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if pizzaThrowThread then task.cancel(pizzaThrowThread) pizzaThrowThread=nil end
+    end
+end})
+
+local noobDestructionEnabled=false
+local noobDestructionThread=nil
+
+O:Toggle({Title="noob破坏世界",Value=false,Callback=function(s)
+    noobDestructionEnabled=s
+    if s then
+        if noobDestructionThread then task.cancel(noobDestructionThread) end
+        noobDestructionThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while noobDestructionEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,8,0,0,0,84,105,109,101,115,116,111,112})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if noobDestructionThread then task.cancel(noobDestructionThread) noobDestructionThread=nil end
+    end
+end})
+
+local clone007Enabled=false
+local clone007Thread=nil
+
+O:Toggle({Title="007分身",Value=false,Callback=function(s)    clone007Enabled=s
+    if s then
+        if clone007Thread then task.cancel(clone007Thread) end
+        clone007Thread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while clone007Enabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,5,0,0,0,67,108,111,110,101})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if clone007Thread then task.cancel(clone007Thread) clone007Thread=nil end
+    end
+end})
+
+local taphMineEnabled=false
+local taphMineThread=nil
+
+O:Toggle({Title="塔夫放雷",Value=false,Callback=function(s)
+    taphMineEnabled=s
+    if s then
+        if taphMineThread then task.cancel(taphMineThread) end
+        taphMineThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while taphMineEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,16,0,0,0,83,117,98,115,112,97,99,101,84,114,105,112,109,105,110,101})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if taphMineThread then task.cancel(taphMineThread) taphMineThread=nil end
+    end
+end})
+
+local flashbangEnabled=false
+local flashbangThread=nil
+
+O:Toggle({Title="闪光弹",Value=false,Callback=function(s)
+    flashbangEnabled=s
+    if s then
+        if flashbangThread then task.cancel(flashbangThread) end
+        flashbangThread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while flashbangEnabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,9,0,0,0,70,108,97,115,104,98,97,110,103})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if flashbangThread then task.cancel(flashbangThread) flashbangThread=nil end
+    end
+end})
+
+local guest666Enabled=false
+local guest666Thread=nil
+
+O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
+    guest666Enabled=s
+    if s then
+        if guest666Thread then task.cancel(guest666Thread) end
+        guest666Thread=task.spawn(function()
+            local Event = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+            while guest666Enabled do
+                Event:FireServer("UseActorAbility",{(function(bytes)local b=buffer.create(#bytes)for i=1,#bytes do buffer.writeu8(b,i-1,bytes[i])end return b end)({3,14,0,0,0,68,101,109,111,110,105,99,80,117,114,115,117,105,116})})
+                task.wait(0.01)
+            end
+        end)
+    else
+        if guest666Thread then task.cancel(guest666Thread) guest666Thread=nil end
+    end
+end})
+
+local NicoTab=D:Tab({Title="Nico的下一个机器人",Icon="cpu"})
+
+local autoJumpEnabled=false
+local autoJumpThread=nil
+
+NicoTab:Toggle({Title="自动跳跃",Value=false,Callback=function(s)
+    autoJumpEnabled=s
+    if s then
+        if autoJumpThread then task.cancel(autoJumpThread) end
+        autoJumpThread=task.spawn(function()
+            while autoJumpEnabled do
+                local char=game.Players.LocalPlayer.Character
+                if char then
+                    local hum=char:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health>0 then
+                        local state=hum:GetState()
+                        if state==Enum.HumanoidStateType.Landed or state==Enum.HumanoidStateType.Running or state==Enum.HumanoidStateType.Walking then
+                            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        if autoJumpThread then
+            task.cancel(autoJumpThread)
+            autoJumpThread=nil
+        end
+    end
+end})
 
 local Players=game:GetService("Players")
 local player=Players.LocalPlayer
@@ -389,12 +566,6 @@ N:Toggle({Title="火箭筒",Value=false,Callback=function(s)
         end
         rocketState.fireEvent=nil
     end
-end})
-
-O:Toggle({Title="改视野",Value=false,Callback=function()
-    local remote=game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent")
-    local fovObj=player:WaitForChild("PlayerData"):WaitForChild("Settings"):WaitForChild("Game"):WaitForChild("FieldOfView")
-    remote:FireServer("UpdateSettings",{fovObj,string.char(0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x5E,0x40)})
 end})
 
 task.wait(0.1)
