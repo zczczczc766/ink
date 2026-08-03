@@ -208,7 +208,7 @@ local colorThread = nil
 local savedColors = {}
 
 P:Toggle({
-    Title = "人物上色",
+    Title = "人物高亮",
     Value = false,
     Callback = function(state)
         if state then
@@ -229,7 +229,7 @@ P:Toggle({
                                     if not savedColors[player.UserId][part] then
                                         savedColors[player.UserId][part] = part.Color
                                     end
-                                    part.Color = Color3.new(0.8, 0.8, 0.8)
+                                    part.Color = Color3.new(0.5, 0.5, 0.5)
                                 end
                             end
                         end
@@ -400,16 +400,16 @@ P:Toggle({
                                 local lines = {}
                                 local x, y, w, h = box.X, box.Y, box.W, box.H
                                 local l1 = Drawing.new("Line")
-                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 3; l1.Transparency = 0.7
+                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 6; l1.Transparency = 0.7
                                 table.insert(lines, l1)
                                 local l2 = Drawing.new("Line")
-                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 3; l2.Transparency = 0.7
+                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 6; l2.Transparency = 0.7
                                 table.insert(lines, l2)
                                 local l3 = Drawing.new("Line")
-                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 3; l3.Transparency = 0.7
+                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 6; l3.Transparency = 0.7
                                 table.insert(lines, l3)
                                 local l4 = Drawing.new("Line")
-                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 3; l4.Transparency = 0.7
+                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 6; l4.Transparency = 0.7
                                 table.insert(lines, l4)
                                 boxDrawings[player.UserId] = lines
                             end
@@ -542,7 +542,7 @@ P:Toggle({
             end
         end
     end
-})      
+})     
       
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
