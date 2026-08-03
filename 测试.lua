@@ -245,12 +245,6 @@ local function createPlayerESP(player)
     healthBg.BackgroundTransparency = 0.5
     healthBg.BorderSizePixel = 0
     healthBg.Parent = gui
-    local box = Instance.new("Frame")
-    box.Size = UDim2.new(0, 0, 0, 0)
-    box.BackgroundTransparency = 1
-    box.BorderSizePixel = 1
-    box.BorderColor3 = Color3.new(1,1,1)
-    box.Parent = gui
     local highlight = Instance.new("Highlight")
     highlight.FillTransparency = 1
     highlight.OutlineColor = Color3.new(1,1,1)
@@ -262,7 +256,6 @@ local function createPlayerESP(player)
         dist = distLabel,
         health = healthBar,
         healthBg = healthBg,
-        box = box,
         highlight = highlight
     }
 end
@@ -278,7 +271,6 @@ local settings = {
     names = false,
     distances = false,
     healthbars = false,
-    boxes = false,
     highlights = false,
     teamcheck = false,
 }
@@ -381,14 +373,6 @@ local function updateESP()
             data.health.Visible = false
             data.healthBg.Visible = false
         end
-        if settings.boxes then
-            data.box.Visible = true
-            data.box.Position = UDim2.new(0, minX, 0, minY)
-            data.box.Size = UDim2.new(0, w, 0, h)
-            data.box.BorderColor3 = Color3.new(1,1,1)
-        else
-            data.box.Visible = false
-        end
         if settings.highlights then
             data.highlight.Enabled = true
             data.highlight.Adornee = player.Character
@@ -422,7 +406,6 @@ local espGroup = P:Section({ Title = "透视设置", Opened = true })
 espGroup:Toggle({ Title = "名字显示", Value = false, Callback = function(s) settings.names = s end })
 espGroup:Toggle({ Title = "距离显示", Value = false, Callback = function(s) settings.distances = s end })
 espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) settings.healthbars = s end })
-espGroup:Toggle({ Title = "方框", Value = false, Callback = function(s) settings.boxes = s end })
 espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
 espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
       
