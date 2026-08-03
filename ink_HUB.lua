@@ -255,6 +255,88 @@ TransTab:Button({Title="传送",Callback=function()
     A:SetCore("SendNotification",{Title="传送成功",Text="已传送到 "..selectedPlayer.." 旁边",Duration=2})
 end})
 
+local MusicTab = D:Tab({Title="音乐播放器", Icon="music"})
+
+local currentSound = nil
+local currentVolume = 0.5
+local currentSpeed = 1
+local musicId = ""
+
+MusicTab:Input({
+    Title = "音乐ID",
+    Placeholder = "请输入音乐ID",
+    Callback = function(text)
+        musicId = text
+    end
+})
+
+MusicTab:Input({
+    Title = "音量",
+    Placeholder = "请输入数字",
+    Callback = function(text)
+        local val = tonumber(text)
+        if val then
+            val = math.clamp(val, 0, 10000000000)
+            currentVolume = val
+            if currentSound then
+                currentSound.Volume = currentVolume
+            end
+        end
+    end
+})
+
+MusicTab:Input({
+    Title = "速度",
+    Placeholder = "请输入数字",
+    Callback = function(text)
+        local val = tonumber(text)
+        if val then
+            val = math.clamp(val, 0.01, 2)
+            currentSpeed = val
+            if currentSound then
+                currentSound.PlaybackSpeed = currentSpeed
+            end
+        end
+    end
+})
+
+MusicTab:Button({
+    Title = "播放音乐",
+    Callback = function()
+        if musicId == "" then
+            A:SetCore("SendNotification",{Title="提示", Text="请先输入音乐ID", Duration=2})
+            return
+        end
+        if currentSound then
+            currentSound:Destroy()
+            currentSound = nil
+        end
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. musicId
+        sound.Volume = currentVolume
+        sound.PlaybackSpeed = currentSpeed
+        sound.Looped = true   
+        sound.Parent = game.Players.LocalPlayer.Character or workspace
+        sound:Play()
+        currentSound = sound
+        A:SetCore("SendNotification",{Title="播放中", Text="音乐ID: " .. musicId .. "（循环播放）", Duration=2})
+    end
+})
+
+MusicTab:Button({
+    Title = "停止音乐",
+    Callback = function()
+        if currentSound then
+            currentSound:Stop()
+            currentSound:Destroy()
+            currentSound = nil
+            A:SetCore("SendNotification",{Title="已停止", Text="音乐已停止", Duration=2})
+        else
+            A:SetCore("SendNotification",{Title="提示", Text="当前没有正在播放的音乐", Duration=2})
+        end
+    end
+})
+
 local L=D:Tab({Title="FE",Icon="zap"})
 L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
 L:Button({Title="被遗弃人物",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))()end})
