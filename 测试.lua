@@ -217,10 +217,12 @@ P:Toggle({
             colorThread = task.spawn(function()
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
+                local highlightGuis = {}  -- 存储每个玩家的光晕GUI
                 while not _G.StopColor do
                     for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character then
+                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
                             local char = player.Character
+                            -- 修改角色部件颜色和透明度
                             if not savedColors[player.UserId] then
                                 savedColors[player.UserId] = {}
                             end
@@ -229,14 +231,51 @@ P:Toggle({
                                     if not savedColors[player.UserId][part] then
                                         savedColors[player.UserId][part] = {Color = part.Color, Transparency = part.Transparency}
                                     end
-                                    part.Color = Color3.new(0.5, 0.5, 0.5)
-                                    part.Transparency = 0.4
+                                    part.Color = Color3.new(0.8, 0.8, 0.8)
+                                    part.Transparency = 0.3
                                 end
+                            end
+                            -- 添加头顶光晕（透视标记）
+                            if not highlightGuis[player.UserId] then
+                                local head = char.Head
+                                local bill = Instance.new("BillboardGui")
+                                bill.Size = UDim2.new(0, 60, 0, 60)
+                                bill.AlwaysOnTop = true
+                                bill.StudsOffset = Vector3.new(0, 3.5, 0)
+                                bill.Parent = head
+                                local image = Instance.new("ImageLabel")
+                                image.Size = UDim2.new(1, 0, 1, 0)
+                                image.BackgroundTransparency = 1
+                                image.Image = "rbxassetid://13111545594"  -- 圆形光晕
+                                image.ImageColor3 = Color3.new(0.8, 0.8, 0.8)
+                                image.ImageTransparency = 0.3
+                                image.Parent = bill
+                                highlightGuis[player.UserId] = bill
+                            end
+                        else
+                            -- 清理已离开的玩家
+                            if highlightGuis[player.UserId] then
+                                highlightGuis[player.UserId]:Destroy()
+                                highlightGuis[player.UserId] = nil
+                            end
+                            if savedColors[player.UserId] then
+                                for part, data in pairs(savedColors[player.UserId]) do
+                                    if part and part.Parent then
+                                        part.Color = data.Color
+                                        part.Transparency = data.Transparency
+                                    end
+                                end
+                                savedColors[player.UserId] = nil
                             end
                         end
                     end
                     task.wait(0.2)
                 end
+                -- 关闭循环时清理所有
+                for uid, gui in pairs(highlightGuis) do
+                    if gui then gui:Destroy() end
+                end
+                highlightGuis = {}
                 for uid, tbl in pairs(savedColors) do
                     for part, data in pairs(tbl) do
                         if part and part.Parent then
@@ -250,6 +289,10 @@ P:Toggle({
         else
             _G.StopColor = true
             if colorThread then task.cancel(colorThread); colorThread = nil end
+            -- 恢复颜色并移除光晕（需在关闭时做，但上面循环会处理，不过以防万一）
+            for uid, gui in pairs(_G.highlightGuis or {}) do
+                if gui then gui:Destroy() end
+            end
             for uid, tbl in pairs(savedColors) do
                 for part, data in pairs(tbl) do
                     if part and part.Parent then
@@ -259,6 +302,7 @@ P:Toggle({
                 end
             end
             savedColors = {}
+            _G.highlightGuis = {}
         end
     end
 })
