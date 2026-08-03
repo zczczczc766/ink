@@ -201,7 +201,7 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
-local P = D:Tab({Title="透视", Icon="eye"})
+local P = D:Tab({Title="透视专区", Icon="eye"})
 
 local colorEnabled = false
 local colorThread = nil
@@ -229,7 +229,7 @@ P:Toggle({
                                     if not savedColors[player.UserId][part] then
                                         savedColors[player.UserId][part] = part.Color
                                     end
-                                    part.Color = Color3.new(0.5, 0.5, 0.5)
+                                    part.Color = Color3.new(0.8, 0.8, 0.8)
                                 end
                             end
                         end
@@ -280,7 +280,7 @@ P:Toggle({
                             if not nameGuis[player.UserId] then
                                 local head = player.Character.Head
                                 local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 100, 0, 18)
+                                bill.Size = UDim2.new(0, 100, 0, 20)
                                 bill.AlwaysOnTop = true
                                 bill.StudsOffset = Vector3.new(0, 2.5, 0)
                                 bill.Parent = head
@@ -288,7 +288,7 @@ P:Toggle({
                                 label.Size = UDim2.new(1, 0, 1, 0)
                                 label.BackgroundTransparency = 1
                                 label.Text = player.Name
-                                label.TextSize = 11
+                                label.TextSize = 14
                                 label.Font = Enum.Font.GothamBold
                                 if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
                                     label.TextColor3 = Color3.new(1,0,0)
@@ -400,16 +400,16 @@ P:Toggle({
                                 local lines = {}
                                 local x, y, w, h = box.X, box.Y, box.W, box.H
                                 local l1 = Drawing.new("Line")
-                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 2; l1.Transparency = 0.7
+                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 3; l1.Transparency = 0.7
                                 table.insert(lines, l1)
                                 local l2 = Drawing.new("Line")
-                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 2; l2.Transparency = 0.7
+                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 3; l2.Transparency = 0.7
                                 table.insert(lines, l2)
                                 local l3 = Drawing.new("Line")
-                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 2; l3.Transparency = 0.7
+                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 3; l3.Transparency = 0.7
                                 table.insert(lines, l3)
                                 local l4 = Drawing.new("Line")
-                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 2; l4.Transparency = 0.7
+                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 3; l4.Transparency = 0.7
                                 table.insert(lines, l4)
                                 boxDrawings[player.UserId] = lines
                             end
@@ -542,7 +542,7 @@ P:Toggle({
             end
         end
     end
-})
+})      
       
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
