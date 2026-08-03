@@ -203,171 +203,347 @@ E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('http
 
 local P = D:Tab({Title="透视", Icon="eye"})
 
-local espEnabled = false
-local espThread = nil
+local colorEnabled = false
+local colorThread = nil
+local savedColors = {}
 
 P:Toggle({
-    Title = "玩家透视",
+    Title = "人物上色",
     Value = false,
     Callback = function(state)
         if state then
-            espEnabled = true
-            _G.StopESP = false
-            espThread = task.spawn(function()
+            colorEnabled = true
+            _G.StopColor = false
+            colorThread = task.spawn(function()
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
-                local RunService = game:GetService("RunService")
-                local espObjects = {}
-                while not _G.StopESP do
+                while not _G.StopColor do
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local char = player.Character
+                            if not savedColors[player.UserId] then
+                                savedColors[player.UserId] = {}
+                            end
+                            for _, part in ipairs(char:GetDescendants()) do
+                                if part:IsA("BasePart") then
+                                    if not savedColors[player.UserId][part] then
+                                        savedColors[player.UserId][part] = part.Color
+                                    end
+                                    part.Color = Color3.new(0.5, 0.5, 0.5)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.2)
+                end
+                for uid, tbl in pairs(savedColors) do
+                    for part, col in pairs(tbl) do
+                        if part and part.Parent then
+                            part.Color = col
+                        end
+                    end
+                end
+                savedColors = {}
+            end)
+        else
+            _G.StopColor = true
+            if colorThread then task.cancel(colorThread); colorThread = nil end
+            for uid, tbl in pairs(savedColors) do
+                for part, col in pairs(tbl) do
+                    if part and part.Parent then
+                        part.Color = col
+                    end
+                end
+            end
+            savedColors = {}
+        end
+    end
+})
+
+local nameEnabled = false
+local nameThread = nil
+local nameGuis = {}
+
+P:Toggle({
+    Title = "玩家名字",
+    Value = false,
+    Callback = function(state)
+        if state then
+            nameEnabled = true
+            _G.StopName = false
+            nameThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                while not _G.StopName do
                     for _, player in ipairs(Players:GetPlayers()) do
                         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            local head = player.Character.Head
-                            if not espObjects[player.UserId] then
+                            if not nameGuis[player.UserId] then
+                                local head = player.Character.Head
                                 local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 200, 0, 40)
+                                bill.Size = UDim2.new(0, 100, 0, 18)
                                 bill.AlwaysOnTop = true
-                                bill.StudsOffset = Vector3.new(0, 3, 0)
+                                bill.StudsOffset = Vector3.new(0, 2.5, 0)
                                 bill.Parent = head
                                 local label = Instance.new("TextLabel")
                                 label.Size = UDim2.new(1, 0, 1, 0)
                                 label.BackgroundTransparency = 1
-                                label.Text = player.Name .. " | " .. string.format("%.1f", (head.Position - (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") and LocalPlayer.Character.Head.Position or Vector3.new(0,0,0))).Magnitude / 3) .. "m"
-                                label.TextColor3 = Color3.new(1,1,1)
-                                label.TextScaled = true
+                                label.Text = player.Name
+                                label.TextSize = 11
                                 label.Font = Enum.Font.GothamBold
+                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
+                                    label.TextColor3 = Color3.new(1,0,0)
+                                else
+                                    label.TextColor3 = Color3.new(1,1,1)
+                                end
                                 label.Parent = bill
-                                espObjects[player.UserId] = bill
+                                nameGuis[player.UserId] = bill
+                            else
+                                local bill = nameGuis[player.UserId]
+                                if bill and bill:FindFirstChildOfClass("TextLabel") then
+                                    local label = bill:FindFirstChildOfClass("TextLabel")
+                                    if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
+                                        label.TextColor3 = Color3.new(1,0,0)
+                                    else
+                                        label.TextColor3 = Color3.new(1,1,1)
+                                    end
+                                end
                             end
                         else
-                            if espObjects[player.UserId] then
-                                espObjects[player.UserId]:Destroy()
-                                espObjects[player.UserId] = nil
+                            if nameGuis[player.UserId] then
+                                nameGuis[player.UserId]:Destroy()
+                                nameGuis[player.UserId] = nil
                             end
                         end
                     end
-                    task.wait(0.1)
+                    task.wait(0.3)
                 end
-                for _, obj in pairs(espObjects) do
-                    if obj then obj:Destroy() end
+                for _, gui in pairs(nameGuis) do
+                    if gui then gui:Destroy() end
                 end
-                espObjects = {}
+                nameGuis = {}
             end)
         else
-            _G.StopESP = true
-            if espThread then
-                task.cancel(espThread)
-                espThread = nil
+            _G.StopName = true
+            if nameThread then task.cancel(nameThread); nameThread = nil end
+            for _, gui in pairs(nameGuis) do
+                if gui then gui:Destroy() end
             end
+            nameGuis = {}
         end
     end
 })
 
-local lineEnabled = false
-local lineThread = nil
-local lineObjects = {}
+local boxEnabled = false
+local boxThread = nil
+local boxDrawings = {}
 
 P:Toggle({
-    Title = "射线透视",
+    Title = "人物方框",
     Value = false,
     Callback = function(state)
         if state then
-            lineEnabled = true
-            _G.StopLine = false
-            lineThread = task.spawn(function()
+            boxEnabled = true
+            _G.StopBox = false
+            boxThread = task.spawn(function()
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
-                local RunService = game:GetService("RunService")
-                while not _G.StopLine do
-                    for _, obj in pairs(lineObjects) do
-                        if obj then obj:Remove() end
+                local camera = workspace.CurrentCamera
+                local function getBox(player)
+                    local char = player.Character
+                    if not char then return nil end
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    local head = char:FindFirstChild("Head")
+                    if not hrp or not head then return nil end
+                    local rootPos = hrp.Position
+                    local topPos = head.Position + Vector3.new(0, 0.8, 0)
+                    local bottomPos = rootPos - Vector3.new(0, 1.8, 0)
+                    local width = 1.5
+                    local half = width / 2
+                    local corners = {
+                        topPos + Vector3.new(-half,0,-half), topPos + Vector3.new(half,0,-half),
+                        topPos + Vector3.new(half,0,half), topPos + Vector3.new(-half,0,half),
+                        bottomPos + Vector3.new(-half,0,-half), bottomPos + Vector3.new(half,0,-half),
+                        bottomPos + Vector3.new(half,0,half), bottomPos + Vector3.new(-half,0,half)
+                    }
+                    local screen = {}
+                    for _, p in ipairs(corners) do
+                        local v, on = camera:WorldToViewportPoint(p)
+                        if not on then return nil end
+                        table.insert(screen, Vector2.new(v.X, v.Y))
                     end
-                    lineObjects = {}
-                    local cam = workspace.CurrentCamera
-                    local origin = cam.CFrame.Position
+                    local minX, maxX = screen[1].X, screen[1].X
+                    local minY, maxY = screen[1].Y, screen[1].Y
+                    for i = 2, #screen do
+                        local v = screen[i]
+                        if v.X < minX then minX = v.X end
+                        if v.X > maxX then maxX = v.X end
+                        if v.Y < minY then minY = v.Y end
+                        if v.Y > maxY then maxY = v.Y end
+                    end
+                    return {X = minX, Y = minY, W = maxX - minX, H = maxY - minY}
+                end
+                while not _G.StopBox do
+                    for _, list in pairs(boxDrawings) do
+                        for _, line in ipairs(list) do
+                            if line then line:Remove() end
+                        end
+                    end
+                    boxDrawings = {}
                     for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                            local headPos = player.Character.Head.Position
-                            local line = Drawing.new("Line")
-                            line.From = Vector2.new(cam:WorldToViewportPoint(origin).X, cam:WorldToViewportPoint(origin).Y)
-                            line.To = Vector2.new(cam:WorldToViewportPoint(headPos).X, cam:WorldToViewportPoint(headPos).Y)
-                            line.Color = Color3.new(1,0,0)
-                            line.Thickness = 1.5
-                            line.Transparency = 0.5
-                            table.insert(lineObjects, line)
+                        if player ~= LocalPlayer then
+                            local box = getBox(player)
+                            if box then
+                                local color = Color3.new(0.5,0.5,0.5)
+                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
+                                    color = Color3.new(1,0,0)
+                                end
+                                local lines = {}
+                                local x, y, w, h = box.X, box.Y, box.W, box.H
+                                local l1 = Drawing.new("Line")
+                                l1.From = Vector2.new(x,y); l1.To = Vector2.new(x+w,y); l1.Color = color; l1.Thickness = 2; l1.Transparency = 0.7
+                                table.insert(lines, l1)
+                                local l2 = Drawing.new("Line")
+                                l2.From = Vector2.new(x+w,y); l2.To = Vector2.new(x+w,y+h); l2.Color = color; l2.Thickness = 2; l2.Transparency = 0.7
+                                table.insert(lines, l2)
+                                local l3 = Drawing.new("Line")
+                                l3.From = Vector2.new(x+w,y+h); l3.To = Vector2.new(x,y+h); l3.Color = color; l3.Thickness = 2; l3.Transparency = 0.7
+                                table.insert(lines, l3)
+                                local l4 = Drawing.new("Line")
+                                l4.From = Vector2.new(x,y+h); l4.To = Vector2.new(x,y); l4.Color = color; l4.Thickness = 2; l4.Transparency = 0.7
+                                table.insert(lines, l4)
+                                boxDrawings[player.UserId] = lines
+                            end
                         end
                     end
                     task.wait(0.05)
                 end
-                for _, obj in pairs(lineObjects) do
-                    if obj then obj:Remove() end
+                for _, list in pairs(boxDrawings) do
+                    for _, line in ipairs(list) do
+                        if line then line:Remove() end
+                    end
                 end
-                lineObjects = {}
+                boxDrawings = {}
             end)
         else
-            _G.StopLine = true
-            if lineThread then
-                task.cancel(lineThread)
-                lineThread = nil
+            _G.StopBox = true
+            if boxThread then task.cancel(boxThread); boxThread = nil end
+            for _, list in pairs(boxDrawings) do
+                for _, line in ipairs(list) do
+                    if line then line:Remove() end
+                end
             end
+            boxDrawings = {}
         end
     end
 })
 
-local itemEspEnabled = false
-local itemEspThread = nil
-local itemEspObjects = {}
+local distEnabled = false
+local distThread = nil
+local distGuis = {}
 
 P:Toggle({
-    Title = "物品透视",
+    Title = "人物距离",
     Value = false,
     Callback = function(state)
         if state then
-            itemEspEnabled = true
-            _G.StopItemESP = false
-            itemEspThread = task.spawn(function()
-                while not _G.StopItemESP do
-                    for _, obj in pairs(itemEspObjects) do
-                        if obj then obj:Destroy() end
-                    end
-                    itemEspObjects = {}
-                    local items = workspace:GetDescendants()
-                    for _, item in ipairs(items) do
-                        if item:IsA("Tool") or item:IsA("Part") and item:FindFirstChild("Handle") then
-                            if item.Parent ~= game.Players.LocalPlayer.Character then
+            distEnabled = true
+            _G.StopDist = false
+            distThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                while not _G.StopDist do
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                            if not distGuis[player.UserId] then
+                                local head = player.Character.Head
                                 local bill = Instance.new("BillboardGui")
-                                bill.Size = UDim2.new(0, 150, 0, 30)
+                                bill.Size = UDim2.new(0, 60, 0, 16)
                                 bill.AlwaysOnTop = true
-                                bill.StudsOffset = Vector3.new(0, 2, 0)
-                                bill.Parent = item
+                                bill.StudsOffset = Vector3.new(0, 0.5, 0)
+                                bill.Parent = head
                                 local label = Instance.new("TextLabel")
-                                label.Size = UDim2.new(1, 0, 1, 0)
+                                label.Size = UDim2.new(1,0,1,0)
                                 label.BackgroundTransparency = 1
-                                label.Text = item.Name
-                                label.TextColor3 = Color3.new(0,1,0)
-                                label.TextScaled = true
+                                label.TextSize = 10
                                 label.Font = Enum.Font.GothamBold
+                                if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
+                                    label.TextColor3 = Color3.new(1,0,0)
+                                else
+                                    label.TextColor3 = Color3.new(1,1,1)
+                                end
                                 label.Parent = bill
-                                table.insert(itemEspObjects, bill)
+                                distGuis[player.UserId] = bill
+                            else
+                                local bill = distGuis[player.UserId]
+                                if bill and bill:FindFirstChildOfClass("TextLabel") then
+                                    local label = bill:FindFirstChildOfClass("TextLabel")
+                                    local head = player.Character and player.Character:FindFirstChild("Head")
+                                    local localHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+                                    if head and localHead then
+                                        local dist = (head.Position - localHead.Position).Magnitude / 3
+                                        label.Text = string.format("%.1f", dist) .. "m"
+                                    else
+                                        label.Text = "?"
+                                    end
+                                    if LocalPlayer.Team and player.Team and LocalPlayer.Team ~= player.Team then
+                                        label.TextColor3 = Color3.new(1,0,0)
+                                    else
+                                        label.TextColor3 = Color3.new(1,1,1)
+                                    end
+                                end
+                            end
+                        else
+                            if distGuis[player.UserId] then
+                                distGuis[player.UserId]:Destroy()
+                                distGuis[player.UserId] = nil
                             end
                         end
                     end
-                    task.wait(0.5)
+                    task.wait(0.2)
                 end
-                for _, obj in pairs(itemEspObjects) do
-                    if obj then obj:Destroy() end
+                for _, gui in pairs(distGuis) do
+                    if gui then gui:Destroy() end
                 end
-                itemEspObjects = {}
+                distGuis = {}
             end)
         else
-            _G.StopItemESP = true
-            if itemEspThread then
-                task.cancel(itemEspThread)
-                itemEspThread = nil
+            _G.StopDist = true
+            if distThread then task.cancel(distThread); distThread = nil end
+            for _, gui in pairs(distGuis) do
+                if gui then gui:Destroy() end
             end
+            distGuis = {}
         end
     end
 })
 
+local teamEnabled = false
+
+P:Toggle({
+    Title = "区分阵营",
+    Value = false,
+    Callback = function(state)
+        teamEnabled = state
+        if not state then
+            for _, gui in pairs(nameGuis) do
+                if gui and gui:FindFirstChildOfClass("TextLabel") then
+                    gui:FindFirstChildOfClass("TextLabel").TextColor3 = Color3.new(1,1,1)
+                end
+            end
+            for _, list in pairs(boxDrawings) do
+                for _, line in ipairs(list) do
+                    if line then line.Color = Color3.new(0.5,0.5,0.5) end
+                end
+            end
+            for _, gui in pairs(distGuis) do
+                if gui and gui:FindFirstChildOfClass("TextLabel") then
+                    gui:FindFirstChildOfClass("TextLabel").TextColor3 = Color3.new(1,1,1)
+                end
+            end
+        end
+    end
+})
+      
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
 local selectedPlayer=nil
