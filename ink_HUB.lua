@@ -146,8 +146,7 @@ E:Toggle({Title="高亮",Value=false,Callback=function(s)
         Lighting.Ambient=Color3.new(1,1,1)
         Lighting.OutdoorAmbient=Color3.new(1,1,1)
     else
-        Lighting.Brightness=origBright        Lighting.Ambient=Color3.new(0.5,0.5,0.5)
-        Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
+        Lighting.Brightness=origBright        Lighting.Ambient=Color3.new(0.5,0.5,0.5)        Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
     end
 end})
 
@@ -201,12 +200,210 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
-local TransTab=D:Tab({Title="传送",Icon="send"})
+local P = D:Tab({Title="透视专区", Icon="eye"})
 
-local selectedPlayer=nil
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local lplayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
-local function getPlayerNames()
-    local names={}
+local espData = {}
+local function createPlayerESP(player)
+    if espData[player] then return end
+    local gui = Instance.new("ScreenGui")
+    gui.Name = player.Name
+    gui.Parent = CoreGui
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 200, 0, 20)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextScaled = false
+    nameLabel.TextSize = 12
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextColor3 = Color3.new(1,1,1)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+    nameLabel.Parent = gui
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(0, 100, 0, 16)
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextSize = 10
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.TextColor3 = Color3.new(1,1,1)
+    distLabel.TextStrokeTransparency = 0
+    distLabel.TextStrokeColor3 = Color3.new(0,0,0)
+    distLabel.Parent = gui
+    local healthBar = Instance.new("Frame")
+    healthBar.Size = UDim2.new(0, 50, 0, 3)
+    healthBar.BackgroundColor3 = Color3.new(0,1,0)
+    healthBar.BorderSizePixel = 0
+    healthBar.Parent = gui
+    local healthBg = Instance.new("Frame")
+    healthBg.Size = UDim2.new(0, 50, 0, 3)
+    healthBg.BackgroundColor3 = Color3.new(0,0,0)
+    healthBg.BackgroundTransparency = 0.5
+    healthBg.BorderSizePixel = 0
+    healthBg.Parent = gui
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 1
+    highlight.OutlineColor = Color3.new(1,1,1)
+    highlight.OutlineTransparency = 0.5
+    highlight.Parent = gui
+    espData[player] = {
+        gui = gui,
+        name = nameLabel,
+        dist = distLabel,
+        health = healthBar,
+        healthBg = healthBg,
+        highlight = highlight
+    }
+end
+
+local function removePlayerESP(player)
+    if espData[player] then
+        espData[player].gui:Destroy()
+        espData[player] = nil
+    end
+end
+
+local settings = {
+    names = false,
+    distances = false,
+    healthbars = false,
+    highlights = false,
+    teamcheck = false,
+}
+
+local function updateESP()
+    for player, data in pairs(espData) do
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            data.gui.Enabled = false
+            continue
+        end
+        local root = player.Character.HumanoidRootPart
+        local head = player.Character:FindFirstChild("Head")
+        if not head then continue end
+        local localRoot = lplayer.Character and lplayer.Character:FindFirstChild("HumanoidRootPart")
+        if not localRoot then continue end
+        local dist = (root.Position - localRoot.Position).Magnitude
+        if dist > 2000 then
+            data.gui.Enabled = false
+            continue
+        end
+        if settings.teamcheck and lplayer.Team and player.Team == lplayer.Team then
+            data.gui.Enabled = false
+            continue
+        end
+        data.gui.Enabled = true
+        local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+        if not onScreen then
+            data.gui.Enabled = false
+            continue
+        end
+        local headPos = head.Position
+        local bottom = root.Position - Vector3.new(0, 1.8, 0)
+        local top = headPos + Vector3.new(0, 0.8, 0)
+        local width = 1.5
+        local half = width / 2
+        local corners = {
+            top + Vector3.new(-half,0,-half), top + Vector3.new(half,0,-half),
+            top + Vector3.new(half,0,half), top + Vector3.new(-half,0,half),
+            bottom + Vector3.new(-half,0,-half), bottom + Vector3.new(half,0,-half),
+            bottom + Vector3.new(half,0,half), bottom + Vector3.new(-half,0,half)
+        }
+        local screenCorners = {}
+        for _, p in ipairs(corners) do
+            local v, on = camera:WorldToViewportPoint(p)
+            if not on then
+                data.gui.Enabled = false
+                break
+            end
+            table.insert(screenCorners, Vector2.new(v.X, v.Y))
+        end
+        if #screenCorners ~= 8 then
+            data.gui.Enabled = false
+            continue
+        end
+        local minX = screenCorners[1].X
+        local maxX = screenCorners[1].X
+        local minY = screenCorners[1].Y
+        local maxY = screenCorners[1].Y
+        for i=2, #screenCorners do
+            local v = screenCorners[i]
+            if v.X < minX then minX = v.X end
+            if v.X > maxX then maxX = v.X end
+            if v.Y < minY then minY = v.Y end
+            if v.Y > maxY then maxY = v.Y end
+        end
+        local w = maxX - minX
+        local h = maxY - minY
+        if settings.names then
+            data.name.Visible = true
+            data.name.Position = UDim2.new(0, minX + w/2 - 100, 0, minY - 25)
+            data.name.Text = player.Name
+            data.name.TextColor3 = Color3.new(1,1,1)
+        else
+            data.name.Visible = false
+        end
+        if settings.distances then
+            data.dist.Visible = true
+            data.dist.Position = UDim2.new(0, minX + w/2 - 50, 0, maxY + 4)
+            data.dist.Text = math.floor(dist) .. "m"
+            data.dist.TextColor3 = Color3.new(1,1,1)
+        else
+            data.dist.Visible = false
+        end
+        if settings.healthbars then
+            data.health.Visible = true
+            data.healthBg.Visible = true
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local hp = humanoid.Health / humanoid.MaxHealth
+                data.health.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
+                data.health.Position = UDim2.new(0, minX, 0, minY - 8)
+                data.healthBg.Size = UDim2.new(0, w, 0, 3)
+                data.healthBg.Position = UDim2.new(0, minX, 0, minY - 8)
+                data.health.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
+            else
+                data.health.Visible = false
+                data.healthBg.Visible = false
+            end
+        else
+            data.health.Visible = false
+            data.healthBg.Visible = false
+        end
+        if settings.highlights then
+            data.highlight.Enabled = true
+            data.highlight.Adornee = player.Character
+            data.highlight.OutlineColor = Color3.new(1,1,1)
+            data.highlight.OutlineTransparency = 0.5
+        else
+            data.highlight.Enabled = false
+            data.highlight.Adornee = nil
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(updateESP)
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= lplayer then
+        createPlayerESP(p)
+    end
+end)
+Players.PlayerRemoving:Connect(function(p)
+    removePlayerESP(p)
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= lplayer then
+        createPlayerESP(p)
+    end
+end
+
+local espGroup = P:Section({ Title = "透视设置", Opened = true })
+espGroup:Toggle({ Title = "名字显示", Value = false, Callback = function(s) settings.names = s end })
+espGroup:Toggle({ Ti    local names={}
     for _,p in ipairs(game:GetService("Players"):GetPlayers()) do
         if p~=game.Players.LocalPlayer then
             table.insert(names,p.Name)
@@ -412,8 +609,7 @@ end})
 local shedletskySlashEnabled=false
 local shedletskySlashThread=nil
 
-O:Toggle({Title="谢德大运",Value=false,Callback=function(s)
-    shedletskySlashEnabled=s
+O:Toggle({Title="谢德大运",Value=false,Callback=function(s)    shedletskySlashEnabled=s
     if s then
         if shedletskySlashThread then task.cancel(shedletskySlashThread) end
         shedletskySlashThread=task.spawn(function()
@@ -644,6 +840,310 @@ CatTab:Toggle({
             if _G.WeaponFiring then
                 _G.WeaponFiring = false
             end
+        end
+    end
+})
+
+local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
+
+local leashEnabled = falselocal leashThread = nil
+DogPoliceTab:Toggle({
+    Title = "安全套狗",
+    Value = false,
+    Callback = function(s)
+        if s then
+            leashEnabled = true
+            _G.StopLeash = false
+            leashThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local RunService = game:GetService("RunService")
+                local LocalPlayer = Players.LocalPlayer
+                local Index = 1
+                local PlayerList = {}
+                local TARGETS_PER_EXECUTION = 5
+                RunService.Stepped:Connect(function()
+                    if _G.StopLeash then return end
+                    local Character = LocalPlayer.Character
+                    if not Character then return end
+                    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+                    if not HumanoidRootPart then return end
+                    local Tool = Character:FindFirstChildOfClass("Tool")
+                    if not (Tool and Tool.Name:find("Leash")) then
+                        return
+                    end
+                    PlayerList = {}
+                    for _, Player in ipairs(Players:GetPlayers()) do
+                        if Player ~= LocalPlayer and Player.Character and (not Player.Team or Player.Team ~= LocalPlayer.Team) then
+                            table.insert(PlayerList, Player)
+                        end
+                    end
+                    if #PlayerList == 0 then return end
+                    if Index > #PlayerList then Index = 1 end
+                    local targetsToHit = math.min(TARGETS_PER_EXECUTION, #PlayerList)
+                    for i = 1, targetsToHit do
+                        local Target = PlayerList[Index]
+                        if Target and Target.Character then
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("LeachEvent"):FireServer(Target.Character)
+                            end)
+                        end
+                        Index = Index + 1
+                        if Index > #PlayerList then Index = 1 end
+                    end
+                    task.wait(0.01)
+                end)
+                while not _G.StopLeash do task.wait(1) end
+            end)
+        else
+            _G.StopLeash = true
+            if leashThread then task.cancel(leashThread); leashThread = nil end
+        end
+    end
+})
+
+local robotEnabled = false
+local robotThread = nil
+DogPoliceTab:Toggle({
+    Title = "愤怒机器人",
+    Value = false,
+    Callback = function(s)
+        if s then
+            robotEnabled = true
+            _G.StopRobot = false
+            robotThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local RunService = game:GetService("RunService")
+                local LocalPlayer = Players.LocalPlayer
+                local FireEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireEvent")
+                local fireRate = 0.1
+                local lastFire = 0
+                local soundId = "rbxassetid://6534948092"
+                local multiFireCount = 3
+                local allowedWeapons = {["Shotgun"]=true, ["AR"]=true, ["Heavy Sniper"]=true, ["Pistol"]=true}
+                local function playSound()
+                    local sound = Instance.new("Sound")
+                    sound.SoundId = soundId
+                    sound.Volume = 1
+                    sound.Parent = workspace
+                    sound:Play()
+                    sound.Ended:Connect(function() sound:Destroy() end)
+                end
+                local function getWeapons()
+                    local char = LocalPlayer.Character
+                    if not char then return {} end
+                    local weapons = {}
+                    for _, v in ipairs(char:GetChildren()) do
+                        if v:IsA("Tool") and allowedWeapons[v.Name] then
+                            table.insert(weapons, v)
+                        end
+                    end
+                    return weapons
+                end
+                local function getEnemies()
+                    local enemies = {}
+                    for _, plr in ipairs(Players:GetPlayers()) do
+                        if plr ~= LocalPlayer and plr.Team ~= LocalPlayer.Team then
+                            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                            local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+                            if root and hum and hum.Health > 0 then
+                                table.insert(enemies, root)
+                            end
+                        end
+                    end
+                    return enemies
+                end
+                RunService.Heartbeat:Connect(function()
+                    if _G.StopRobot then return end
+                    if tick() - lastFire < fireRate then return end
+                    lastFire = tick()
+                    local weapons = getWeapons()
+                    local enemies = getEnemies()
+                    if #weapons == 0 or #enemies == 0 then return end
+                    for _, root in ipairs(enemies) do
+                        local targetPos = root.Position
+                        for _, weapon in ipairs(weapons) do
+                            for i = 1, multiFireCount do
+                                FireEvent:FireServer("Fire", weapon, Vector3.new(targetPos.X, targetPos.Y, targetPos.Z))
+                                playSound()
+                            end
+                        end
+                    end
+                end)
+                while not _G.StopRobot do task.wait(1) end
+            end)
+        else
+            _G.StopRobot = true
+            if robotThread then task.cancel(robotThread); robotThread = nil end
+        end
+    end
+})
+
+local moneyLeashEnabled = false
+local moneyLeashThread = nil
+DogPoliceTab:Toggle({
+    Title = "疯狂套狗刷钱",
+    Value = false,
+    Callback = function(s)
+        if s then
+            moneyLeashEnabled = true
+            _G.StopMoneyLeash = false
+            moneyLeashThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local RunService = game:GetService("RunService")
+                local LocalPlayer = Players.LocalPlayer
+                local Index = 1
+                local PlayerList = {}
+                local LockedPosition = nil
+                RunService.Stepped:Connect(function()
+                    if _G.StopMoneyLeash then return end
+                    local Character = LocalPlayer.Character
+                    if not Character then return end
+                    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+                    if not HumanoidRootPart then return end
+                    local Tool = Character:FindFirstChildOfClass("Tool")
+                    if not (Tool and Tool.Name:find("Leash")) then
+                        LockedPosition = nil
+                        return
+                    end
+                    if not LockedPosition then
+                        LockedPosition = HumanoidRootPart.Position
+                    end
+                    HumanoidRootPart.CFrame = CFrame.new(LockedPosition)
+                    PlayerList = {}
+                    for _, Player in ipairs(Players:GetPlayers()) do
+                        if Player ~= LocalPlayer and Player.Character and (not Player.Team or Player.Team ~= LocalPlayer.Team) then
+                            table.insert(PlayerList, Player)
+                        end
+                    end
+                    if #PlayerList == 0 then return end
+                    if Index > #PlayerList then Index = 1 end
+                    local Target = PlayerList[Index]
+                    if Target and Target.Character then
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("LeachEvent"):FireServer(Target.Character)
+                        end)
+                    end
+                    Index = Index + 1
+                    task.wait(0.1)
+                end)
+                while not _G.StopMoneyLeash do task.wait(1) end
+            end)
+        else
+            _G.StopMoneyLeash = true
+            if moneyLeashThread then task.cancel(moneyLeashThread); moneyLeashThread = nil end
+        end
+    end
+})
+
+local biteEnabled = false
+local biteThread = nil
+DogPoliceTab:Toggle({
+    Title = "狗疯狂咬警察",
+    Value = false,
+    Callback = function(s)
+        if s then
+            biteEnabled = true
+            _G.StopBite = false
+            biteThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local RunService = game:GetService("RunService")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local player = Players.LocalPlayer
+                local biteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DogBiteEvent")
+                local currentTarget = nil
+                local lastBite = 0
+                local BITE_INTERVAL = 0.01
+                local OFFSET = Vector3.new(0, 0, 0.5)
+                local DOGS_TEAM_NAME = "Dogs"
+                local ESCAPED_TEAM_NAME = "Escaped"
+                local function isAllowedTeam()
+                    local team = player.Team
+                    if not team then return false end
+                    return team.Name == DOGS_TEAM_NAME or team.Name == ESCAPED_TEAM_NAME
+                end
+                local function isProtected(p)
+                    if p == player then return true end
+                    if not p.Team then return true end
+                local lastBite = 0
+                local BITE_INTERVAL = 0.01
+                local OFFSET = Vector3.new(0, 0, 0.5)
+                local DOGS_TEAM_NAME = "Dogs"
+                local ESCAPED_TEAM_NAME = "Escaped"
+                local function isAllowedTeam()
+                    local team = player.Team
+                    if not team then return false end
+                    return team.Name == DOGS_TEAM_NAME or team.Name == ESCAPED_TEAM_NAME
+                end
+                local function isProtected(p)
+                    if p == player then return true end
+                    if not p.Team then return true end
+                    if p.Team == player.Team then return true end
+                    if p.Team.Name == DOGS_TEAM_NAME then return true end
+                    if p.Team.Name == ESCAPED_TEAM_NAME then return true end
+                    return false
+                end
+                local function pickNextTarget()
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if not isProtected(p) then
+                            local char = p.Character
+                            if char then
+                                local h = char:FindFirstChildOfClass("Humanoid")
+                                local root = char:FindFirstChild("HumanoidRootPart")
+                                if h and root and h.Health > 0 then
+                                    return p
+                                end
+                            end
+                        end
+                    end
+                    return nil
+                end
+                player.CharacterAdded:Connect(function()
+                    if isAllowedTeam() then
+                        task.wait(1)
+                        currentTarget = pickNextTarget()
+                    end
+                end)
+                player:GetPropertyChangedSignal("Team"):Connect(function()
+                    if not isAllowedTeam() then
+                        _G.StopBite = true
+                        currentTarget = nil
+                    end
+                end)
+                RunService.Heartbeat:Connect(function()
+                    if _G.StopBite then return end
+                    if not isAllowedTeam() then return end
+                    if not player.Character then return end
+                    if not currentTarget or not currentTarget.Character then
+                        currentTarget = pickNextTarget()
+                    end
+                    if currentTarget and currentTarget.Character then
+                        local tRoot = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+                        local hum = currentTarget.Character:FindFirstChildOfClass("Humanoid")
+                        if tRoot and hum then
+                            if hum.Health <= 0 then
+                                currentTarget = pickNextTarget()
+                                return
+                            end
+                            player.Character:PivotTo(tRoot.CFrame * CFrame.new(OFFSET))
+                            local now = tick()
+                            if now - lastBite >= BITE_INTERVAL then
+                                biteRemote:FireServer()
+                                lastBite = now
+                            end
+                        end
+                    end
+                end)
+                Players.PlayerRemoving:Connect(function(p)
+                    if p == currentTarget then
+                        currentTarget = pickNextTarget()
+                    end
+                end)
+                while not _G.StopBite do task.wait(1) end
+            end)
+        else
+            _G.StopBite = true
+            if biteThread then task.cancel(biteThread); biteThread = nil end
         end
     end
 })
