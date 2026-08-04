@@ -195,47 +195,6 @@ E:Toggle({
     end
 })
 
-local xrayenabled = false
-local xraytransparency = 0.6
-local originaltransparencies = {}
-E:Toggle({
-    Title = "X光",
-    Value = false,
-    Callback = function(v)
-        xrayenabled = v
-        if v then
-            for _, obj in pairs(game.Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
-                    originaltransparencies[obj] = obj.Transparency
-                    obj.Transparency = xraytransparency
-                end
-            end
-        else
-            for obj, t in pairs(originaltransparencies) do
-                if obj and obj.Parent then
-                    obj.Transparency = t
-                end
-            end
-            originaltransparencies = {}
-        end
-    end
-})
-E:Slider({
-    Title = "X光透明度",
-    Value = { Min = 0, Max = 100, Default = 60 },
-    Step = 1,
-    Callback = function(v)
-        xraytransparency = v / 100
-        if xrayenabled then
-            for _, obj in pairs(game.Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) and originaltransparencies[obj] then
-                    obj.Transparency = v / 100
-                end
-            end
-        end
-    end
-})
-
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
 
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
