@@ -146,13 +146,13 @@ E:Toggle({Title="高亮",Value=false,Callback=function(s)
         Lighting.Ambient=Color3.new(1,1,1)
         Lighting.OutdoorAmbient=Color3.new(1,1,1)
     else
-        Lighting.Brightness=origBright
-        Lighting.Ambient=Color3.new(0.5,0.5,0.5)
-        Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
+        Lighting.Brightness=origBright        Lighting.Ambient=Color3.new(0.5,0.5,0.5)        Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
     end
 end})
 
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
+
+E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
 
 E:Button({Title="无敌少侠飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/Script/refs/heads/main/MobileFly.lua"))()end})
 
