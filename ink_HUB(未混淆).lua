@@ -961,23 +961,6 @@ FlashTab:Button({
     end
 })
 
-FlashTab:Divider()
-
-local originallighting = { FogEnd = game.Lighting.FogEnd, FogStart = game.Lighting.FogStart }
-FlashTab:Toggle({
-    Title = "无雾",
-    Value = false,
-    Callback = function(v)
-        if v then
-            game.Lighting.FogEnd = 100000
-            game.Lighting.FogStart = 0
-        else
-            game.Lighting.FogEnd = originallighting.FogEnd
-            game.Lighting.FogStart = originallighting.FogStart
-        end
-    end
-})
-
 FlashTab:Section({ Title = "近战刀具" })
 
 local knifeCloseEnabled = false
