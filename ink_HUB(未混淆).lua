@@ -474,20 +474,17 @@ local aimKey = "MouseButton2"
 local aimConnection = nil
 local isAiming = false
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
+-- 使用已经定义好的全局变量（不重新定义）
 local function getClosestPlayer()
     local closest = nil
     local minDist = math.huge
     local center = Camera.ViewportSize / 2
-    for _, plr in ipairs(Players:GetPlayers()) do
+    for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr ~= LocalPlayer then
             if teamCheckEnabled and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+                -- 跳过队友
             elseif freeForAllEnabled then
+                -- 自由对战，所有人都视为敌人
             else
                 if plr.Character and plr.Character:FindFirstChild(aimPart) then
                     local part = plr.Character[aimPart]
@@ -542,7 +539,7 @@ end
 local function toggleAim()
     if aimEnabled then
         if not aimConnection then
-            aimConnection = RunService.RenderStepped:Connect(updateAim)
+            aimConnection = game:GetService("RunService").RenderStepped:Connect(updateAim)
         end
     else
         if aimConnection then
@@ -622,14 +619,16 @@ AimTab:Toggle({
     end
 })
 
-AimTab:Keybind({
+-- 用 Dropdown 替代 Keybind（避免 WindUI 版本不支持 Keybind）
+AimTab:Dropdown({
     Title = "自瞄按键",
+    Values = { "鼠标右键", "鼠标左键", "鼠标中键", "Q", "E", "F", "G", "R", "Shift" },
     Value = "鼠标右键",
-    Callback = function(key)
-        if key == "鼠标右键" then aimKey = "MouseButton2"
-        elseif key == "鼠标左键" then aimKey = "MouseButton1"
-        elseif key == "鼠标中键" then aimKey = "MouseButton3"
-        else aimKey = key end
+    Callback = function(v)
+        if v == "鼠标右键" then aimKey = "MouseButton2"
+        elseif v == "鼠标左键" then aimKey = "MouseButton1"
+        elseif v == "鼠标中键" then aimKey = "MouseButton3"
+        else aimKey = v end
     end
 })
 
