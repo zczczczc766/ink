@@ -52,10 +52,15 @@ end
 local D=C:Section({Title="功能菜单",Opened=true})
 
 local Z = D:Tab({Title="公告", Icon="bell"})
-Z:Button({Title="欢迎使用 ink_HUB\n作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n公益脚本禁止倒卖\n认准 ink_HUB", Callback=function() end})
+Z:Paragraph({
+    Title = "欢迎使用 ink_HUB",
+    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n公益脚本禁止倒卖\n认准 ink_HUB",
+    Image = "bell",
+    ImageSize = 24,
+})
 Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ：2047955671", Duration=2}) end})
 Z:Button({Title="复制作者QQ群", Callback=function() setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ群：1101093219", Duration=2}) end})
-Z:Button({Title="复制作者QQ副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ副群：1063828524", Duration=2}) end})
+Z:Button({Title="复制作者副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者副群：1063828524", Duration=2}) end})
 
 local E=D:Tab({Title="通用",Icon="settings"})
 
@@ -459,159 +464,6 @@ espGroup:Toggle({ Title = "距离显示", Value = false, Callback = function(s) 
 espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) settings.healthbars = s end })
 espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
 espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
-
-local AimTab = D:Tab({Title="自瞄", Icon="crosshair"})
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
-local aimEnabled = false
-local teamCheck = false
-local wallCheck = true
-local aimPart = "Head"
-local aimSmooth = 0.3
-local aimConnection = nil
-
-local function getClosestPlayer()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local origin = Camera.CFrame.Position
-    
-    local closest = nil
-    local minDist = math.huge
-    
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then goto skip end
-        
-        if teamCheck and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then
-            goto skip
-        end
-        
-        local pchar = plr.Character
-        if not pchar then goto skip end
-        
-        local hum = pchar:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then goto skip end
-        
-        local targetPart = pchar:FindFirstChild(aimPart)
-        if not targetPart then goto skip end
-        
-        local proot = pchar:FindFirstChild("HumanoidRootPart")
-        if not proot then goto skip end
-        
-        local dist = (proot.Position - origin).Magnitude
-        
-        if wallCheck then
-            local direction = targetPart.Position - origin
-            local rayLength = direction.Magnitude
-            if rayLength > 0.001 then
-                local params = RaycastParams.new()
-                params.FilterDescendantsInstances = {char}
-                params.FilterType = Enum.RaycastFilterType.Blacklist
-                local result = workspace:Raycast(origin, direction.Unit * rayLength, params)
-                if result and result.Instance:IsDescendantOf(pchar) then
-                    if dist < minDist then
-                        minDist = dist
-                        closest = plr
-                    end
-                end
-            else
-                if dist < minDist then
-                    minDist = dist
-                    closest = plr
-                end
-            end
-        else
-            if dist < minDist then
-                minDist = dist
-                closest = plr
-            end
-        end
-        
-        ::skip::
-    end
-    
-    return closest
-end
-
-local function updateAim()
-    if not aimEnabled then return end
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-    
-    local target = getClosestPlayer()
-    if not target then return end
-    local tchar = target.Character
-    if not tchar then return end
-    local part = tchar:FindFirstChild(aimPart)
-    if not part then return end
-    
-    local targetCF = CFrame.new(cam.CFrame.Position, part.Position)
-    if aimSmooth > 0 then
-        cam.CFrame = cam.CFrame:Lerp(targetCF, aimSmooth)
-    else
-        cam.CFrame = targetCF
-    end
-end
-
-local function toggleAim()
-    if aimEnabled then
-        if not aimConnection then
-            aimConnection = RunService.RenderStepped:Connect(updateAim)
-        end
-    else
-        if aimConnection then
-            aimConnection:Disconnect()
-            aimConnection = nil
-        end
-    end
-end
-
-AimTab:Toggle({
-    Title = "自瞄开关",
-    Value = false,
-    Callback = function(v)
-        aimEnabled = v
-        toggleAim()
-    end
-})
-
-AimTab:Toggle({
-    Title = "队伍检测",
-    Value = false,
-    Callback = function(v)
-        teamCheck = v
-    end
-})
-
-AimTab:Toggle({
-    Title = "墙体检测",
-    Value = true,
-    Callback = function(v)
-        wallCheck = v
-    end
-})
-
-AimTab:Dropdown({
-    Title = "瞄准部位",
-    Values = { "头部", "身体" },
-    Value = "头部",
-    Callback = function(v)
-        if v == "头部" then aimPart = "Head"
-        else aimPart = "HumanoidRootPart" end
-    end
-})
-
-AimTab:Slider({
-    Title = "平滑速度",
-    Value = { Min = 0, Max = 1, Default = 0.3 },
-    Step = 0.01,
-    Callback = function(v)
-        aimSmooth = v
-    end
-})
 
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
