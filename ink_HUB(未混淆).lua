@@ -23,7 +23,7 @@ if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI �
 B.Transparency=0.3
 B:SetTheme("Dark")
 
-local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
@@ -52,7 +52,7 @@ end
 local D=C:Section({Title="功能菜单",Opened=true})
 
 local Z = D:Tab({Title="公告", Icon="bell"})
-Z:Button({Title="欢迎使用 ink_HUB\n作者：墨水依旧\n快手号：zczczczc766\n公益脚本禁止倒卖\n认准 ink_HUB", Callback=function() end})
+Z:Button({Title="欢迎使用 ink_HUB\n作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:sikonfxzbb\n公益脚本禁止倒卖\n认准 ink_HUB", Callback=function() end})
 Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ：2047955671", Duration=2}) end})
 Z:Button({Title="复制作者QQ群", Callback=function() setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ群：1101093219", Duration=2}) end})
 Z:Button({Title="复制作者QQ副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ副群：1063828524", Duration=2}) end})
@@ -1287,6 +1287,257 @@ CleanTab:Toggle({
         else
             _G.StopSponge = true
             if spongeThread then task.cancel(spongeThread); spongeThread = nil end
+        end
+    end
+})
+
+local HitTab = D:Tab({Title="击打动作", Icon="zap"})
+
+local hitEnabled = false
+local hitThread = nil
+
+HitTab:Toggle({
+    Title = "击飞所有人",
+    Value = false,
+    Callback = function(s)
+        if s then
+            hitEnabled = true
+            _G.StopHit = false
+            hitThread = task.spawn(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                while not _G.StopHit do
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer then
+                            local char = player.Character
+                            if char then
+                                local root = char:FindFirstChild("HumanoidRootPart")
+                                if root then
+                                    pcall(function()
+                                        root.Velocity = Vector3.new(0, 150, 0)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.05)
+                end
+            end)
+        else
+            _G.StopHit = true
+            if hitThread then
+                task.cancel(hitThread)
+                hitThread = nil
+            end
+        end
+    end
+})
+
+local BlockWarTab = D:Tab({Title="方块战争", Icon="pickaxe"})
+
+local mineEnabled = false
+local mineThread = nil
+local originalMineSeconds = nil
+local originalBreakSeconds = nil
+local originalBreakSecondsForHP = nil
+local originalBrickHPForBought = nil
+
+BlockWarTab:Toggle({
+    Title = "稿子秒挖",
+    Value = false,
+    Callback = function(s)
+        if s then
+            mineEnabled = true
+            _G.StopMine = false
+            mineThread = task.spawn(function()
+                local RS = game:GetService("ReplicatedStorage")
+                while not _G.StopMine do
+                    pcall(function()
+                        local MineDefs = require(RS.Modules.Configs.MineDefs)
+                        if MineDefs and MineDefs.MineSeconds then
+                            if not originalMineSeconds then
+                                originalMineSeconds = MineDefs.MineSeconds
+                            end
+                            MineDefs.MineSeconds = function() return 0 end
+                        end
+                    end)
+                    pcall(function()
+                        local BBC = require(RS.Modules.Configs.BlockBreakConfig)
+                        if BBC.BreakSeconds then
+                            if not originalBreakSeconds then
+                                originalBreakSeconds = BBC.BreakSeconds
+                            end
+                            BBC.BreakSeconds = function() return 0 end
+                        end
+                        if BBC.BreakSecondsForHP then
+                            if not originalBreakSecondsForHP then
+                                originalBreakSecondsForHP = BBC.BreakSecondsForHP
+                            end
+                            BBC.BreakSecondsForHP = function() return 0 end
+                        end
+                    end)
+                    pcall(function()
+                        local GUC = require(RS.Modules.Configs.GeneratorUpgradeConfig)
+                        if GUC and GUC.BrickHPForBought then
+                            if not originalBrickHPForBought then
+                                originalBrickHPForBought = GUC.BrickHPForBought
+                            end
+                            GUC.BrickHPForBought = function() return 0 end
+                        end
+                    end)
+                    task.wait(1)
+                end
+            end)
+        else
+            _G.StopMine = true
+            if mineThread then task.cancel(mineThread); mineThread = nil end
+            pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local MineDefs = require(RS.Modules.Configs.MineDefs)
+                if MineDefs and originalMineSeconds then
+                    MineDefs.MineSeconds = originalMineSeconds
+                end
+                local BBC = require(RS.Modules.Configs.BlockBreakConfig)
+                if BBC and originalBreakSeconds then
+                    BBC.BreakSeconds = originalBreakSeconds
+                end
+                if BBC and originalBreakSecondsForHP then
+                    BBC.BreakSecondsForHP = originalBreakSecondsForHP
+                end
+                local GUC = require(RS.Modules.Configs.GeneratorUpgradeConfig)
+                if GUC and originalBrickHPForBought then
+                    GUC.BrickHPForBought = originalBrickHPForBought
+                end
+            end)
+            originalMineSeconds = nil
+            originalBreakSeconds = nil
+            originalBreakSecondsForHP = nil
+            originalBrickHPForBought = nil
+        end
+    end
+})
+
+local weaponEnabled = false
+local weaponThread = nil
+local weaponConnections = {}
+local originalWeaponData = {}
+
+BlockWarTab:Toggle({
+    Title = "近战武器无CD",
+    Value = false,
+    Callback = function(s)
+        if s then
+            weaponEnabled = true
+            _G.StopWeapon = false
+            weaponThread = task.spawn(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local Run = game:GetService("RunService")
+                local LP = Players.LocalPlayer
+
+                pcall(function()
+                    local Reg = require(RS.Data.Registries.WeaponRegistry)
+                    if Reg and Reg.Entries then
+                        for k, v in pairs(Reg.Entries) do
+                            if not originalWeaponData[k] then
+                                originalWeaponData[k] = {
+                                    HitDelay = v.HitDelay,
+                                    HitDuration = v.HitDuration,
+                                    Cooldown = v.Cooldown,
+                                    ComboTimeout = v.ComboTimeout
+                                }
+                            end
+                            v.HitDelay = 0
+                            v.HitDuration = 0.05
+                            v.Cooldown = 0
+                            v.ComboTimeout = 0
+                        end
+                    end
+                end)
+
+                LP:SetAttribute("AttackSpeedMul", 999999)
+                local attrConn = LP:GetAttributeChangedSignal("AttackSpeedMul"):Connect(function()
+                    if not _G.StopWeapon and LP:GetAttribute("AttackSpeedMul") ~= 999999 then
+                        LP:SetAttribute("AttackSpeedMul", 999999)
+                    end
+                end)
+                table.insert(weaponConnections, attrConn)
+
+                LP:SetAttribute("StunEndsAt", 0)
+                local stunConn = LP:GetAttributeChangedSignal("StunEndsAt"):Connect(function()
+                    if not _G.StopWeapon and (LP:GetAttribute("StunEndsAt") or 0) > workspace:GetServerTimeNow() then
+                        LP:SetAttribute("StunEndsAt", 0)
+                    end
+                end)
+                table.insert(weaponConnections, stunConn)
+
+                local heartbeatConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    LP:SetAttribute("StunEndsAt", 0)
+                    pcall(function()
+                        for _, m in ipairs(getloadedmodules and getloadedmodules() or {}) do
+                            if m and m.SwingState then
+                                m.SwingState.cooldownEndsAt = -1
+                                m.SwingState.duration = 0
+                            end
+                        end
+                    end)
+                end)
+                table.insert(weaponConnections, heartbeatConn)
+
+                local CombatRemotes = RS:WaitForChild("GameEvents"):WaitForChild("CombatRemotes")
+                local AtkRemote = CombatRemotes:WaitForChild("Combat_RequestAttack")
+                local last = 0
+
+                local atkConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    if tick() - last < 0.05 then return end
+                    local char = LP.Character
+                    local tool = char and char:FindFirstChildWhichIsA("Tool")
+                    if tool then
+                        local ok, wtype = pcall(function()
+                            return require(RS.Data.Registries.WeaponRegistry).GetTypeFromTool(tool)
+                        end)
+                        if ok and wtype then
+                            last = tick()
+                            pcall(function()
+                                AtkRemote:FireServer(wtype)
+                            end)
+                        end
+                    end
+                end)
+                table.insert(weaponConnections, atkConn)
+
+                while not _G.StopWeapon do
+                    task.wait(1)
+                end
+            end)
+        else
+            _G.StopWeapon = true
+            if weaponThread then task.cancel(weaponThread); weaponThread = nil end
+            for _, conn in ipairs(weaponConnections) do
+                pcall(function() conn:Disconnect() end)
+            end
+            weaponConnections = {}
+            pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LP = Players.LocalPlayer
+                local Reg = require(RS.Data.Registries.WeaponRegistry)
+                if Reg and Reg.Entries then
+                    for k, v in pairs(Reg.Entries) do
+                        if originalWeaponData[k] then
+                            v.HitDelay = originalWeaponData[k].HitDelay
+                            v.HitDuration = originalWeaponData[k].HitDuration
+                            v.Cooldown = originalWeaponData[k].Cooldown
+                            v.ComboTimeout = originalWeaponData[k].ComboTimeout
+                        end
+                    end
+                end
+                LP:SetAttribute("AttackSpeedMul", 1)
+                LP:SetAttribute("StunEndsAt", 0)
+            end)
+            originalWeaponData = {}
         end
     end
 })
