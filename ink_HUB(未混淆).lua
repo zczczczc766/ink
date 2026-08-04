@@ -756,6 +756,721 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
+local FlashTab = D:Tab({Title="闪光", Icon="sparkles"})
+
+FlashTab:Section({ Title = "状态" })
+
+local statusParagraph = FlashTab:Paragraph({
+    Title = "信息",
+    Desc = "生命: 0\nFPS: 0\n延迟: 0ms"
+})
+
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local LocalPlayer = game.Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+RunService.RenderStepped:Connect(function(dt)
+    local health = 0
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        health = math.floor(char.Humanoid.Health)
+    end
+    local fps = math.floor(1 / dt)
+    local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+    statusParagraph:SetDesc("生命: " .. health .. "\nFPS: " .. fps .. "\n延迟: " .. ping .. "ms")
+end)
+
+FlashTab:Section({ Title = "角色增强" })
+
+local noVelocityEnabled = false
+local noVelocityConnection = nil
+FlashTab:Toggle({
+    Title = "无流速",
+    Value = false,
+    Callback = function(v)
+        noVelocityEnabled = v
+        if v then
+            noVelocityConnection = RunService.Heartbeat:Connect(function()
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = player.Character.HumanoidRootPart
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+                end
+            end)
+        else
+            if noVelocityConnection then noVelocityConnection:Disconnect(); noVelocityConnection = nil end
+        end
+    end
+})
+
+local bunnyHopEnabled = false
+local bunnyHopDelay = 1
+local bunnyHopConnection = nil
+FlashTab:Toggle({
+    Title = "兔子跳",
+    Value = false,
+    Callback = function(v)
+        bunnyHopEnabled = v
+        if v then
+            bunnyHopConnection = RunService.Heartbeat:Connect(function()
+                local char = LocalPlayer.Character
+                if not char or not char:FindFirstChild("Humanoid") then return end
+                local humanoid = char.Humanoid
+                if humanoid:GetState() == Enum.HumanoidStateType.Running and humanoid.FloorMaterial ~= Enum.Material.Air then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    task.wait(bunnyHopDelay)
+                end
+            end)
+        else
+            if bunnyHopConnection then bunnyHopConnection:Disconnect(); bunnyHopConnection = nil end
+        end
+    end
+})
+
+FlashTab:Slider({
+    Title = "兔子跳延迟",
+    Value = { Min = 0, Max = 5, Default = 1 },
+    Step = 0.1,
+    Callback = function(v) bunnyHopDelay = v end
+})
+
+FlashTab:Divider()
+
+local xrayenabled = false
+local xraytransparency = 0.6
+local originaltransparencies = {}
+FlashTab:Toggle({
+    Title = "X光",
+    Value = false,
+    Callback = function(v)
+        xrayenabled = v
+        if v then
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
+                    originaltransparencies[obj] = obj.Transparency
+                    obj.Transparency = xraytransparency
+                end
+            end
+        else
+            for obj, t in pairs(originaltransparencies) do
+                if obj and obj.Parent then obj.Transparency = t end
+            end
+            originaltransparencies = {}
+        end
+    end
+})
+
+FlashTab:Slider({
+    Title = "X光透明度",
+    Value = { Min = 0, Max = 100, Default = 60 },
+    Step = 1,
+    Callback = function(v)
+        xraytransparency = v / 100
+        if xrayenabled then
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) and originaltransparencies[obj] then
+                    obj.Transparency = v / 100
+                end
+            end
+        end
+    end
+})
+
+FlashTab:Divider()
+
+local autoRespawnEnabled = false
+local autoRespawnDelay = 0
+local autoRespawnLastFire = 0
+FlashTab:Toggle({
+    Title = "自动重生",
+    Value = false,
+    Callback = function(v)
+        autoRespawnEnabled = v
+        if v then
+            task.spawn(function()
+                while autoRespawnEnabled do
+                    if not Workspace:FindFirstChild(LocalPlayer.Name) then
+                        if tick() - autoRespawnLastFire >= 1 then
+                            local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                            if remotes and remotes:FindFirstChild("Command") then
+                                remotes.Command:FireServer("Play")
+                            end
+                            autoRespawnLastFire = tick()
+                        end
+                    end
+                    task.wait(autoRespawnDelay)
+                end
+            end)
+        end
+    end
+})
+
+FlashTab:Slider({
+    Title = "重生延迟",
+    Value = { Min = 0, Max = 3, Default = 0 },
+    Step = 0.1,
+    Callback = function(v) autoRespawnDelay = v end
+})
+
+FlashTab:Section({ Title = "游戏功能" })
+
+FlashTab:Button({
+    Title = "返回大厅",
+    Callback = function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        if remotes and remotes:FindFirstChild("Command") then
+            remotes.Command:FireServer("Lobby")
+        end
+    end
+})
+
+FlashTab:Button({
+    Title = "开始游戏",
+    Callback = function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        if remotes and remotes:FindFirstChild("Command") then
+            remotes.Command:FireServer("Play")
+        end
+    end
+})
+
+FlashTab:Divider()
+
+local originallighting = {
+    FogEnd = Lighting.FogEnd,
+    FogStart = Lighting.FogStart
+}
+FlashTab:Toggle({
+    Title = "无雾",
+    Value = false,
+    Callback = function(v)
+        if v then
+            Lighting.FogEnd = 100000
+            Lighting.FogStart = 0
+        else
+            Lighting.FogEnd = originallighting.FogEnd
+            Lighting.FogStart = originallighting.FogStart
+        end
+    end
+})
+
+FlashTab:Section({ Title = "近战刀具" })
+
+local knifeCloseEnabled = false
+local knifeRange = 10
+local showKnifeRange = false
+local knifeRangeColor = Color3.fromRGB(255, 255, 255)
+local knifeRangeTransparency = 0.5
+local rangeSphere = nil
+local knifeConnection = nil
+local lastKnifeState = nil
+local SwapWeapon = nil
+
+task.spawn(function()
+    local signalEvents = ReplicatedStorage:WaitForChild("SignalManager", 10)
+    if signalEvents then
+        signalEvents = signalEvents:WaitForChild("SignalEvents", 10)
+        if signalEvents then SwapWeapon = signalEvents:WaitForChild("SwapWeapon", 10) end
+    end
+end)
+
+local function updateKnifeRangeSphere()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if rangeSphere then rangeSphere.Transparency = 1 end
+        return
+    end
+    local root = LocalPlayer.Character.HumanoidRootPart
+    if showKnifeRange then
+        if not rangeSphere then
+            rangeSphere = Instance.new("Part")
+            rangeSphere.Name = "KnifeRangeSphere"
+            rangeSphere.Shape = Enum.PartType.Ball
+            rangeSphere.Material = Enum.Material.ForceField
+            rangeSphere.CanCollide = false
+            rangeSphere.Anchored = true
+            rangeSphere.CastShadow = false
+            rangeSphere.Parent = Workspace
+        end
+        rangeSphere.Size = Vector3.new(knifeRange * 2, knifeRange * 2, knifeRange * 2)
+        rangeSphere.CFrame = root.CFrame
+        rangeSphere.Color = knifeRangeColor
+        rangeSphere.Transparency = knifeRangeTransparency
+    else
+        if rangeSphere then rangeSphere:Destroy(); rangeSphere = nil end
+    end
+end
+RunService.RenderStepped:Connect(updateKnifeRangeSphere)
+
+local function anyEnemyInRange()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (root.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if dist <= knifeRange then return true end
+        end
+    end
+    return false
+end
+
+local function toggleKnifeSwitch()
+    if knifeCloseEnabled then
+        knifeConnection = RunService.Heartbeat:Connect(function()
+            if not knifeCloseEnabled then return end
+            local inRange = anyEnemyInRange()
+            local shouldBeKnife = inRange
+            if lastKnifeState == nil or lastKnifeState ~= shouldBeKnife then
+                if SwapWeapon then SwapWeapon:Fire() end
+                lastKnifeState = shouldBeKnife
+            end
+        end)
+    else
+        if knifeConnection then knifeConnection:Disconnect(); knifeConnection = nil end
+        lastKnifeState = nil
+    end
+end
+
+FlashTab:Toggle({
+    Title = "近战切换刀具",
+    Value = false,
+    Callback = function(v) knifeCloseEnabled = v toggleKnifeSwitch() end
+})
+
+FlashTab:Slider({
+    Title = "刀具范围",
+    Value = { Min = 1, Max = 50, Default = 10 },
+    Step = 1,
+    Callback = function(v) knifeRange = v updateKnifeRangeSphere() end
+})
+
+FlashTab:Toggle({
+    Title = "显示刀具范围",
+    Value = false,
+    Callback = function(v) showKnifeRange = v updateKnifeRangeSphere() end
+})
+
+FlashTab:Colorpicker({
+    Title = "范围颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Transparency = 0.5,
+    Callback = function(v, t) knifeRangeColor = v; knifeRangeTransparency = t or 0.5; updateKnifeRangeSphere() end
+})
+
+FlashTab:Section({ Title = "开箱" })
+
+local knifeCrateCount = 0
+local gunCrateCount = 0
+local isOpeningCrates = false
+local RollCrate = nil
+
+task.spawn(function()
+    local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+    if remotes then RollCrate = remotes:WaitForChild("RollCrate", 10) end
+end)
+
+local function openKnifeCrates()
+    if isOpeningCrates then return end
+    isOpeningCrates = true
+    for i = 1, knifeCrateCount do
+        if RollCrate then RollCrate:FireServer("KnifeCrate") end
+        task.wait(0.1)
+    end
+    isOpeningCrates = false
+end
+
+local function openGunCrates()
+    if isOpeningCrates then return end
+    isOpeningCrates = true
+    for i = 1, gunCrateCount do
+        if RollCrate then RollCrate:FireServer("GunCrate") end
+        task.wait(0.1)
+    end
+    isOpeningCrates = false
+end
+
+FlashTab:Button({
+    Title = "批量开刀具箱",
+    Callback = openKnifeCrates
+})
+
+FlashTab:Slider({
+    Title = "刀具箱数量",
+    Value = { Min = 0, Max = 25, Default = 0 },
+    Step = 1,
+    Callback = function(v) knifeCrateCount = math.floor(v) end
+})
+
+FlashTab:Button({
+    Title = "批量开枪箱",
+    Callback = openGunCrates
+})
+
+FlashTab:Slider({
+    Title = "枪箱数量",
+    Value = { Min = 0, Max = 15, Default = 0 },
+    Step = 1,
+    Callback = function(v) gunCrateCount = math.floor(v) end
+})
+
+FlashTab:Section({ Title = "弹道" })
+
+local bulletTrailsEnabled = false
+local bulletMissColor = Color3.new(1, 0, 0)
+local bulletHitColor = Color3.new(0, 1, 0)
+local tracers = {}
+local TRACER_LIFETIME = 1.5
+local TRACER_THICKNESS = 0.06
+local BALL_SIZE = 6
+local OUTLINE_THICKNESS = 2
+local FADE_TIME = 1.2
+local HIT_RANGE = 3
+
+local function fadeBeam(part)
+    local t = 0
+    while t < TRACER_LIFETIME do
+        t += RunService.RenderStepped:Wait()
+        part.Transparency = t / TRACER_LIFETIME
+    end
+    part:Destroy()
+end
+
+local function drawTracerSegment(startPos, endPos)
+    if not bulletTrailsEnabled then return end
+    local beam = Instance.new("Part")
+    beam.Anchored = true
+    beam.CanCollide = false
+    beam.Material = Enum.Material.Neon
+    beam.Color = bulletMissColor
+    beam.Size = Vector3.new(TRACER_THICKNESS, TRACER_THICKNESS, (startPos - endPos).Magnitude)
+    beam.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -beam.Size.Z/2)
+    beam.Transparency = 0
+    beam.Parent = Workspace
+    table.insert(tracers, beam)
+    task.spawn(function() fadeBeam(beam) end)
+end
+
+local function colorNearestTracer(gibPosition)
+    if not bulletTrailsEnabled then return end
+    local nearest = nil
+    local nearestDist = math.huge
+    for _, tracer in ipairs(tracers) do
+        if tracer.Parent then
+            local dist = (tracer.Position - gibPosition).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                nearest = tracer
+            end
+        end
+    end
+    if nearest then nearest.Color = bulletHitColor end
+end
+
+local function hitPlayer(position)
+    for _, plr in ipairs(game.Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            for _, part in ipairs(plr.Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    if (part.Position - position).Magnitude <= HIT_RANGE then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function makeImpactBall(part)
+    if not bulletTrailsEnabled then return end
+    local pos = part.Position
+    local green = hitPlayer(pos)
+    local outlineColor = green and bulletHitColor or bulletMissColor
+    local innerColor = green and bulletHitColor or bulletMissColor
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.fromOffset(BALL_SIZE*2, BALL_SIZE*2)
+    billboard.AlwaysOnTop = false
+    billboard.LightInfluence = 0
+    billboard.Parent = part
+    local outline = Instance.new("ImageLabel")
+    outline.Size = UDim2.fromScale(1,1)
+    outline.BackgroundTransparency = 1
+    outline.Image = "rbxassetid://1316045217"
+    outline.ImageColor3 = outlineColor
+    outline.ImageTransparency = 0
+    outline.Parent = billboard
+    local inner = Instance.new("ImageLabel")
+    inner.Size = UDim2.fromOffset(billboard.Size.X.Offset - OUTLINE_THICKNESS*2, billboard.Size.Y.Offset - OUTLINE_THICKNESS*2)
+    inner.Position = UDim2.fromOffset(OUTLINE_THICKNESS, OUTLINE_THICKNESS)
+    inner.BackgroundTransparency = 1
+    inner.Image = "rbxassetid://1316045217"
+    inner.ImageColor3 = innerColor
+    inner.ImageTransparency = 0
+    inner.Parent = billboard
+    task.spawn(function()
+        local t = 0
+        while t < FADE_TIME do
+            t += RunService.RenderStepped:Wait()
+            local alpha = t / FADE_TIME
+            outline.ImageTransparency = alpha
+            inner.ImageTransparency = alpha
+        end
+        billboard:Destroy()
+    end)
+end
+
+local bulletStorage = Workspace:FindFirstChild("bulletStorage") or Instance.new("Folder", Workspace)
+if bulletStorage.Name ~= "bulletStorage" then bulletStorage.Name = "bulletStorage" end
+local hitEffectFolder = Workspace:FindFirstChild("HitEffect") or Instance.new("Folder", Workspace)
+if hitEffectFolder.Name ~= "HitEffect" then hitEffectFolder.Name = "HitEffect" end
+
+bulletStorage.ChildAdded:Connect(function(bullet)
+    if not bulletTrailsEnabled then return end
+    if not bullet:IsA("BasePart") then return end
+    local lastPos = bullet.Position
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if bullet and bullet.Parent then
+            local newPos = bullet.Position
+            drawTracerSegment(lastPos, newPos)
+            lastPos = newPos
+        else
+            conn:Disconnect()
+        end
+    end)
+end)
+
+hitEffectFolder.ChildAdded:Connect(function(obj)
+    if not bulletTrailsEnabled then return end
+    if obj:IsA("BasePart") then
+        if obj.Name == "Gib_T" then colorNearestTracer(obj.Position) end
+        if obj.Name == "Gib_G" then makeImpactBall(obj) end
+    end
+end)
+
+FlashTab:Toggle({
+    Title = "显示弹道",
+    Value = false,
+    Callback = function(v) bulletTrailsEnabled = v end
+})
+
+FlashTab:Colorpicker({
+    Title = "未击中颜色",
+    Default = Color3.new(1, 0, 0),
+    Callback = function(v) bulletMissColor = v end
+})
+
+FlashTab:Colorpicker({
+    Title = "击中颜色",
+    Default = Color3.new(0, 1, 0),
+    Callback = function(v) bulletHitColor = v end
+})
+
+FlashTab:Section({ Title = "RGB枪刀" })
+
+local rgbGunKnifeEnabled = false
+local rgbSpeed = 10
+local rgbReapplySpeed = 1
+local rgbHue = 0
+local rgbConnection = nil
+local rgbReapplyConnection = nil
+local lastGunTool = nil
+local rgbType = "Material"
+local rgbAsyncEnabled = false
+local rgbSyncHue = 0
+local rgbSyncLastUpdate = 0
+
+local function getSyncRainbowColor()
+    local currenttime = tick()
+    local speedmultiplier = 11 - 10
+    local increment = 0.001 * speedmultiplier
+    if currenttime - rgbSyncLastUpdate >= 0.01 then
+        rgbSyncHue = (rgbSyncHue + increment) % 1
+        rgbSyncLastUpdate = currenttime
+    end
+    return Color3.fromHSV(rgbSyncHue, 1, 1)
+end
+
+local function applyRGBToGun(toolModel, hue)
+    if not toolModel then return end
+    local faces = Enum.NormalId:GetEnumItems()
+    for _, part in ipairs(toolModel:GetDescendants()) do
+        if part:IsA("UnionOperation") or part:IsA("BasePart") then
+            part.Color = Color3.fromHSV(hue, 1, 1)
+            part.UsePartColor = true
+            local light = part:FindFirstChildOfClass("SpotLight") or Instance.new("SpotLight")
+            light.Color = Color3.fromHSV(hue, 1, 1)
+            light.Range = 18
+            light.Brightness = 5
+            light.Face = faces[math.random(1, #faces)]
+            light.Angle = 90
+            light.Parent = part
+        end
+    end
+end
+
+local function applyHighlightToTool(tool, hue)
+    if not tool or not rgbGunKnifeEnabled or rgbType ~= "Highlight" then return end
+    local highlight = tool:FindFirstChild("RGBHighlight") or Instance.new("Highlight")
+    highlight.Name = "RGBHighlight"
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.FillColor = Color3.fromHSV(hue, 1, 1)
+    highlight.OutlineColor = Color3.fromHSV(hue, 1, 1)
+    highlight.Adornee = tool
+    highlight.Parent = tool
+end
+
+local function toggleRGBGunKnife()
+    if rgbGunKnifeEnabled then
+        local localTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        if localTool then lastGunTool = localTool end
+        rgbConnection = RunService.Heartbeat:Connect(function()
+            if rgbAsyncEnabled then
+                rgbHue = getSyncRainbowColor().h
+            else
+                rgbHue = (rgbHue + (rgbSpeed / 5000)) % 1
+            end
+            if LocalPlayer.Character then
+                for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        if rgbType == "Material" then
+                            for _, model in ipairs(tool:GetChildren()) do
+                                if model:IsA("Model") then
+                                    applyRGBToGun(model, rgbHue)
+                                end
+                            end
+                        elseif rgbType == "Highlight" then
+                            applyHighlightToTool(tool, rgbHue)
+                        end
+                    end
+                end
+            end
+        end)
+        rgbReapplyConnection = RunService.Heartbeat:Connect(function()
+            task.wait(rgbReapplySpeed)
+            if lastGunTool and lastGunTool.Parent then
+                if rgbType == "Material" then
+                    for _, model in ipairs(lastGunTool:GetChildren()) do
+                        if model:IsA("Model") then
+                            applyRGBToGun(model, rgbHue)
+                        end
+                    end
+                elseif rgbType == "Highlight" then
+                    applyHighlightToTool(lastGunTool, rgbHue)
+                end
+            end
+        end)
+    else
+        if rgbConnection then rgbConnection:Disconnect(); rgbConnection = nil end
+        if rgbReapplyConnection then rgbReapplyConnection:Disconnect(); rgbReapplyConnection = nil end
+        if lastGunTool then
+            for _, model in ipairs(lastGunTool:GetDescendants()) do
+                if model:IsA("BasePart") or model:IsA("UnionOperation") then
+                    local light = model:FindFirstChildOfClass("SpotLight")
+                    if light then light:Destroy() end
+                end
+            end
+            local highlight = lastGunTool:FindFirstChild("RGBHighlight")
+            if highlight then highlight:Destroy() end
+        end
+    end
+end
+
+FlashTab:Toggle({
+    Title = "RGB枪/刀",
+    Value = false,
+    Callback = function(v) rgbGunKnifeEnabled = v; toggleRGBGunKnife() end
+})
+
+FlashTab:Slider({
+    Title = "RGB速度",
+    Value = { Min = 1, Max = 50, Default = 10 },
+    Step = 1,
+    Callback = function(v) rgbSpeed = v end
+})
+
+FlashTab:Slider({
+    Title = "RGB重应用速度",
+    Value = { Min = 0, Max = 5, Default = 1 },
+    Step = 0.1,
+    Callback = function(v) rgbReapplySpeed = v end
+})
+
+FlashTab:Dropdown({
+    Title = "RGB类型",
+    Values = { "材质", "高亮" },
+    Value = "材质",
+    Callback = function(v) rgbType = v end
+})
+
+FlashTab:Section({ Title = "音效" })
+
+local hitSfxId = ""
+local critSfxId = ""
+local autoApplySfx = false
+local autoApplyDelay = 1
+local autoApplyConnection = nil
+
+local function applyCustomSFX()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+    local effect = playerGui:FindFirstChild("Effect")
+    if not effect then return end
+    local hitSound = effect:FindFirstChild("Bang")
+    local critSound = effect:FindFirstChild("Crit")
+    if hitSound and hitSfxId ~= "" then hitSound.SoundId = "rbxassetid://" .. hitSfxId end
+    if critSound and critSfxId ~= "" then critSound.SoundId = "rbxassetid://" .. critSfxId end
+end
+
+local function toggleAutoApplySFX()
+    if autoApplySfx then
+        autoApplyConnection = RunService.Heartbeat:Connect(function()
+            task.wait(autoApplyDelay)
+            applyCustomSFX()
+        end)
+    else
+        if autoApplyConnection then autoApplyConnection:Disconnect(); autoApplyConnection = nil end
+    end
+end
+
+FlashTab:Input({
+    Title = "命中音效ID",
+    Value = "",
+    Placeholder = "输入音效ID",
+    Callback = function(v) hitSfxId = v:gsub("rbxassetid://", "") end
+})
+
+FlashTab:Input({
+    Title = "暴击音效ID",
+    Value = "",
+    Placeholder = "输入音效ID",
+    Callback = function(v) critSfxId = v:gsub("rbxassetid://", "") end
+})
+
+FlashTab:Button({
+    Title = "应用自定义音效",
+    Callback = applyCustomSFX
+})
+
+FlashTab:Toggle({
+    Title = "自动应用音效",
+    Value = false,
+    Callback = function(v) autoApplySfx = v; toggleAutoApplySFX() end
+})
+
+FlashTab:Slider({
+    Title = "自动应用延迟",
+    Value = { Min = 0, Max = 5, Default = 1 },
+    Step = 0.1,
+    Callback = function(v) autoApplyDelay = v end
+})
+   
 local BackstreetTab = D:Tab({Title="后街生存", Icon="map"})
 
 local lastPosition = nil
