@@ -55,7 +55,7 @@ local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
     Title = "欢迎使用 ink_HUB",
     Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n公益脚本禁止倒卖\n认准 ink_HUB",
-    Image = "bell",
+    Image = "rbxassetid://107039115828792",
     ImageSize = 24,
 })
 Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ：2047955671", Duration=2}) end})
