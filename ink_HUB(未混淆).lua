@@ -302,220 +302,355 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
-local P1 = D:Tab({ Title = "透视", Icon = "eye" })
+local P = D:Tab({Title="透视专区", Icon="eye"})
+
+-- ===== 透视变量（来自闪光） =====
+local espEnabled = false
+local outlineEnabled = false
+local tracersEnabled = false
+local espconfig = {
+    espcolor = Color3.fromRGB(255, 255, 255),
+    outlinecolor = Color3.fromRGB(255, 255, 255),
+    outlinefillcolor = Color3.fromRGB(255, 255, 255),
+    tracercolor = Color3.fromRGB(255, 255, 255),
+    espsize = 16,
+    tracersize = 2,
+    outlinetransparency = 0,
+    outlinefilltransparency = 1,
+    rainbowesp = false,
+    rainbowoutline = false,
+    rainbowtracers = false,
+    rainbowspeed = 5,
+    tracerposition = "Bottom"
+}
+local rainbowhue = 0
+local lastupdate = 0
+local espobjects = {}
+local playerconnections = {}
+local tracerlines = {}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local lplayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local espData = {}
-local function createPlayerESP(player)
-    if espData[player] then return end
-    local gui = Instance.new("ScreenGui")
-    gui.Name = player.Name
-    gui.Parent = CoreGui
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(0, 200, 0, 20)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextScaled = false
-    nameLabel.TextSize = 12
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextColor3 = Color3.new(1, 1, 1)
-    nameLabel.TextStrokeTransparency = 0
-    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    nameLabel.Parent = gui
-    local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(0, 100, 0, 16)
-    distLabel.BackgroundTransparency = 1
-    distLabel.TextSize = 10
-    distLabel.Font = Enum.Font.Gotham
-    distLabel.TextColor3 = Color3.new(1, 1, 1)
-    distLabel.TextStrokeTransparency = 0
-    distLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    distLabel.Parent = gui
-    local healthBar = Instance.new("Frame")
-    healthBar.Size = UDim2.new(0, 50, 0, 3)
-    healthBar.BackgroundColor3 = Color3.new(0, 1, 0)
-    healthBar.BorderSizePixel = 0
-    healthBar.Parent = gui
-    local healthBg = Instance.new("Frame")
-    healthBg.Size = UDim2.new(0, 50, 0, 3)
-    healthBg.BackgroundColor3 = Color3.new(0, 0, 0)
-    healthBg.BackgroundTransparency = 0.5
-    healthBg.BorderSizePixel = 0
-    healthBg.Parent = gui
-    local highlight = Instance.new("Highlight")
-    highlight.FillTransparency = 1
-    highlight.OutlineColor = Color3.new(1, 1, 1)
-    highlight.OutlineTransparency = 0.5
-    highlight.Parent = gui
-    espData[player] = {
-        gui = gui,
-        name = nameLabel,
-        dist = distLabel,
-        health = healthBar,
-        healthBg = healthBg,
-        highlight = highlight
-    }
+local function getrainbowcolor()
+    local currenttime = tick()
+    local speedmultiplier = 11 - espconfig.rainbowspeed
+    local increment = 0.001 * speedmultiplier
+    if currenttime - lastupdate >= 0.1 then
+        rainbowhue = (rainbowhue + increment) % 1
+        lastupdate = currenttime
+    end
+    return Color3.fromHSV(rainbowhue, 1, 1)
 end
 
-local function removePlayerESP(player)
-    if espData[player] then
-        espData[player].gui:Destroy()
-        espData[player] = nil
+local function getPlayerWeapon(player)
+    if not player.Character then return "无" end
+    local tool = player.Character:FindFirstChildWhichIsA("Tool")
+    if tool then return tool.Name end
+    return "无"
+end
+
+local function createesp(player)
+    if player == LocalPlayer or espobjects[player] then return end
+    local nametext = Drawing.new("Text")
+    nametext.Size = espconfig.espsize
+    nametext.Center = true
+    nametext.Outline = true
+    nametext.Color = espconfig.espcolor
+    nametext.Font = 2
+    nametext.Visible = false
+    espobjects[player] = { Name = nametext }
+end
+
+local function removeesp(player)
+    if espobjects[player] then
+        espobjects[player].Name:Remove()
+        espobjects[player] = nil
     end
 end
 
-local settings = {
-    names = false,
-    distances = false,
-    healthbars = false,
-    highlights = false,
-    teamcheck = false,
-}
+local function applyhighlighttocharacter(player, character)
+    if not character then return end
+    local userid = player.UserId
+    if activehighlights[userid] then activehighlights[userid]:Destroy() end
+    local highlighter = Instance.new("Highlight")
+    highlighter.FillTransparency = espconfig.outlinefilltransparency
+    highlighter.OutlineTransparency = espconfig.outlinetransparency
+    highlighter.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
+    highlighter.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+    highlighter.Adornee = character
+    highlighter.Parent = character
+    activehighlights[userid] = highlighter
+end
 
-local function updateESP()
-    for player, data in pairs(espData) do
-        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-            data.gui.Enabled = false
-        else
-            local root = player.Character.HumanoidRootPart
-            local head = player.Character:FindFirstChild("Head")
-            if not head then
-                data.gui.Enabled = false
-            else
-                local localRoot = lplayer.Character and lplayer.Character:FindFirstChild("HumanoidRootPart")
-                if not localRoot then
-                    data.gui.Enabled = false
-                else
-                    local dist = (root.Position - localRoot.Position).Magnitude
-                    if dist > 2000 then
-                        data.gui.Enabled = false
-                    else
-                        if settings.teamcheck and lplayer.Team and player.Team == lplayer.Team then
-                            data.gui.Enabled = false
-                        else
-                            local pos, onScreen = camera:WorldToViewportPoint(root.Position)
-                            if not onScreen then
-                                data.gui.Enabled = false
-                            else
-                                local headPos = head.Position
-                                local bottom = root.Position - Vector3.new(0, 1.8, 0)
-                                local top = headPos + Vector3.new(0, 0.8, 0)
-                                local width = 1.5
-                                local half = width / 2
-                                local corners = {
-                                    top + Vector3.new(-half, 0, -half), top + Vector3.new(half, 0, -half),
-                                    top + Vector3.new(half, 0, half), top + Vector3.new(-half, 0, half),
-                                    bottom + Vector3.new(-half, 0, -half), bottom + Vector3.new(half, 0, -half),
-                                    bottom + Vector3.new(half, 0, half), bottom + Vector3.new(-half, 0, half)
-                                }
-                                local screenCorners = {}
-                                local skip = false
-                                for _, p in ipairs(corners) do
-                                    local v, on = camera:WorldToViewportPoint(p)
-                                    if not on then
-                                        skip = true
-                                        break
-                                    end
-                                    table.insert(screenCorners, Vector2.new(v.X, v.Y))
-                                end
-                                if skip or #screenCorners ~= 8 then
-                                    data.gui.Enabled = false
-                                else
-                                    local minX = screenCorners[1].X
-                                    local maxX = screenCorners[1].X
-                                    local minY = screenCorners[1].Y
-                                    local maxY = screenCorners[1].Y
-                                    for i = 2, #screenCorners do
-                                        local v = screenCorners[i]
-                                        if v.X < minX then minX = v.X end
-                                        if v.X > maxX then maxX = v.X end
-                                        if v.Y < minY then minY = v.Y end
-                                        if v.Y > maxY then maxY = v.Y end
-                                    end
-                                    local w = maxX - minX
-                                    local h = maxY - minY
-                                    if settings.names then
-                                        data.name.Visible = true
-                                        data.name.Position = UDim2.new(0, minX + w / 2 - 100, 0, minY - 25)
-                                        data.name.Text = player.Name
-                                        data.name.TextColor3 = Color3.new(1, 1, 1)
-                                    else
-                                        data.name.Visible = false
-                                    end
-                                    if settings.distances then
-                                        data.dist.Visible = true
-                                        data.dist.Position = UDim2.new(0, minX + w / 2 - 50, 0, maxY + 4)
-                                        data.dist.Text = math.floor(dist) .. "m"
-                                        data.dist.TextColor3 = Color3.new(1, 1, 1)
-                                    else
-                                        data.dist.Visible = false
-                                    end
-                                    if settings.healthbars then
-                                        data.health.Visible = true
-                                        data.healthBg.Visible = true
-                                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                                        if humanoid then
-                                            local hp = humanoid.Health / humanoid.MaxHealth
-                                            data.health.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
-                                            data.health.Position = UDim2.new(0, minX, 0, minY - 8)
-                                            data.healthBg.Size = UDim2.new(0, w, 0, 3)
-                                            data.healthBg.Position = UDim2.new(0, minX, 0, minY - 8)
-                                            data.health.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
-                                        else
-                                            data.health.Visible = false
-                                            data.healthBg.Visible = false
-                                        end
-                                    else
-                                        data.health.Visible = false
-                                        data.healthBg.Visible = false
-                                    end
-                                    if settings.highlights then
-                                        data.highlight.Enabled = true
-                                        data.highlight.Adornee = player.Character
-                                        data.highlight.OutlineColor = Color3.new(1, 1, 1)
-                                        data.highlight.OutlineTransparency = 0.5
-                                    else
-                                        data.highlight.Enabled = false
-                                        data.highlight.Adornee = nil
-                                    end
-                                    data.gui.Enabled = true
-                                end
-                            end
-                        end
-                    end
+local function removehighlight(player)
+    local userid = player.UserId
+    if activehighlights[userid] then activehighlights[userid]:Destroy() activehighlights[userid] = nil end
+    if playerconnections[userid] then
+        for _, conn in pairs(playerconnections[userid]) do if conn then conn:Disconnect() end end
+        playerconnections[userid] = nil
+    end
+end
+
+local function setupplayerhighlight(player)
+    local userid = player.UserId
+    playerconnections[userid] = playerconnections[userid] or {}
+    local function oncharacteradded(character)
+        if not character then return end
+        task.spawn(function()
+            local humanoid = character:WaitForChild("Humanoid", 5)
+            if not humanoid then return end
+            if outlineEnabled then applyhighlighttocharacter(player, character) end
+            table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
+                local highlight = activehighlights[userid]
+                if highlight then
+                    highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
                 end
+            end))
+            table.insert(playerconnections[userid], humanoid.Died:Connect(function() removehighlight(player) end))
+        end)
+    end
+    local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
+    table.insert(playerconnections[userid], charaddedconn)
+    if player.Character then oncharacteradded(player.Character) end
+end
+
+local function updateesp()
+    for player, esp in pairs(espobjects) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
+            local color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
+            esp.Name.Color = color
+            esp.Name.Size = espconfig.espsize
+            if onscreen then
+                local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
+                local weapon = getPlayerWeapon(player)
+                esp.Name.Position = Vector2.new(pos.X, pos.Y - 20)
+                esp.Name.Text = player.Name .. " | " .. math.floor(distance) .. " 米 | " .. weapon
+                esp.Name.Visible = true
+            else
+                esp.Name.Visible = false
+            end
+        else
+            esp.Name.Visible = false
+        end
+    end
+    if outlineEnabled then
+        for _, h in pairs(activehighlights) do
+            if h then
+                h.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
+                h.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
             end
         end
     end
 end
 
-RunService.RenderStepped:Connect(updateESP)
-
-Players.PlayerAdded:Connect(function(p)
-    if p ~= lplayer then
-        createPlayerESP(p)
-    end
-end)
-Players.PlayerRemoving:Connect(function(p)
-    removePlayerESP(p)
-end)
-
-for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= lplayer then
-        createPlayerESP(p)
+local function createtracers()
+    tracerlines = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local line = Drawing.new("Line")
+            line.Thickness = espconfig.tracersize
+            line.Transparency = 1
+            line.Visible = false
+            tracerlines[player] = line
+        end
     end
 end
 
-local espGroup = P1:Section({ Title = "透视设置", Opened = true })
-espGroup:Toggle({ Title = "名字显示", Value = false, Callback = function(s) settings.names = s end })
-espGroup:Toggle({ Title = "距离显示", Value = false, Callback = function(s) settings.distances = s end })
-espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) settings.healthbars = s end })
-espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
-espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
+local function updatetracers()
+    local screenHeight = Camera.ViewportSize.Y
+    local fromY
+    if espconfig.tracerposition == "Bottom" then fromY = screenHeight
+    elseif espconfig.tracerposition == "Middle" then fromY = screenHeight / 2
+    elseif espconfig.tracerposition == "Up" then fromY = 0 end
+    for player, line in pairs(tracerlines) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local root = player.Character.HumanoidRootPart
+            local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
+            local color = espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor
+            if onscreen then
+                line.From = Vector2.new(Camera.ViewportSize.X / 2, fromY)
+                line.To = Vector2.new(screenpos.X, screenpos.Y)
+                line.Color = color
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        else
+            line.Visible = false
+        end
+    end
+end
+
+-- 玩家加入/离开事件
+Players.PlayerAdded:Connect(function(p)
+    if p ~= LocalPlayer then
+        if espEnabled then createesp(p) end
+        if outlineEnabled then playerconnections[p.UserId] = {} setupplayerhighlight(p) end
+        if tracersEnabled then
+            local line = Drawing.new("Line")
+            line.Thickness = espconfig.tracersize
+            line.Transparency = 1
+            line.Visible = false
+            tracerlines[p] = line
+        end
+        p.CharacterAdded:Connect(function(c)
+            if espEnabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
+            if outlineEnabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
+        end)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    removeesp(p)
+    removehighlight(p)
+    if tracerlines[p] then tracerlines[p]:Remove() tracerlines[p] = nil end
+end)
+
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        p.CharacterAdded:Connect(function(c)
+            if espEnabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
+            if outlineEnabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
+        end)
+    end
+end
+
+-- ===== UI 控件 =====
+local espGroup = P:Section({ Title = "基础透视", Opened = true })
+
+espGroup:Toggle({
+    Title = "透视",
+    Value = false,
+    Callback = function(v)
+        espEnabled = v
+        if v then
+            for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then createesp(p) end end
+            RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value + 1, updateesp)
+        else
+            for p, _ in pairs(espobjects) do removeesp(p) end
+            RunService:UnbindFromRenderStep("ESPUpdate")
+        end
+    end
+})
+
+espGroup:Colorpicker({
+    Title = "透视颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) espconfig.espcolor = v end
+})
+
+espGroup:Toggle({
+    Title = "轮廓",
+    Value = false,
+    Callback = function(v)
+        outlineEnabled = v
+        if v then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    playerconnections[p.UserId] = {}
+                    setupplayerhighlight(p)
+                end
+            end
+        else
+            for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end
+        end
+    end
+})
+
+espGroup:Colorpicker({
+    Title = "轮廓颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) espconfig.outlinecolor = v end
+})
+
+espGroup:Colorpicker({
+    Title = "填充颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) espconfig.outlinefillcolor = v end
+})
+
+espGroup:Toggle({
+    Title = "追踪线",
+    Value = false,
+    Callback = function(v)
+        tracersEnabled = v
+        if v then
+            createtracers()
+            RunService:BindToRenderStep("Tracers", Enum.RenderPriority.Camera.Value + 1, updatetracers)
+        else
+            RunService:UnbindFromRenderStep("Tracers")
+            for _, line in pairs(tracerlines) do line:Remove() end
+            tracerlines = {}
+        end
+    end
+})
+
+espGroup:Colorpicker({
+    Title = "追踪线颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) espconfig.tracercolor = v end
+})
+
+-- ===== 高级配置 =====
+local configGroup = P:Section({ Title = "高级配置", Opened = false })
+
+configGroup:Toggle({
+    Title = "彩虹透视",
+    Value = false,
+    Callback = function(v) espconfig.rainbowesp = v end
+})
+
+configGroup:Toggle({
+    Title = "彩虹轮廓",
+    Value = false,
+    Callback = function(v) espconfig.rainbowoutline = v end
+})
+
+configGroup:Toggle({
+    Title = "彩虹追踪线",
+    Value = false,
+    Callback = function(v) espconfig.rainbowtracers = v end
+})
+
+configGroup:Slider({
+    Title = "透视大小",
+    Value = { Min = 16, Max = 48, Default = 16 },
+    Step = 1,
+    Callback = function(v) espconfig.espsize = v end
+})
+
+configGroup:Dropdown({
+    Title = "追踪线位置",
+    Values = { "底部", "中间", "顶部" },
+    Value = "底部",
+    Callback = function(v) espconfig.tracerposition = v end
+})
+
+configGroup:Slider({
+    Title = "轮廓透明度",
+    Value = { Min = 0, Max = 100, Default = 0 },
+    Step = 1,
+    Callback = function(v) espconfig.outlinetransparency = v / 100 end
+})
+
+configGroup:Slider({
+    Title = "轮廓填充透明度",
+    Value = { Min = 0, Max = 100, Default = 50 },
+    Step = 1,
+    Callback = function(v) espconfig.outlinefilltransparency = v / 100 end
+})
+
+configGroup:Slider({
+    Title = "彩虹速度",
+    Value = { Min = 1, Max = 10, Default = 5 },
+    Step = 1,
+    Callback = function(v) espconfig.rainbowspeed = v end
+})
 
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
