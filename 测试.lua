@@ -26,6 +26,33 @@ B:SetTheme("Dark")
 local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
 
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Name = "TimeDisplay"
+timeLabel.Size = UDim2.new(0, 100, 0, 28)
+timeLabel.Position = UDim2.new(0, 10, 0, 10)
+timeLabel.BackgroundColor3 = Color3.fromRGB(60,60,60)
+timeLabel.BackgroundTransparency = 0.2
+timeLabel.TextColor3 = Color3.new(1,1,1)
+timeLabel.TextSize = 14
+timeLabel.Font = Enum.Font.GothamBold
+timeLabel.Text = os.date("%H:%M")
+timeLabel.BorderSizePixel = 1
+timeLabel.BorderColor3 = Color3.fromRGB(100,100,100)
+timeLabel.Parent = windowFrame
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1.5
+stroke.Color = Color3.fromRGB(150,150,150)
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = timeLabel
+
+task.spawn(function()
+    while timeLabel and timeLabel.Parent do
+        timeLabel.Text = os.date("%H:%M")
+        task.wait(1)
+    end
+end)
+
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
     local stroke=Instance.new("UIStroke")
