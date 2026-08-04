@@ -462,6 +462,11 @@ espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) 
 
 local AimTab = D:Tab({Title="自瞄", Icon="crosshair"})
 
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
 local aimEnabled = false
 local teamCheck = false
 local wallCheck = true
@@ -470,67 +475,101 @@ local aimSmooth = 0.3
 local aimConnection = nil
 
 local function getClosestPlayer()
-    local closest = nil
-    local minDist = math.huge
+    local cam = Camera or workspace.CurrentCamera
+    if not cam then return nil end
+    
     local char = LocalPlayer.Character
     if not char then return nil end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    local origin = root.Position
     
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if teamCheck and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+    local origin = cam.CFrame.Position
+    local closest = nil
+    local minDist = math.huge
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        
+        if teamCheck and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then
+            continue
+        end
+        
+        local pchar = plr.Character
+        if not pchar then continue end
+        
+        local hum = pchar:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then continue end
+        
+        local targetPart = pchar:FindFirstChild(aimPart)
+        if not targetPart then continue end
+        
+        local proot = pchar:FindFirstChild("HumanoidRootPart")
+        local dist = proot and (proot.Position - cam.CFrame.Position).Magnitude or math.huge
+        
+        if wallCheck then
+            local direction = targetPart.Position - origin
+            local rayLength = direction.Magnitude
+            
+            if rayLength < 0.001 then
+                if dist < minDist then
+                    minDist = dist
+                    closest = plr
+                end
             else
-                local pchar = plr.Character
-                if pchar then
-                    local proot = pchar:FindFirstChild("HumanoidRootPart")
-                    local hum = pchar:FindFirstChildOfClass("Humanoid")
-                    if proot and hum and hum.Health > 0 then
-                        local dist = (proot.Position - origin).Magnitude
+                local params = RaycastParams.new()
+                params.FilterDescendantsInstances = {char}
+                params.FilterType = Enum.RaycastFilterType.Blacklist
+                
+                local result = workspace:Raycast(origin, direction.Unit * rayLength, params)
+                if result then
+                    local hitPart = result.Instance
+                    if hitPart and hitPart:IsDescendantOf(pchar) then
                         if dist < minDist then
-                            if wallCheck then
-                                local params = RaycastParams.new()
-                                params.FilterDescendantsInstances = {char}
-                                params.FilterType = Enum.RaycastFilterType.Blacklist
-                                local targetPos = pchar:FindFirstChild(aimPart)
-                                if targetPos then
-                                    local result = workspace:Raycast(origin, (targetPos.Position - origin).Unit * dist, params)
-                                    if result and result.Instance:IsDescendantOf(pchar) then
-                                        minDist = dist
-                                        closest = plr
-                                    end
-                                end
-                            else
-                                minDist = dist
-                                closest = plr
-                            end
+                            minDist = dist
+                            closest = plr
                         end
+                    end
+                else
+                    if dist < minDist then
+                        minDist = dist
+                        closest = plr
                     end
                 end
             end
+        else
+            if dist < minDist then
+                minDist = dist
+                closest = plr
+            end
         end
     end
+    
     return closest
 end
 
 local function updateAim()
     if not aimEnabled then return end
+    
+    local cam = Camera or workspace.CurrentCamera
+    if not cam then return end
+    
     local target = getClosestPlayer()
-    if target and target.Character and target.Character:FindFirstChild(aimPart) then
-        local part = target.Character[aimPart]
-        if aimSmooth > 0 then
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, part.Position), aimSmooth)
-        else
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
-        end
+    if not target then return end
+    local tchar = target.Character
+    if not tchar then return end
+    local part = tchar:FindFirstChild(aimPart)
+    if not part then return end
+    
+    local targetCF = CFrame.new(cam.CFrame.Position, part.Position)
+    if aimSmooth > 0 then
+        cam.CFrame = cam.CFrame:Lerp(targetCF, aimSmooth)
+    else
+        cam.CFrame = targetCF
     end
 end
 
 local function toggleAim()
     if aimEnabled then
         if not aimConnection then
-            aimConnection = game:GetService("RunService").RenderStepped:Connect(updateAim)
+            aimConnection = RunService.RenderStepped:Connect(updateAim)
         end
     else
         if aimConnection then
