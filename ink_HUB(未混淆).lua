@@ -475,63 +475,52 @@ local aimSmooth = 0.3
 local aimConnection = nil
 
 local function getClosestPlayer()
-    local cam = Camera or workspace.CurrentCamera
-    if not cam then return nil end
-    
     local char = LocalPlayer.Character
     if not char then return nil end
+    local origin = Camera.CFrame.Position
     
-    local origin = cam.CFrame.Position
     local closest = nil
     local minDist = math.huge
     
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then continue end
+        if plr == LocalPlayer then goto skip end
         
         if teamCheck and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team then
-            continue
+            goto skip
         end
         
         local pchar = plr.Character
-        if not pchar then continue end
+        if not pchar then goto skip end
         
         local hum = pchar:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then continue end
+        if not hum or hum.Health <= 0 then goto skip end
         
         local targetPart = pchar:FindFirstChild(aimPart)
-        if not targetPart then continue end
+        if not targetPart then goto skip end
         
         local proot = pchar:FindFirstChild("HumanoidRootPart")
-        local dist = proot and (proot.Position - cam.CFrame.Position).Magnitude or math.huge
+        if not proot then goto skip end
+        
+        local dist = (proot.Position - origin).Magnitude
         
         if wallCheck then
             local direction = targetPart.Position - origin
             local rayLength = direction.Magnitude
-            
-            if rayLength < 0.001 then
-                if dist < minDist then
-                    minDist = dist
-                    closest = plr
-                end
-            else
+            if rayLength > 0.001 then
                 local params = RaycastParams.new()
                 params.FilterDescendantsInstances = {char}
                 params.FilterType = Enum.RaycastFilterType.Blacklist
-                
                 local result = workspace:Raycast(origin, direction.Unit * rayLength, params)
-                if result then
-                    local hitPart = result.Instance
-                    if hitPart and hitPart:IsDescendantOf(pchar) then
-                        if dist < minDist then
-                            minDist = dist
-                            closest = plr
-                        end
-                    end
-                else
+                if result and result.Instance:IsDescendantOf(pchar) then
                     if dist < minDist then
                         minDist = dist
                         closest = plr
                     end
+                end
+            else
+                if dist < minDist then
+                    minDist = dist
+                    closest = plr
                 end
             end
         else
@@ -540,6 +529,8 @@ local function getClosestPlayer()
                 closest = plr
             end
         end
+        
+        ::skip::
     end
     
     return closest
@@ -547,8 +538,7 @@ end
 
 local function updateAim()
     if not aimEnabled then return end
-    
-    local cam = Camera or workspace.CurrentCamera
+    local cam = workspace.CurrentCamera
     if not cam then return end
     
     local target = getClosestPlayer()
