@@ -200,6 +200,221 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
+local P1 = D:Tab({ Title = "透视专区", Icon = "eye" })
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local lplayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local espData = {}
+local function createPlayerESP(player)
+    if espData[player] then return end
+    local gui = Instance.new("ScreenGui")
+    gui.Name = player.Name
+    gui.Parent = CoreGui
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 200, 0, 20)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextScaled = false
+    nameLabel.TextSize = 12
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    nameLabel.Parent = gui
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(0, 100, 0, 16)
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextSize = 10
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.TextColor3 = Color3.new(1, 1, 1)
+    distLabel.TextStrokeTransparency = 0
+    distLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    distLabel.Parent = gui
+    local healthBar = Instance.new("Frame")
+    healthBar.Size = UDim2.new(0, 50, 0, 3)
+    healthBar.BackgroundColor3 = Color3.new(0, 1, 0)
+    healthBar.BorderSizePixel = 0
+    healthBar.Parent = gui
+    local healthBg = Instance.new("Frame")
+    healthBg.Size = UDim2.new(0, 50, 0, 3)
+    healthBg.BackgroundColor3 = Color3.new(0, 0, 0)
+    healthBg.BackgroundTransparency = 0.5
+    healthBg.BorderSizePixel = 0
+    healthBg.Parent = gui
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 1
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.OutlineTransparency = 0.5
+    highlight.Parent = gui
+    espData[player] = {
+        gui = gui,
+        name = nameLabel,
+        dist = distLabel,
+        health = healthBar,
+        healthBg = healthBg,
+        highlight = highlight
+    }
+end
+
+local function removePlayerESP(player)
+    if espData[player] then
+        espData[player].gui:Destroy()
+        espData[player] = nil
+    end
+end
+
+local settings = {
+    names = false,
+    distances = false,
+    healthbars = false,
+    highlights = false,
+    teamcheck = false,
+}
+
+local function updateESP()
+    for player, data in pairs(espData) do
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            data.gui.Enabled = false
+        else
+            local root = player.Character.HumanoidRootPart
+            local head = player.Character:FindFirstChild("Head")
+            if not head then
+                data.gui.Enabled = false
+            else
+                local localRoot = lplayer.Character and lplayer.Character:FindFirstChild("HumanoidRootPart")
+                if not localRoot then
+                    data.gui.Enabled = false
+                else
+                    local dist = (root.Position - localRoot.Position).Magnitude
+                    if dist > 2000 then
+                        data.gui.Enabled = false
+                    else
+                        if settings.teamcheck and lplayer.Team and player.Team == lplayer.Team then
+                            data.gui.Enabled = false
+                        else
+                            local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+                            if not onScreen then
+                                data.gui.Enabled = false
+                            else
+                                local headPos = head.Position
+                                local bottom = root.Position - Vector3.new(0, 1.8, 0)
+                                local top = headPos + Vector3.new(0, 0.8, 0)
+                                local width = 1.5
+                                local half = width / 2
+                                local corners = {
+                                    top + Vector3.new(-half, 0, -half), top + Vector3.new(half, 0, -half),
+                                    top + Vector3.new(half, 0, half), top + Vector3.new(-half, 0, half),
+                                    bottom + Vector3.new(-half, 0, -half), bottom + Vector3.new(half, 0, -half),
+                                    bottom + Vector3.new(half, 0, half), bottom + Vector3.new(-half, 0, half)
+                                }
+                                local screenCorners = {}
+                                local skip = false
+                                for _, p in ipairs(corners) do
+                                    local v, on = camera:WorldToViewportPoint(p)
+                                    if not on then
+                                        skip = true
+                                        break
+                                    end
+                                    table.insert(screenCorners, Vector2.new(v.X, v.Y))
+                                end
+                                if skip or #screenCorners ~= 8 then
+                                    data.gui.Enabled = false
+                                else
+                                    local minX = screenCorners[1].X
+                                    local maxX = screenCorners[1].X
+                                    local minY = screenCorners[1].Y
+                                    local maxY = screenCorners[1].Y
+                                    for i = 2, #screenCorners do
+                                        local v = screenCorners[i]
+                                        if v.X < minX then minX = v.X end
+                                        if v.X > maxX then maxX = v.X end
+                                        if v.Y < minY then minY = v.Y end
+                                        if v.Y > maxY then maxY = v.Y end
+                                    end
+                                    local w = maxX - minX
+                                    local h = maxY - minY
+                                    if settings.names then
+                                        data.name.Visible = true
+                                        data.name.Position = UDim2.new(0, minX + w / 2 - 100, 0, minY - 25)
+                                        data.name.Text = player.Name
+                                        data.name.TextColor3 = Color3.new(1, 1, 1)
+                                    else
+                                        data.name.Visible = false
+                                    end
+                                    if settings.distances then
+                                        data.dist.Visible = true
+                                        data.dist.Position = UDim2.new(0, minX + w / 2 - 50, 0, maxY + 4)
+                                        data.dist.Text = math.floor(dist) .. "m"
+                                        data.dist.TextColor3 = Color3.new(1, 1, 1)
+                                    else
+                                        data.dist.Visible = false
+                                    end
+                                    if settings.healthbars then
+                                        data.health.Visible = true
+                                        data.healthBg.Visible = true
+                                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                                        if humanoid then
+                                            local hp = humanoid.Health / humanoid.MaxHealth
+                                            data.health.Size = UDim2.new(0, math.max(0, w * hp), 0, 3)
+                                            data.health.Position = UDim2.new(0, minX, 0, minY - 8)
+                                            data.healthBg.Size = UDim2.new(0, w, 0, 3)
+                                            data.healthBg.Position = UDim2.new(0, minX, 0, minY - 8)
+                                            data.health.BackgroundColor3 = Color3.new(1 - hp, hp, 0)
+                                        else
+                                            data.health.Visible = false
+                                            data.healthBg.Visible = false
+                                        end
+                                    else
+                                        data.health.Visible = false
+                                        data.healthBg.Visible = false
+                                    end
+                                    if settings.highlights then
+                                        data.highlight.Enabled = true
+                                        data.highlight.Adornee = player.Character
+                                        data.highlight.OutlineColor = Color3.new(1, 1, 1)
+                                        data.highlight.OutlineTransparency = 0.5
+                                    else
+                                        data.highlight.Enabled = false
+                                        data.highlight.Adornee = nil
+                                    end
+                                    data.gui.Enabled = true
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(updateESP)
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= lplayer then
+        createPlayerESP(p)
+    end
+end)
+Players.PlayerRemoving:Connect(function(p)
+    removePlayerESP(p)
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= lplayer then
+        createPlayerESP(p)
+    end
+end
+
+local espGroup = P1:Section({ Title = "透视设置", Opened = true })
+espGroup:Toggle({ Title = "名字显示", Value = false, Callback = function(s) settings.names = s end })
+espGroup:Toggle({ Title = "距离显示", Value = false, Callback = function(s) settings.distances = s end })
+espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) settings.healthbars = s end })
+espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
+espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
+
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
 local selectedPlayer=nil
