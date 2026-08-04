@@ -465,42 +465,45 @@ local AimTab = D:Tab({Title="自瞄", Icon="crosshair"})
 local aimEnabled = false
 local teamCheck = false
 local wallCheck = true
-local aimFov = 100
-local aimSmooth = 0.3
-local aimKey = "MouseButton2"
 local aimPart = "Head"
+local aimSmooth = 0.3
 local aimConnection = nil
-local isKeyDown = false
 
 local function getClosestPlayer()
     local closest = nil
     local minDist = math.huge
-    local center = Camera.ViewportSize / 2
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local origin = root.Position
+    
     for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr ~= LocalPlayer then
             if teamCheck and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
             else
-                local char = plr.Character
-                if char then
-                    local part = char:FindFirstChild(aimPart)
-                    if part then
-                        local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                        if onScreen then
-                            local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                            if dist < aimFov and dist < minDist then
-                                if wallCheck then
-                                    local params = RaycastParams.new()
-                                    params.FilterDescendantsInstances = {LocalPlayer.Character}
-                                    params.FilterType = Enum.RaycastFilterType.Blacklist
-                                    local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
-                                    if result and result.Instance:IsDescendantOf(char) then
+                local pchar = plr.Character
+                if pchar then
+                    local proot = pchar:FindFirstChild("HumanoidRootPart")
+                    local hum = pchar:FindFirstChildOfClass("Humanoid")
+                    if proot and hum and hum.Health > 0 then
+                        local dist = (proot.Position - origin).Magnitude
+                        if dist < minDist then
+                            if wallCheck then
+                                local params = RaycastParams.new()
+                                params.FilterDescendantsInstances = {char}
+                                params.FilterType = Enum.RaycastFilterType.Blacklist
+                                local targetPos = pchar:FindFirstChild(aimPart)
+                                if targetPos then
+                                    local result = workspace:Raycast(origin, (targetPos.Position - origin).Unit * dist, params)
+                                    if result and result.Instance:IsDescendantOf(pchar) then
                                         minDist = dist
                                         closest = plr
                                     end
-                                else
-                                    minDist = dist
-                                    closest = plr
                                 end
+                            else
+                                minDist = dist
+                                closest = plr
                             end
                         end
                     end
@@ -512,15 +515,14 @@ local function getClosestPlayer()
 end
 
 local function updateAim()
-    if not aimEnabled or not isKeyDown then return end
+    if not aimEnabled then return end
     local target = getClosestPlayer()
     if target and target.Character and target.Character:FindFirstChild(aimPart) then
         local part = target.Character[aimPart]
-        local targetCF = CFrame.new(Camera.CFrame.Position, part.Position)
         if aimSmooth > 0 then
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF, aimSmooth)
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, part.Position), aimSmooth)
         else
-            Camera.CFrame = targetCF
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
         end
     end
 end
@@ -537,22 +539,6 @@ local function toggleAim()
         end
     end
 end
-
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if not aimEnabled then return end
-    local key = tostring(input.UserInputType)
-    if key == aimKey or tostring(input.KeyCode) == aimKey then
-        isKeyDown = true
-    end
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    local key = tostring(input.UserInputType)
-    if key == aimKey or tostring(input.KeyCode) == aimKey then
-        isKeyDown = false
-    end
-end)
 
 AimTab:Toggle({
     Title = "自瞄开关",
@@ -579,12 +565,13 @@ AimTab:Toggle({
     end
 })
 
-AimTab:Slider({
-    Title = "FOV大小",
-    Value = { Min = 30, Max = 500, Default = 100 },
-    Step = 1,
+AimTab:Dropdown({
+    Title = "瞄准部位",
+    Values = { "头部", "身体" },
+    Value = "头部",
     Callback = function(v)
-        aimFov = v
+        if v == "头部" then aimPart = "Head"
+        else aimPart = "HumanoidRootPart" end
     end
 })
 
@@ -594,16 +581,6 @@ AimTab:Slider({
     Step = 0.01,
     Callback = function(v)
         aimSmooth = v
-    end
-})
-
-AimTab:Dropdown({
-    Title = "自瞄按键",
-    Values = { "鼠标右键", "鼠标左键" },
-    Value = "鼠标右键",
-    Callback = function(v)
-        if v == "鼠标右键" then aimKey = "MouseButton2"
-        else aimKey = "MouseButton1" end
     end
 })
 
