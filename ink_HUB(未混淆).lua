@@ -150,6 +150,65 @@ E:Toggle({Title="高亮",Value=false,Callback=function(s)
     end
 end})
 
+local originallighting = {
+    FogEnd = game.Lighting.FogEnd,
+    FogStart = game.Lighting.FogStart
+}
+E:Toggle({
+    Title = "无雾",
+    Value = false,
+    Callback = function(v)
+        if v then
+            game.Lighting.FogEnd = 100000
+            game.Lighting.FogStart = 0
+        else
+            game.Lighting.FogEnd = originallighting.FogEnd
+            game.Lighting.FogStart = originallighting.FogStart
+        end
+    end
+})
+
+local xrayenabled = false
+local xraytransparency = 0.6
+local originaltransparencies = {}
+E:Toggle({
+    Title = "X光",
+    Value = false,
+    Callback = function(v)
+        xrayenabled = v
+        if v then
+            for _, obj in pairs(game.Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
+                    originaltransparencies[obj] = obj.Transparency
+                    obj.Transparency = xraytransparency
+                end
+            end
+        else
+            for obj, t in pairs(originaltransparencies) do
+                if obj and obj.Parent then
+                    obj.Transparency = t
+                end
+            end
+            originaltransparencies = {}
+        end
+    end
+})
+E:Slider({
+    Title = "X光透明度",
+    Value = { Min = 0, Max = 100, Default = 60 },
+    Step = 1,
+    Callback = function(v)
+        xraytransparency = v / 100
+        if xrayenabled then
+            for _, obj in pairs(game.Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) and originaltransparencies[obj] then
+                    obj.Transparency = v / 100
+                end
+            end
+        end
+    end
+})
+
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
 
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
@@ -842,48 +901,6 @@ FlashTab:Slider({
 
 FlashTab:Divider()
 
-local xrayenabled = false
-local xraytransparency = 0.6
-local originaltransparencies = {}
-FlashTab:Toggle({
-    Title = "X光",
-    Value = false,
-    Callback = function(v)
-        xrayenabled = v
-        if v then
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
-                    originaltransparencies[obj] = obj.Transparency
-                    obj.Transparency = xraytransparency
-                end
-            end
-        else
-            for obj, t in pairs(originaltransparencies) do
-                if obj and obj.Parent then obj.Transparency = t end
-            end
-            originaltransparencies = {}
-        end
-    end
-})
-
-FlashTab:Slider({
-    Title = "X光透明度",
-    Value = { Min = 0, Max = 100, Default = 60 },
-    Step = 1,
-    Callback = function(v)
-        xraytransparency = v / 100
-        if xrayenabled then
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) and originaltransparencies[obj] then
-                    obj.Transparency = v / 100
-                end
-            end
-        end
-    end
-})
-
-FlashTab:Divider()
-
 local autoRespawnEnabled = false
 local autoRespawnDelay = 0
 local autoRespawnLastFire = 0
@@ -941,24 +958,6 @@ FlashTab:Button({
 })
 
 FlashTab:Divider()
-
-local originallighting = {
-    FogEnd = Lighting.FogEnd,
-    FogStart = Lighting.FogStart
-}
-FlashTab:Toggle({
-    Title = "无雾",
-    Value = false,
-    Callback = function(v)
-        if v then
-            Lighting.FogEnd = 100000
-            Lighting.FogStart = 0
-        else
-            Lighting.FogEnd = originallighting.FogEnd
-            Lighting.FogStart = originallighting.FogStart
-        end
-    end
-})
 
 FlashTab:Section({ Title = "近战刀具" })
 
