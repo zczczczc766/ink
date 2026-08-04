@@ -756,6 +756,100 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
+local BackstreetTab = D:Tab({Title="后街生存", Icon="map"})
+
+local lastPosition = nil
+local function teleportTo(pos)
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    lastPosition = hrp.Position
+    hrp.CFrame = CFrame.new(pos)
+end
+
+BackstreetTab:Section({ Title = "自动功能" })
+
+local toolLoopEnabled = false
+local toolLoopConnection = nil
+local function startToolLoop()
+    if toolLoopConnection then return end
+    local RS = game:GetService("ReplicatedStorage")
+    local ToolEvent = RS:WaitForChild("Events"):WaitForChild("ToolEvent")
+    toolLoopConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not toolLoopEnabled then return end
+        ToolEvent:FireServer("Activated", false)
+        task.wait(0.5)
+        if not toolLoopEnabled then return end
+        ToolEvent:FireServer("Activated", true)
+        task.wait(0.5)
+    end)
+end
+local function stopToolLoop()
+    toolLoopEnabled = false
+    if toolLoopConnection then toolLoopConnection:Disconnect(); toolLoopConnection = nil end
+end
+
+BackstreetTab:Toggle({
+    Title = "启用自动挖掘",
+    Value = false,
+    Callback = function(state)
+        toolLoopEnabled = state
+        if state then startToolLoop() else stopToolLoop() end
+    end
+})
+
+local stickPickupEnabled = false
+local stickPickupConnection = nil
+local function startStickPickup()
+    if stickPickupConnection then return end
+    stickPickupConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not stickPickupEnabled then return end
+        local player = game.Players.LocalPlayer
+        local backpack = player:FindFirstChild("Backpack")
+        if not backpack then return end
+        for _, item in pairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and item.Name:sub(1,5):lower() == "stick" then
+                local char = player.Character or workspace:FindFirstChild(player.Name)
+                if char then item.Parent = char end
+                break
+            end
+        end
+    end)
+end
+local function stopStickPickup()
+    stickPickupEnabled = false
+    if stickPickupConnection then stickPickupConnection:Disconnect(); stickPickupConnection = nil end
+end
+
+BackstreetTab:Toggle({
+    Title = "自动拿起木棍",
+    Value = false,
+    Callback = function(state)
+        stickPickupEnabled = state
+        if state then startStickPickup() else stopStickPickup() end
+    end
+})
+
+BackstreetTab:Section({ Title = "传送" })
+
+BackstreetTab:Button({ Title = "传送到垃圾大师", Callback = function() teleportTo(Vector3.new(-173.27, 3.50, 47.06)) end })
+BackstreetTab:Button({ Title = "传送回原位置", Callback = function()
+    if not lastPosition then return end
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.CFrame = CFrame.new(lastPosition)
+end })
+
+BackstreetTab:Section({ Title = "地点传送" })
+
+BackstreetTab:Button({ Title = "传送到豆子工厂", Callback = function() teleportTo(Vector3.new(-269.05, 3.50, 155.16)) end })
+BackstreetTab:Button({ Title = "传送到后街", Callback = function() teleportTo(Vector3.new(-196.88, 3.50, 63.44)) end })
+BackstreetTab:Button({ Title = "传送到后街对面", Callback = function() teleportTo(Vector3.new(-184.26, 4.00, -189.72)) end })
+BackstreetTab:Button({ Title = "传送到下水道", Callback = function() teleportTo(Vector3.new(-245.42, -22.96, -1349.19)) end })
+
 local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
 
 local weaponCDEnabled = false
