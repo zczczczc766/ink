@@ -864,7 +864,7 @@ CatTab:Toggle({
     end
 })
 
-local DogPoliceTab = D:Tab({ Title = "狗对警察", Icon = "dog" })
+local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
 
 local leashEnabled = false
 local leashThread = nil
@@ -889,9 +889,7 @@ DogPoliceTab:Toggle({
                     local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
                     if not HumanoidRootPart then return end
                     local Tool = Character:FindFirstChildOfClass("Tool")
-                    if not (Tool and Tool.Name:find("Leash")) then
-                        return
-                    end
+                    if not (Tool and Tool.Name:find("Leash")) then return end
                     PlayerList = {}
                     for _, Player in ipairs(Players:GetPlayers()) do
                         if Player ~= LocalPlayer and Player.Character and (not Player.Team or Player.Team ~= LocalPlayer.Team) then
@@ -917,7 +915,7 @@ DogPoliceTab:Toggle({
             end)
         else
             _G.StopLeash = true
-            if leashThread then task.cancel(leashThread) leashThread = nil end
+            if leashThread then task.cancel(leashThread); leashThread = nil end
         end
     end
 })
@@ -941,7 +939,7 @@ DogPoliceTab:Toggle({
                 local lastFire = 0
                 local soundId = "rbxassetid://6534948092"
                 local multiFireCount = 3
-                local allowedWeapons = { ["Shotgun"] = true, ["AR"] = true, ["Heavy Sniper"] = true, ["Pistol"] = true }
+                local allowedWeapons = {["Shotgun"]=true, ["AR"]=true, ["Heavy Sniper"]=true, ["Pistol"]=true}
                 local function playSound()
                     local sound = Instance.new("Sound")
                     sound.SoundId = soundId
@@ -995,219 +993,7 @@ DogPoliceTab:Toggle({
             end)
         else
             _G.StopRobot = true
-            if robotThread then task.cancel(robotThread) robotThread = nil end
-        end
-    end
-})
-
-local moneyLeashEnabled = false
-local moneyLeashThread = nil
-DogPoliceTab:Toggle({
-    Title = "疯狂套狗刷钱",
-    Value = false,
-    Callback = function(s)
-        if s then
-            moneyLeashEnabled = true
-            _G.StopMoneyLeash = false
-            moneyLeashThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local RunService = game:GetService("RunService")
-                local LocalPlayer = Players.LocalPlayer
-                local Index = 1
-                local PlayerList = {}
-                local LockedPosition = nil
-                RunService.Stepped:Connect(function()
-                    if _G.StopMoneyLeash then return end
-                    local Character = LocalPlayer.Character
-                    if not Character then return end
-                    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-                    if not HumanoidRootPart then return end
-                    local Tool = Character:FindFirstChildOfClass("Tool")
-                    if not (Tool and Tool.Name:find("Leash")) then
-                        LockedPosition = nil
-                        return
-                    end
-                    if not LockedPosition then
-                        LockedPosition = HumanoidRootPart.Position
-                    end
-                    HumanoidRootPart.CFrame = CFrame.new(LockedPosition)
-                    PlayerList = {}
-                    for _, Player in ipairs(Players:GetPlayers()) do
-                        if Player ~= LocalPlayer and Player.Character and (not Player.Team or Player.Team ~= LocalPlayer.Team) then
-                            table.insert(PlayerList, Player)
-                        end
-                    end
-                    if #PlayerList == 0 then return end
-                    if Index > #PlayerList then Index = 1 end
-                    local Target = PlayerList[Index]
-                    if Target and Target.Character then
-                        pcall(function()
-                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("LeachEvent"):FireServer(Target.Character)
-                        end)
-                    end
-                    Index = Index + 1
-                        task.wait(0.1)
-                    end
-                end)
-
-                task.spawn(function()
-                    while not _G.StopWeaponCD do
-                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
-                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
-                        task.wait(0.1)
-                    end
-                end)
-
-                while not _G.StopWeaponCD do
-                    task.wait(1)
-                end
-            end)
-        else
-            weaponCDEnabled = false
-            _G.StopWeaponCD = true
-            if weaponCDThread then
-                task.cancel(weaponCDThread)
-                weaponCDThread = nil
-            end
-            if _G.WeaponFiring then
-                _G.WeaponFiring = false
-            end
-        end
-    end
-})
-
-local DogPoliceTab = D:Tab({ Title = "狗对警察", Icon = "dog" })
-
-local leashEnabled = false
-local leashThread = nil
-DogPoliceTab:Toggle({
-    Title = "安全套狗",
-    Value = false,
-    Callback = function(s)
-        if s then
-            leashEnabled = true
-            _G.StopLeash = false
-            leashThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local RunService = game:GetService("RunService")
-                local LocalPlayer = Players.LocalPlayer
-                local Index = 1
-                local PlayerList = {}
-                local TARGETS_PER_EXECUTION = 5
-                RunService.Stepped:Connect(function()
-                    if _G.StopLeash then return end
-                    local Character = LocalPlayer.Character
-                    if not Character then return end
-                    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-                    if not HumanoidRootPart then return end
-                    local Tool = Character:FindFirstChildOfClass("Tool")
-                    if not (Tool and Tool.Name:find("Leash")) then
-                        return
-                    end
-                    PlayerList = {}
-                    for _, Player in ipairs(Players:GetPlayers()) do
-                        if Player ~= LocalPlayer and Player.Character and (not Player.Team or Player.Team ~= LocalPlayer.Team) then
-                            table.insert(PlayerList, Player)
-                        end
-                    end
-                    if #PlayerList == 0 then return end
-                    if Index > #PlayerList then Index = 1 end
-                    local targetsToHit = math.min(TARGETS_PER_EXECUTION, #PlayerList)
-                    for i = 1, targetsToHit do
-                        local Target = PlayerList[Index]
-                        if Target and Target.Character then
-                            pcall(function()
-                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("LeachEvent"):FireServer(Target.Character)
-                            end)
-                        end
-                        Index = Index + 1
-                        if Index > #PlayerList then Index = 1 end
-                    end
-                    task.wait(0.01)
-                end)
-                while not _G.StopLeash do task.wait(1) end
-            end)
-        else
-            _G.StopLeash = true
-            if leashThread then task.cancel(leashThread) leashThread = nil end
-        end
-    end
-})
-
-local robotEnabled = false
-local robotThread = nil
-DogPoliceTab:Toggle({
-    Title = "愤怒机器人",
-    Value = false,
-    Callback = function(s)
-        if s then
-            robotEnabled = true
-            _G.StopRobot = false
-            robotThread = task.spawn(function()
-                local Players = game:GetService("Players")
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local RunService = game:GetService("RunService")
-                local LocalPlayer = Players.LocalPlayer
-                local FireEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireEvent")
-                local fireRate = 0.1
-                local lastFire = 0
-                local soundId = "rbxassetid://6534948092"
-                local multiFireCount = 3
-                local allowedWeapons = { ["Shotgun"] = true, ["AR"] = true, ["Heavy Sniper"] = true, ["Pistol"] = true }
-                local function playSound()
-                    local sound = Instance.new("Sound")
-                    sound.SoundId = soundId
-                    sound.Volume = 1
-                    sound.Parent = workspace
-                    sound:Play()
-                    sound.Ended:Connect(function() sound:Destroy() end)
-                end
-                local function getWeapons()
-                    local char = LocalPlayer.Character
-                    if not char then return {} end
-                    local weapons = {}
-                    for _, v in ipairs(char:GetChildren()) do
-                        if v:IsA("Tool") and allowedWeapons[v.Name] then
-                            table.insert(weapons, v)
-                        end
-                    end
-                    return weapons
-                end
-                local function getEnemies()
-                    local enemies = {}
-                    for _, plr in ipairs(Players:GetPlayers()) do
-                        if plr ~= LocalPlayer and plr.Team ~= LocalPlayer.Team then
-                            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-                            local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
-                            if root and hum and hum.Health > 0 then
-                                table.insert(enemies, root)
-                            end
-                        end
-                    end
-                    return enemies
-                end
-                RunService.Heartbeat:Connect(function()
-                    if _G.StopRobot then return end
-                    if tick() - lastFire < fireRate then return end
-                    lastFire = tick()
-                    local weapons = getWeapons()
-                    local enemies = getEnemies()
-                    if #weapons == 0 or #enemies == 0 then return end
-                    for _, root in ipairs(enemies) do
-                        local targetPos = root.Position
-                        for _, weapon in ipairs(weapons) do
-                            for i = 1, multiFireCount do
-                                FireEvent:FireServer("Fire", weapon, Vector3.new(targetPos.X, targetPos.Y, targetPos.Z))
-                                playSound()
-                            end
-                        end
-                    end
-                end)
-                while not _G.StopRobot do task.wait(1) end
-            end)
-        else
-            _G.StopRobot = true
-            if robotThread then task.cancel(robotThread) robotThread = nil end
+            if robotThread then task.cancel(robotThread); robotThread = nil end
         end
     end
 })
@@ -1264,7 +1050,7 @@ DogPoliceTab:Toggle({
             end)
         else
             _G.StopMoneyLeash = true
-            if moneyLeashThread then task.cancel(moneyLeashThread) moneyLeashThread = nil end
+            if moneyLeashThread then task.cancel(moneyLeashThread); moneyLeashThread = nil end
         end
     end
 })
@@ -1336,21 +1122,20 @@ DogPoliceTab:Toggle({
                     if not player.Character then return end
                     if not currentTarget or not currentTarget.Character then
                         currentTarget = pickNextTarget()
+                        if not currentTarget then return end
                     end
-                    if currentTarget and currentTarget.Character then
-                        local tRoot = currentTarget.Character:FindFirstChild("HumanoidRootPart")
-                        local hum = currentTarget.Character:FindFirstChildOfClass("Humanoid")
-                        if tRoot and hum then
-                            if hum.Health <= 0 then
-                                currentTarget = pickNextTarget()
-                                return
-                            end
-                            player.Character:PivotTo(tRoot.CFrame * CFrame.new(OFFSET))
-                            local now = tick()
-                            if now - lastBite >= BITE_INTERVAL then
-                                biteRemote:FireServer()
-                                lastBite = now
-                            end
+                    local tRoot = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+                    local hum = currentTarget.Character:FindFirstChildOfClass("Humanoid")
+                    if tRoot and hum then
+                        if hum.Health <= 0 then
+                            currentTarget = pickNextTarget()
+                            return
+                        end
+                        player.Character:PivotTo(tRoot.CFrame * CFrame.new(OFFSET))
+                        local now = tick()
+                        if now - lastBite >= BITE_INTERVAL then
+                            biteRemote:FireServer()
+                            lastBite = now
                         end
                     end
                 end)
@@ -1363,10 +1148,49 @@ DogPoliceTab:Toggle({
             end)
         else
             _G.StopBite = true
-            if biteThread then task.cancel(biteThread) biteThread = nil end
+            if biteThread then task.cancel(biteThread); biteThread = nil end
         end
     end
 })
+
+local medkitEnabled = false
+local medkitThread = nil
+DogPoliceTab:Toggle({
+    Title = "自动购买医疗箱",
+    Value = false,
+    Callback = function(s)
+        if s then
+            medkitEnabled = true
+            _G.StopMedkit = false
+            medkitThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local player = Players.LocalPlayer
+                local backpack = player:WaitForChild("Backpack")
+                local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PurchaseItemRequest")
+                local function hasMedkit()
+                    for _, item in pairs(backpack:GetChildren()) do
+                        if item.Name == "Medkit" then
+                            return true
+                        end
+                    end
+                    return false
+                end
+                while not _G.StopMedkit do
+                    if not hasMedkit() then
+                        remote:FireServer("Medkit")
+                        task.wait(0.01)
+                        remote:FireServer("Medkit")
+                    end
+                    task.wait(0.01)
+                end
+            end)
+        else
+            _G.StopMedkit = true
+            if medkitThread then task.cancel(medkitThread); medkitThread = nil end
+        end
+    end
+})                
 
 local Players=game:GetService("Players")
 local player=Players.LocalPlayer
