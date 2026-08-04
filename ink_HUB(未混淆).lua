@@ -460,50 +460,47 @@ espGroup:Toggle({ Title = "血量条", Value = false, Callback = function(s) set
 espGroup:Toggle({ Title = "高亮描边", Value = false, Callback = function(s) settings.highlights = s end })
 espGroup:Toggle({ Title = "队伍检测", Value = false, Callback = function(s) settings.teamcheck = s end })
 
-local AimTab = D:Tab({Title="自瞄子追", Icon="crosshair"})
+local AimTab = D:Tab({Title="自瞄", Icon="crosshair"})
 
 local aimEnabled = false
-local autoFireEnabled = false
-local teamCheckEnabled = false
-local freeForAllEnabled = false
-local aimPart = "Head"
+local teamCheck = false
+local wallCheck = true
 local aimFov = 100
 local aimSmooth = 0.3
-local wallCheckEnabled = true
 local aimKey = "MouseButton2"
+local aimPart = "Head"
 local aimConnection = nil
-local isAiming = false
+local isKeyDown = false
 
--- 使用已经定义好的全局变量（不重新定义）
 local function getClosestPlayer()
     local closest = nil
     local minDist = math.huge
     local center = Camera.ViewportSize / 2
     for _, plr in ipairs(game.Players:GetPlayers()) do
         if plr ~= LocalPlayer then
-            if teamCheckEnabled and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
-                -- 跳过队友
-            elseif freeForAllEnabled then
-                -- 自由对战，所有人都视为敌人
+            if teamCheck and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
             else
-                if plr.Character and plr.Character:FindFirstChild(aimPart) then
-                    local part = plr.Character[aimPart]
-                    local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                    if onScreen then
-                        local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                        if dist < aimFov and dist < minDist then
-                            if wallCheckEnabled then
-                                local params = RaycastParams.new()
-                                params.FilterDescendantsInstances = {LocalPlayer.Character}
-                                params.FilterType = Enum.RaycastFilterType.Blacklist
-                                local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
-                                if result and result.Instance:IsDescendantOf(plr.Character) then
+                local char = plr.Character
+                if char then
+                    local part = char:FindFirstChild(aimPart)
+                    if part then
+                        local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                        if onScreen then
+                            local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                            if dist < aimFov and dist < minDist then
+                                if wallCheck then
+                                    local params = RaycastParams.new()
+                                    params.FilterDescendantsInstances = {LocalPlayer.Character}
+                                    params.FilterType = Enum.RaycastFilterType.Blacklist
+                                    local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
+                                    if result and result.Instance:IsDescendantOf(char) then
+                                        minDist = dist
+                                        closest = plr
+                                    end
+                                else
                                     minDist = dist
                                     closest = plr
                                 end
-                            else
-                                minDist = dist
-                                closest = plr
                             end
                         end
                     end
@@ -515,7 +512,7 @@ local function getClosestPlayer()
 end
 
 local function updateAim()
-    if not aimEnabled then return end
+    if not aimEnabled or not isKeyDown then return end
     local target = getClosestPlayer()
     if target and target.Character and target.Character:FindFirstChild(aimPart) then
         local part = target.Character[aimPart]
@@ -524,14 +521,6 @@ local function updateAim()
             Camera.CFrame = Camera.CFrame:Lerp(targetCF, aimSmooth)
         else
             Camera.CFrame = targetCF
-        end
-        if autoFireEnabled then
-            local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                pcall(function()
-                    tool:Activate()
-                end)
-            end
         end
     end
 end
@@ -549,6 +538,22 @@ local function toggleAim()
     end
 end
 
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if not aimEnabled then return end
+    local key = tostring(input.UserInputType)
+    if key == aimKey or tostring(input.KeyCode) == aimKey then
+        isKeyDown = true
+    end
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    local key = tostring(input.UserInputType)
+    if key == aimKey or tostring(input.KeyCode) == aimKey then
+        isKeyDown = false
+    end
+end)
+
 AimTab:Toggle({
     Title = "自瞄开关",
     Value = false,
@@ -559,43 +564,24 @@ AimTab:Toggle({
 })
 
 AimTab:Toggle({
-    Title = "自动开火",
-    Value = false,
-    Callback = function(v)
-        autoFireEnabled = v
-    end
-})
-
-AimTab:Toggle({
     Title = "队伍检测",
     Value = false,
     Callback = function(v)
-        teamCheckEnabled = v
+        teamCheck = v
     end
 })
 
 AimTab:Toggle({
-    Title = "自由对战",
-    Value = false,
+    Title = "墙体检测",
+    Value = true,
     Callback = function(v)
-        freeForAllEnabled = v
-    end
-})
-
-AimTab:Dropdown({
-    Title = "瞄准部位",
-    Values = { "头部", "身体", "脚部" },
-    Value = "头部",
-    Callback = function(v)
-        if v == "头部" then aimPart = "Head"
-        elseif v == "身体" then aimPart = "HumanoidRootPart"
-        elseif v == "脚部" then aimPart = "HumanoidRootPart" end
+        wallCheck = v
     end
 })
 
 AimTab:Slider({
     Title = "FOV大小",
-    Value = { Min = 10, Max = 500, Default = 100 },
+    Value = { Min = 30, Max = 500, Default = 100 },
     Step = 1,
     Callback = function(v)
         aimFov = v
@@ -611,24 +597,13 @@ AimTab:Slider({
     end
 })
 
-AimTab:Toggle({
-    Title = "墙体检测",
-    Value = true,
-    Callback = function(v)
-        wallCheckEnabled = v
-    end
-})
-
--- 用 Dropdown 替代 Keybind（避免 WindUI 版本不支持 Keybind）
 AimTab:Dropdown({
     Title = "自瞄按键",
-    Values = { "鼠标右键", "鼠标左键", "鼠标中键", "Q", "E", "F", "G", "R", "Shift" },
+    Values = { "鼠标右键", "鼠标左键" },
     Value = "鼠标右键",
     Callback = function(v)
         if v == "鼠标右键" then aimKey = "MouseButton2"
-        elseif v == "鼠标左键" then aimKey = "MouseButton1"
-        elseif v == "鼠标中键" then aimKey = "MouseButton3"
-        else aimKey = v end
+        else aimKey = "MouseButton1" end
     end
 })
 
