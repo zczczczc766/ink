@@ -756,6 +756,114 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
+local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
+
+local weaponCDEnabled = false
+local weaponCDThread = nil
+
+CatTab:Toggle({
+    Title = "武器无CD",
+    Value = false,
+    Callback = function(state)
+        if state then
+            weaponCDEnabled = true
+            _G.StopWeaponCD = false
+            weaponCDThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
+                for _, weapon in pairs(Weapons) do
+                    if type(weapon) == "table" then
+                        weapon.Cooldown = 0
+                    end
+                end
+
+                local oldGetServerTimeNow = workspace.GetServerTimeNow
+                workspace.GetServerTimeNow = function(self, ...)
+                    return oldGetServerTimeNow(self, ...) + 999999
+                end
+
+                local CooldownEvent = ReplicatedStorage.Events.Cooldown
+                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
+                    conn:Disable()
+                end
+
+                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
+                _G.WeaponFiring = false
+
+                function startRapidFire()
+                    if _G.WeaponFiring then return end
+                    _G.WeaponFiring = true
+                    task.spawn(function()
+                        while _G.WeaponFiring and not _G.StopWeaponCD do
+                            local cam = workspace.CurrentCamera
+                            local mouse = LocalPlayer:GetMouse()
+                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+                            WeaponEvent:FireServer(ray.Direction.Unit, true)
+                            task.wait(0.01)
+                        end
+                        _G.WeaponFiring = false
+                    end)
+                end
+
+                function stopRapidFire()
+                    _G.WeaponFiring = false
+                end
+
+                startRapidFire()
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        local char = LocalPlayer.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
+                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
+                        task.wait(0.1)
+                    end
+                end)
+
+                while not _G.StopWeaponCD do
+                    task.wait(1)
+                end
+            end)
+        else
+            weaponCDEnabled = false
+            _G.StopWeaponCD = true
+            if weaponCDThread then
+                task.cancel(weaponCDThread)
+                weaponCDThread = nil
+            end
+            if _G.WeaponFiring then
+                _G.WeaponFiring = false
+            end
+        end
+    end
+})
+
 local Players=game:GetService("Players")
 local player=Players.LocalPlayer
 local mouse=player:GetMouse()
