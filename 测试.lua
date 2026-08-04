@@ -52,98 +52,10 @@ end
 local D=C:Section({Title="功能菜单",Opened=true})
 
 local Z = D:Tab({Title="公告", Icon="bell"})
-
-local avatar = Instance.new("ImageLabel")
-avatar.Size = UDim2.new(0, 80, 0, 80)
-avatar.Position = UDim2.new(0, 15, 0, 20)
-avatar.BackgroundTransparency = 1
-avatar.Image = "rbxassetid://107039115828792"
-avatar.Parent = Z.Frame or Z
-
-local infoFrame = Instance.new("Frame")
-infoFrame.Size = UDim2.new(1, -110, 0, 140)
-infoFrame.Position = UDim2.new(0, 100, 0, 15)
-infoFrame.BackgroundTransparency = 1
-infoFrame.Parent = Z.Frame or Z
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 28)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "ink_HUB"
-titleLabel.TextSize = 22
-titleLabel.TextColor3 = Color3.new(1,1,1)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = infoFrame
-
-local authorLabel = Instance.new("TextLabel")
-authorLabel.Size = UDim2.new(1, 0, 0, 20)
-authorLabel.Position = UDim2.new(0, 0, 0, 30)
-authorLabel.BackgroundTransparency = 1
-authorLabel.Text = "@墨水依旧"
-authorLabel.TextSize = 14
-authorLabel.TextColor3 = Color3.new(0.7,0.7,0.7)
-authorLabel.Font = Enum.Font.Gotham
-authorLabel.TextXAlignment = Enum.TextXAlignment.Left
-authorLabel.Parent = infoFrame
-
-local desc1 = Instance.new("TextLabel")
-desc1.Size = UDim2.new(1, 0, 0, 20)
-desc1.Position = UDim2.new(0, 0, 0, 55)
-desc1.BackgroundTransparency = 1
-desc1.Text = "永久免费！永远不跑路！"
-desc1.TextSize = 13
-desc1.TextColor3 = Color3.new(0.8,0.8,0.8)
-desc1.Font = Enum.Font.Gotham
-desc1.TextXAlignment = Enum.TextXAlignment.Left
-desc1.Parent = infoFrame
-
-local desc2 = Instance.new("TextLabel")
-desc2.Size = UDim2.new(1, 0, 0, 20)
-desc2.Position = UDim2.new(0, 0, 0, 78)
-desc2.BackgroundTransparency = 1
-desc2.Text = "公益脚本禁止倒卖，认准 ink_HUB"
-desc2.TextSize = 13
-desc2.TextColor3 = Color3.new(0.8,0.8,0.8)
-desc2.Font = Enum.Font.Gotham
-desc2.TextXAlignment = Enum.TextXAlignment.Left
-desc2.Parent = infoFrame
-
-local btnFrame = Instance.new("Frame")
-btnFrame.Size = UDim2.new(1, 0, 0, 30)
-btnFrame.Position = UDim2.new(0, 0, 0, 105)
-btnFrame.BackgroundTransparency = 1
-btnFrame.Parent = infoFrame
-
-local btnLayout = Instance.new("UIListLayout")
-btnLayout.FillDirection = Enum.FillDirection.Horizontal
-btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-btnLayout.Padding = UDim.new(0, 8)
-btnLayout.Parent = btnFrame
-
-local function createCopyButton(text, copyText)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 100, 0, 28)
-    btn.Text = text
-    btn.TextSize = 12
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    btn.BorderColor3 = Color3.fromRGB(100,100,100)
-    btn.BorderSizePixel = 1
-    btn.AutoButtonColor = true
-    btn.Parent = btnFrame
-    btn.MouseButton1Click:Connect(function()
-        setclipboard(copyText)
-        A:SetCore("SendNotification",{Title="已复制", Text="已复制: " .. text, Duration=2})
-    end)
-    return btn
-end
-
-createCopyButton("复制QQ", "2047955671")
-createCopyButton("复制QQ群", "1101093219")
-createCopyButton("复制副群", "1063828524")
+Z:Button({Title="欢迎使用 ink_HUB\n作者：墨水依旧\n快手号：zczczczc766\n公益脚本禁止倒卖\n认准 ink_HUB", Callback=function() end})
+Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ：2047955671", Duration=2}) end})
+Z:Button({Title="复制作者QQ群", Callback=function() setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ群：1101093219", Duration=2}) end})
+Z:Button({Title="复制作者QQ副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ副群：1063828524", Duration=2}) end})
 
 local E=D:Tab({Title="通用",Icon="settings"})
 
