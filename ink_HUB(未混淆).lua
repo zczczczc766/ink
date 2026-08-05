@@ -1027,6 +1027,107 @@ O:Toggle({Title="改视野",Value=false,Callback=function()
     local bytes=string.char(0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x5E,0x40)
     remote:FireServer("UpdateSettings",{fovObject,buffer.fromstring(bytes)})
 end})
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local repairEnabled = false
+local repairDelay = 1.8
+local repairThread = nil
+
+O:Toggle({
+    Title = "自动修电箱",
+    Value = false,
+    Callback = function(state)
+        repairEnabled = state
+        if state then
+            repairThread = task.spawn(function()
+                while repairEnabled do
+                    pcall(function()
+                        local map = workspace:FindFirstChild("Map")
+                        local ingame = map and map:FindFirstChild("Ingame")
+                        local currentMap = ingame and ingame:FindFirstChild("Map")
+                        if currentMap then
+                            for _, obj in ipairs(currentMap:GetChildren()) do
+                                if obj.Name == "Generator" and obj:FindFirstChild("Progress") and obj.Progress.Value < 100 then
+                                    local remote = obj:FindFirstChild("Remotes") and obj.Remotes:FindFirstChild("RE")
+                                    if remote then
+                                        remote:FireServer()
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(repairDelay)
+                end
+            end)
+        else
+            if repairThread then
+                task.cancel(repairThread)
+                repairThread = nil
+            end
+        end
+    end
+})
+
+O:Slider({
+    Title = "修电箱延迟[秒]",
+    Value = { Min = 1.8, Max = 10, Default = 1.8 },
+    Step = 0.1,
+    Callback = function(v)
+        repairDelay = v
+    end
+})
+
+local staminaEnabled = false
+local staminaMonitor = nil
+local sprintModule = nil
+
+O:Toggle({
+    Title = "无限体力",
+    Value = false,
+    Callback = function(state)
+        staminaEnabled = state
+        if state then
+            pcall(function()
+                if not sprintModule then
+                    local success, module = pcall(require, ReplicatedStorage.Systems.Character.Game.Sprinting)
+                    if success and module then
+                        sprintModule = module
+                    end
+                end
+                if sprintModule then
+                    sprintModule.StaminaLossDisabled = true
+                end
+            end)
+            if not staminaMonitor then
+                staminaMonitor = RunService.Heartbeat:Connect(function()
+                    if not staminaEnabled then
+                        if staminaMonitor then
+                            staminaMonitor:Disconnect()
+                            staminaMonitor = nil
+                        end
+                        return
+                    end
+                    pcall(function()
+                        if sprintModule and sprintModule.StaminaLossDisabled ~= nil then
+                            sprintModule.StaminaLossDisabled = true
+                        end
+                    end)
+                end)
+            end
+        else
+            if staminaMonitor then
+                staminaMonitor:Disconnect()
+                staminaMonitor = nil
+            end
+            pcall(function()
+                if sprintModule and sprintModule.StaminaLossDisabled ~= nil then
+                    sprintModule.StaminaLossDisabled = false
+                end
+            end)
+        end
+    end
+})
 
 local guestBlockEnabled=false
 local guestBlockThread=nil
