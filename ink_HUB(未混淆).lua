@@ -302,7 +302,7 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
-local P = D:Tab({Title="透视专区", Icon="eye"})
+local P = D:Tab({Title="透视", Icon="eye"})
 
 local espEnabled = false
 local outlineEnabled = false
@@ -680,6 +680,387 @@ configGroup:Slider({
     Value = { Min = 1, Max = 10, Default = 5 },
     Step = 1,
     Callback = function(v) espconfig.rainbowspeed = v end
+})
+
+local AimTab = D:Tab({Title="自瞄专区", Icon="crosshair"})
+
+local aimlockEnabled = false
+local smoothaimlock = false
+local aimlocktype = "Nearest Player"
+local aimpart = "Head"
+local fovEnabled = false
+local showfov = false
+local fovsize = 100
+local fovcolor = Color3.fromRGB(255, 255, 255)
+local fovgui = nil
+local fovframe = nil
+local fovstroke = nil
+local fovstrokethickness = 2
+local nearestplayerdistance = 1000
+local nearestmousedistance = 500
+local fovlockdistance = 1000
+local rainbowfov = false
+local aimlockcertainplayer = false
+local selectedplayer = nil
+local ignoredplayers = {}
+local prioritizedplayers = {}
+local wallcheckenabled = true
+local lerpalpha = 0.4
+local aimlockOffsetX = 0
+local aimlockOffsetY = 0
+local ignoreShielded = true
+local ignoreLobby = true
+local isAimingLocked = false
+local aimlockConnection = nil
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local shieldedPlayers = {}
+local inLobby = false
+local function isShielded(player) return shieldedPlayers[player] == true end
+local function GetLocalHRP()
+    if not LocalPlayer.Character then return nil end
+    return LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+end
+local function checkLobbyStatus()
+    local team = LocalPlayer.Team
+    inLobby = (team and team.Name == "Lobby") or false
+end
+LocalPlayer:GetPropertyChangedSignal("Team"):Connect(checkLobbyStatus)
+checkLobbyStatus()
+
+local function getclosestplayer()
+    local localHRP = GetLocalHRP()
+    if not localHRP then return nil end
+    local mousePos = UserInputService:GetMouseLocation()
+    local function getPriorityScore(player)
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return math.huge end
+        if player == LocalPlayer or ignoredplayers[player.Name] or (ignoreShielded and isShielded(player)) or (ignoreLobby and player.Team and player.Team.Name == "Lobby") then return math.huge end
+        local hrp = player.Character.HumanoidRootPart
+        local screen, onscreen = Camera:WorldToViewportPoint(hrp.Position)
+        if not onscreen then return math.huge end
+        if fovEnabled then
+            local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+            local distFromCenter = (Vector2.new(screen.X, screen.Y) - center).Magnitude
+            if distFromCenter > fovsize/2 then return math.huge end
+            if (localHRP.Position - hrp.Position).Magnitude > fovlockdistance then return math.huge end
+        end
+        if wallcheckenabled then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+                local direction = head.Position - origin
+                local rayParams = RaycastParams.new()
+                rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                local result = workspace:Raycast(origin, direction, rayParams)
+                if result and not result.Instance:IsDescendantOf(player.Character) then
+                    return math.huge
+                end
+            end
+        end
+        if aimlocktype == "Nearest Player" then
+            return (localHRP.Position - hrp.Position).Magnitude
+        else
+            return (Vector2.new(screen.X, screen.Y) - mousePos).Magnitude
+        end
+    end
+    local bestPlayer, bestScore = nil, math.huge
+    for _, player in ipairs(prioritizedplayers) do
+        local score = getPriorityScore(player)
+        if score and score < bestScore then
+            bestScore = score
+            bestPlayer = player
+        end
+    end
+    if bestPlayer then return bestPlayer end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if table.find(prioritizedplayers, player) then goto skip end
+        local score = getPriorityScore(player)
+        if score and score < bestScore then
+            bestScore = score
+            bestPlayer = player
+        end
+        ::skip::
+    end
+    return bestPlayer
+end
+
+local function getaimpartposition(targetplayer)
+    if not targetplayer or not targetplayer.Character then return nil end
+    if aimpart == "Head" and targetplayer.Character:FindFirstChild("Head") then
+        return targetplayer.Character.Head.Position
+    elseif aimpart == "Torso" then
+        local torso = targetplayer.Character:FindFirstChild("UpperTorso") or targetplayer.Character:FindFirstChild("Torso")
+        if torso then return torso.Position end
+    elseif aimpart == "Feet" and targetplayer.Character:FindFirstChild("HumanoidRootPart") then
+        return targetplayer.Character.HumanoidRootPart.Position + Vector3.new(0, -3, 0)
+    end
+    return nil
+end
+
+local function updateaimlock()
+    local localHRP = GetLocalHRP()
+    if not localHRP then isAimingLocked = false return end
+    if inLobby then isAimingLocked = false return end
+    local targetplayer = aimlockcertainplayer and selectedplayer or getclosestplayer()
+    if targetplayer then
+        isAimingLocked = true
+        local targetposition = getaimpartposition(targetplayer)
+        if targetposition then
+            targetposition = targetposition + Vector3.new(aimlockOffsetX, aimlockOffsetY, 0)
+            local lookdirection = (targetposition - Camera.CFrame.Position).Unit
+            if smoothaimlock then
+                local targetcframe = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
+                Camera.CFrame = Camera.CFrame:Lerp(targetcframe, lerpalpha)
+            else
+                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
+            end
+        end
+    else
+        isAimingLocked = false
+    end
+end
+
+local function toggleAimlock()
+    if aimlockEnabled then
+        if not aimlockConnection then aimlockConnection = RunService.RenderStepped:Connect(updateaimlock) end
+    else
+        if aimlockConnection then aimlockConnection:Disconnect() aimlockConnection = nil end
+        isAimingLocked = false
+    end
+end
+
+local function updatefovcircle()
+    if fovframe and fovstroke then
+        if showfov then
+            local color = fovcolor
+            if isAimingLocked then
+                color = Color3.fromRGB(0, 255, 0)
+            elseif rainbowfov then
+                color = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+            end
+            fovstroke.Color = color
+            fovframe.Visible = true
+        else
+            fovframe.Visible = false
+        end
+    end
+end
+RunService.RenderStepped:Connect(updatefovcircle)
+
+AimTab:Toggle({
+    Title = "自瞄",
+    Value = false,
+    Callback = function(v)
+        aimlockEnabled = v
+        toggleAimlock()
+    end
+})
+
+AimTab:Dropdown({
+    Title = "自瞄类型",
+    Values = { "最近玩家", "最近鼠标" },
+    Value = "最近玩家",
+    Callback = function(v) aimlocktype = v end
+})
+
+AimTab:Paragraph({
+    Title = "⚠️ 警告",
+    Desc = "此功能可能导致您被检测或暂时封禁!"
+})
+
+AimTab:Toggle({
+    Title = "锁定特定玩家",
+    Value = false,
+    Callback = function(v) aimlockcertainplayer = v end
+})
+
+AimTab:Dropdown({
+    Title = "选择玩家",
+    SpecialType = "Player",
+    ExcludeLocalPlayer = true,
+    Values = {},
+    Value = nil,
+    Callback = function(v) selectedplayer = v end
+})
+
+AimTab:Toggle({
+    Title = "启用FOV",
+    Value = false,
+    Callback = function(v) fovEnabled = v end
+})
+
+AimTab:Colorpicker({
+    Title = "FOV颜色",
+    Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) fovcolor = v end
+})
+
+AimTab:Toggle({
+    Title = "显示FOV",
+    Value = false,
+    Callback = function(v)
+        showfov = v
+        if v then
+            if not fovgui then
+                fovgui = Instance.new("ScreenGui")
+                fovgui.Name = "FOVCircle"
+                fovgui.IgnoreGuiInset = true
+                fovgui.Parent = game:GetService("CoreGui")
+                fovframe = Instance.new("Frame")
+                fovframe.Name = "Circle"
+                fovframe.AnchorPoint = Vector2.new(0.5, 0.5)
+                fovframe.Position = UDim2.new(0.5, 0, 0.5, 0)
+                fovframe.BackgroundTransparency = 1
+                fovframe.BorderSizePixel = 0
+                fovframe.Parent = fovgui
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(1, 0)
+                corner.Parent = fovframe
+                fovstroke = Instance.new("UIStroke")
+                fovstroke.Color = Color3.fromRGB(255,255,255)
+                fovstroke.Thickness = fovstrokethickness
+                fovstroke.Parent = fovframe
+                fovframe.Size = UDim2.new(0, fovsize, 0, fovsize)
+            end
+            fovframe.Visible = true
+        else
+            if fovframe then fovframe.Visible = false end
+        end
+    end
+})
+
+local ConfigSection = AimTab:Section({ Title = "自瞄配置", Opened = true })
+
+ConfigSection:Slider({
+    Title = "最近玩家距离",
+    Value = { Min = 10, Max = 5000, Default = 1000 },
+    Step = 1,
+    Callback = function(v) nearestplayerdistance = v end
+})
+
+ConfigSection:Slider({
+    Title = "最近鼠标距离",
+    Value = { Min = 10, Max = 5000, Default = 500 },
+    Step = 1,
+    Callback = function(v) nearestmousedistance = v end
+})
+
+ConfigSection:Slider({
+    Title = "FOV锁定距离",
+    Value = { Min = 50, Max = 5000, Default = 1000 },
+    Step = 1,
+    Callback = function(v) fovlockdistance = v end
+})
+
+ConfigSection:Toggle({
+    Title = "平滑自瞄",
+    Value = false,
+    Callback = function(v) smoothaimlock = v end
+})
+
+ConfigSection:Slider({
+    Title = "平滑速度",
+    Value = { Min = 100, Max = 1000, Default = 400 },
+    Step = 1,
+    Callback = function(v) lerpalpha = v / 1000 end
+})
+
+ConfigSection:Toggle({
+    Title = "忽略护盾",
+    Value = true,
+    Callback = function(v) ignoreShielded = v end
+})
+
+ConfigSection:Toggle({
+    Title = "忽略大厅",
+    Value = true,
+    Callback = function(v) ignoreLobby = v end
+})
+
+ConfigSection:Dropdown({
+    Title = "瞄准部位",
+    Values = { "头部", "身体", "脚部" },
+    Value = "头部",
+    Callback = function(v) aimpart = v end
+})
+
+ConfigSection:Toggle({
+    Title = "彩虹FOV",
+    Value = false,
+    Callback = function(v) rainbowfov = v end
+})
+
+ConfigSection:Slider({
+    Title = "FOV大小",
+    Value = { Min = 1, Max = 750, Default = 100 },
+    Step = 1,
+    Callback = function(v)
+        fovsize = v
+        if fovframe then fovframe.Size = UDim2.new(0, v, 0, v) end
+    end
+})
+
+ConfigSection:Slider({
+    Title = "FOV边框粗细",
+    Value = { Min = 1, Max = 10, Default = 2 },
+    Step = 1,
+    Callback = function(v)
+        fovstrokethickness = v
+        if fovstroke then fovstroke.Thickness = v end
+    end
+})
+
+ConfigSection:Toggle({
+    Title = "墙壁检测",
+    Value = true,
+    Callback = function(v) wallcheckenabled = v end
+})
+
+ConfigSection:Dropdown({
+    Title = "忽略玩家",
+    SpecialType = "Player",
+    ExcludeLocalPlayer = true,
+    Multi = true,
+    Values = {},
+    Value = {},
+    Callback = function(v)
+        ignoredplayers = {}
+        for p, s in pairs(v) do if s then ignoredplayers[p.Name] = true end end
+    end
+})
+
+ConfigSection:Dropdown({
+    Title = "优先玩家",
+    SpecialType = "Player",
+    ExcludeLocalPlayer = true,
+    Multi = true,
+    Values = {},
+    Value = {},
+    Callback = function(v)
+        prioritizedplayers = {}
+        for p, s in pairs(v) do if s then table.insert(prioritizedplayers, p) end end
+    end
+})
+
+ConfigSection:Slider({
+    Title = "自瞄偏移 Y",
+    Value = { Min = -1, Max = 1, Default = 0 },
+    Step = 0.01,
+    Callback = function(v) aimlockOffsetY = v end
+})
+
+ConfigSection:Slider({
+    Title = "自瞄偏移 X",
+    Value = { Min = -1, Max = 1, Default = 0 },
+    Step = 0.01,
+    Callback = function(v) aimlockOffsetX = v end
 })
 
 local TransTab=D:Tab({Title="传送",Icon="send"})
