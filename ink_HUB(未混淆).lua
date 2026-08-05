@@ -1199,6 +1199,208 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
+local OhioTab = D:Tab({Title="Ohio", Icon="printer"})
+
+local RUNNING = true
+local visitedServers = {}
+local currentServerId = game.JobId
+local CONFIG = {
+    ITEM_NAME = "Money Printer",
+    PRESS_KEY = Enum.KeyCode.E,
+    PRESS_DURATION = 1,
+    SERVER_CACHE_FILE = "/storage/emulated/0/Delta/Workspace/visited_servers.txt",
+    CACHE_DURATION = 3600,
+}
+
+local function safeGetService(serviceName)
+    local ok, svc = pcall(function() return game:GetService(serviceName) end)
+    if ok and svc then return svc end
+    local ok2, svc2 = pcall(function() return game[serviceName] end)
+    if ok2 and svc2 then return svc2 end
+    return nil
+end
+
+local function pressKey(key, duration)
+    local vim = safeGetService("VirtualInputManager")
+    if not vim then return end
+    vim:SendKeyEvent(true, key, false, nil)
+    task.wait(duration or 0.1)
+    vim:SendKeyEvent(false, key, false, nil)
+end
+
+local function ensureDirectoryExists()
+    pcall(function()
+        local dir = "/storage/emulated/0/Delta/Workspace/"
+        if not isfolder(dir) then makefolder(dir) end
+    end)
+end
+
+local function loadVisitedServers()
+    ensureDirectoryExists()
+    local filePath = CONFIG.SERVER_CACHE_FILE
+    local success, content = pcall(function()
+        return isfile(filePath) and readfile(filePath) or ""
+    end)
+    if success and content and content ~= "" then
+        local currentTime = os.time()
+        for serverId, timestamp in string.gmatch(content, "([^\n:]+):([^\n]+)") do
+            local ts = tonumber(timestamp)
+            if ts and (currentTime - ts) < CONFIG.CACHE_DURATION then
+                visitedServers[serverId] = ts
+            end
+        end
+    end
+end
+
+local function saveVisitedServers()
+    ensureDirectoryExists()
+    local content = ""
+    for serverId, timestamp in pairs(visitedServers) do
+        content = content .. serverId .. ":" .. timestamp .. "\n"
+    end
+    pcall(function() writefile(CONFIG.SERVER_CACHE_FILE, content) end)
+end
+
+local function markServerVisited(serverId)
+    visitedServers[serverId] = os.time()
+    saveVisitedServers()
+end
+
+local function resetVisitedServers()
+    visitedServers = {}
+    pcall(function()
+        if isfile(CONFIG.SERVER_CACHE_FILE) then
+            delfile(CONFIG.SERVER_CACHE_FILE)
+        end
+    end)
+end
+
+local function findMoneyPrinters()
+    local items = {}
+    pcall(function()
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local success, itemName = pcall(function()
+                    return obj:GetAttribute("ItemName")
+                end)
+                if success and itemName and string.lower(tostring(itemName)) == string.lower(CONFIG.ITEM_NAME) then
+                    table.insert(items, obj)
+                end
+            end
+        end
+    end)
+    return items
+end
+
+local function getModelTeleportPosition(model)
+    if model.PrimaryPart then
+        return model.PrimaryPart.Position
+    end
+    local handle = model:FindFirstChild("Handle")
+    if handle and handle:IsA("BasePart") then
+        return handle.Position
+    end
+    for _, child in pairs(model:GetDescendants()) do
+        if child:IsA("BasePart") then
+            return child.Position
+        end
+    end
+    return model:GetPivot().Position
+end
+
+local function teleportToModel(model)
+    local players = safeGetService("Players")
+    if not players then return false end
+    local character = players.LocalPlayer.Character
+    if not character then return false end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    local pos = getModelTeleportPosition(model)
+    if not pos then return false end
+    hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+    return true
+end
+
+local function getServerList()
+    local servers = {}
+    local success, result = pcall(function()
+        local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+        local response = game:HttpGet(url)
+        return game:GetService("HttpService"):JSONDecode(response)
+    end)
+    if success and result and result.data then
+        for _, server in ipairs(result.data) do
+            if server.playing < server.maxPlayers and server.id ~= currentServerId and not visitedServers[server.id] then
+                table.insert(servers, server.id)
+            end
+        end
+    end
+    return servers
+end
+
+local function switchServer()
+    local servers = getServerList()
+    if #servers == 0 then
+        resetVisitedServers()
+        servers = getServerList()
+    end
+    if #servers > 0 then
+        local nextServer = servers[math.random(1, #servers)]
+        markServerVisited(nextServer)
+        task.delay(0.5, function()
+            pcall(function()
+                local tpSvc = safeGetService("TeleportService")
+                local players = safeGetService("Players")
+                local localPlayer = players and players.LocalPlayer
+                if tpSvc and localPlayer then
+                    tpSvc:TeleportToPlaceInstance(game.PlaceId, nextServer, localPlayer)
+                end
+            end)
+        end)
+        return true
+    end
+    resetVisitedServers()
+    return false
+end
+
+local function execute()
+    local printers = findMoneyPrinters()
+    if #printers > 0 then
+        local printer = printers[1]
+        local tpSuccess = teleportToModel(printer)
+        if tpSuccess then
+            task.wait(0.5)
+            pressKey(CONFIG.PRESS_KEY, CONFIG.PRESS_DURATION)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+        switchServer()
+    else
+        switchServer()
+    end
+end
+
+OhioTab:Section({ Title = "印钞机" })
+
+OhioTab:Button({
+    Title = "传送印钞机 + 按E + 换服",
+    Callback = function()
+        loadVisitedServers()
+        markServerVisited(currentServerId)
+        execute()
+        A:SetCore("SendNotification",{Title="Ohio", Text="执行完成，正在换服...", Duration=2})
+    end
+})
+
+OhioTab:Button({
+    Title = "重置服务器缓存",
+    Callback = function()
+        resetVisitedServers()
+        A:SetCore("SendNotification",{Title="Ohio", Text="缓存已清空", Duration=2})
+    end
+})
+
 local FlashTab = D:Tab({Title="闪光", Icon="sparkles"})
 
 FlashTab:Section({ Title = "角色增强" })
