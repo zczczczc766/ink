@@ -579,19 +579,35 @@ espGroup:Toggle({
         if v then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer then
-                    playerconnections[p.UserId] = {}
+                    if not playerconnections[p.UserId] then
+                        playerconnections[p.UserId] = {}
+                    end
+                    if p.Character then
+                        applyhighlighttocharacter(p, p.Character)
+                    end
                     setupplayerhighlight(p)
                 end
             end
         else
-            for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end
+            for _, p in pairs(Players:GetPlayers()) do
+                removehighlight(p)
+            end
         end
     end
 })
 espGroup:Colorpicker({
     Title = "轮廓颜色",
     Default = Color3.fromRGB(255,255,255),
-    Callback = function(v) espconfig.outlinecolor = v end
+    Callback = function(v)
+        espconfig.outlinecolor = v
+        if outlineEnabled and not espconfig.rainbowoutline then
+            for _, h in pairs(activehighlights) do
+                if h then
+                    h.OutlineColor = v
+                end
+            end
+        end
+    end
 })
 espGroup:Colorpicker({
     Title = "填充颜色",
