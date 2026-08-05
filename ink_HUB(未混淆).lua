@@ -1257,47 +1257,6 @@ FlashTab:Slider({
 
 FlashTab:Divider()
 
-local xrayenabled = false
-local xraytransparency = 0.6
-local originaltransparencies = {}
-FlashTab:Toggle({
-    Title = "X光",
-    Value = false,
-    Callback = function(v)
-        xrayenabled = v
-        if v then
-            for _, obj in pairs(game.Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
-                    originaltransparencies[obj] = obj.Transparency
-                    obj.Transparency = xraytransparency
-                end
-            end
-        else
-            for obj, t in pairs(originaltransparencies) do
-                if obj and obj.Parent then obj.Transparency = t end
-            end
-            originaltransparencies = {}
-        end
-    end
-})
-FlashTab:Slider({
-    Title = "X光透明度",
-    Value = { Min = 0, Max = 100, Default = 60 },
-    Step = 1,
-    Callback = function(v)
-        xraytransparency = v / 100
-        if xrayenabled then
-            for _, obj in pairs(game.Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:IsDescendantOf(game.Players.LocalPlayer.Character) and originaltransparencies[obj] then
-                    obj.Transparency = v / 100
-                end
-            end
-        end
-    end
-})
-
-FlashTab:Divider()
-
 local autoRespawnEnabled = false
 local autoRespawnDelay = 0
 local autoRespawnLastFire = 0
@@ -1781,114 +1740,6 @@ NicoTab:Toggle({
     end
 })
 
-local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
-
-local weaponCDEnabled = false
-local weaponCDThread = nil
-
-CatTab:Toggle({
-    Title = "武器无CD",
-    Value = false,
-    Callback = function(state)
-        if state then
-            weaponCDEnabled = true
-            _G.StopWeaponCD = false
-            weaponCDThread = task.spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-
-                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
-                for _, weapon in pairs(Weapons) do
-                    if type(weapon) == "table" then
-                        weapon.Cooldown = 0
-                    end
-                end
-
-                local oldGetServerTimeNow = workspace.GetServerTimeNow
-                workspace.GetServerTimeNow = function(self, ...)
-                    return oldGetServerTimeNow(self, ...) + 999999
-                end
-
-                local CooldownEvent = ReplicatedStorage.Events.Cooldown
-                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
-                    conn:Disable()
-                end
-
-                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
-                _G.WeaponFiring = false
-
-                function startRapidFire()
-                    if _G.WeaponFiring then return end
-                    _G.WeaponFiring = true
-                    task.spawn(function()
-                        while _G.WeaponFiring and not _G.StopWeaponCD do
-                            local cam = workspace.CurrentCamera
-                            local mouse = LocalPlayer:GetMouse()
-                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
-                            WeaponEvent:FireServer(ray.Direction.Unit, true)
-                            task.wait(0.01)
-                        end
-                        _G.WeaponFiring = false
-                    end)
-                end
-
-                function stopRapidFire()
-                    _G.WeaponFiring = false
-                end
-
-                startRapidFire()
-
-                task.spawn(function()
-                    while not _G.StopWeaponCD do
-                        local char = LocalPlayer.Character
-                        if char then
-                            for _, tool in ipairs(char:GetChildren()) do
-                                if tool:IsA("Tool") then
-                                    tool:SetAttribute("LastActivation", 0)
-                                    tool:SetAttribute("LastUse", 0)
-                                end
-                            end
-                        end
-                        local backpack = LocalPlayer:FindFirstChild("Backpack")
-                        if backpack then
-                            for _, tool in ipairs(backpack:GetChildren()) do
-                                if tool:IsA("Tool") then
-                                    tool:SetAttribute("LastActivation", 0)
-                                    tool:SetAttribute("LastUse", 0)
-                                end
-                            end
-                        end
-                        task.wait(0.1)
-                    end
-                end)
-
-                task.spawn(function()
-                    while not _G.StopWeaponCD do
-                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
-                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
-                        task.wait(0.1)
-                    end
-                end)
-
-                while not _G.StopWeaponCD do
-                    task.wait(1)
-                end
-            end)
-        else
-            weaponCDEnabled = false
-            _G.StopWeaponCD = true
-            if weaponCDThread then
-                task.cancel(weaponCDThread)
-                weaponCDThread = nil
-            end
-            if _G.WeaponFiring then
-                _G.WeaponFiring = false
-            end
-        end
-    end
-})
-
 local FractureTab = D:Tab({Title="骨折模拟器", Icon="bone"})
 
 local function updateStat(...)
@@ -2359,6 +2210,114 @@ DogPoliceTab:Toggle({
             if muzzleThread then
                 task.cancel(muzzleThread)
                 muzzleThread = nil
+            end
+        end
+    end
+})
+
+local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
+
+local weaponCDEnabled = false
+local weaponCDThread = nil
+
+CatTab:Toggle({
+    Title = "武器无CD",
+    Value = false,
+    Callback = function(state)
+        if state then
+            weaponCDEnabled = true
+            _G.StopWeaponCD = false
+            weaponCDThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
+                for _, weapon in pairs(Weapons) do
+                    if type(weapon) == "table" then
+                        weapon.Cooldown = 0
+                    end
+                end
+
+                local oldGetServerTimeNow = workspace.GetServerTimeNow
+                workspace.GetServerTimeNow = function(self, ...)
+                    return oldGetServerTimeNow(self, ...) + 999999
+                end
+
+                local CooldownEvent = ReplicatedStorage.Events.Cooldown
+                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
+                    conn:Disable()
+                end
+
+                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
+                _G.WeaponFiring = false
+
+                function startRapidFire()
+                    if _G.WeaponFiring then return end
+                    _G.WeaponFiring = true
+                    task.spawn(function()
+                        while _G.WeaponFiring and not _G.StopWeaponCD do
+                            local cam = workspace.CurrentCamera
+                            local mouse = LocalPlayer:GetMouse()
+                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+                            WeaponEvent:FireServer(ray.Direction.Unit, true)
+                            task.wait(0.01)
+                        end
+                        _G.WeaponFiring = false
+                    end)
+                end
+
+                function stopRapidFire()
+                    _G.WeaponFiring = false
+                end
+
+                startRapidFire()
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        local char = LocalPlayer.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
+                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
+                        task.wait(0.1)
+                    end
+                end)
+
+                while not _G.StopWeaponCD do
+                    task.wait(1)
+                end
+            end)
+        else
+            weaponCDEnabled = false
+            _G.StopWeaponCD = true
+            if weaponCDThread then
+                task.cancel(weaponCDThread)
+                weaponCDThread = nil
+            end
+            if _G.WeaponFiring then
+                _G.WeaponFiring = false
             end
         end
     end
