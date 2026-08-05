@@ -1034,6 +1034,13 @@ local repairEnabled = false
 local repairDelay = 1.8
 local repairThread = nil
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local repairEnabled = false
+local repairDelay = 1.8
+local repairThread = nil
+
 O:Toggle({
     Title = "自动修电箱",
     Value = false,
