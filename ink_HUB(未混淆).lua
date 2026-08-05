@@ -1027,12 +1027,6 @@ O:Toggle({Title="改视野",Value=false,Callback=function()
     local bytes=string.char(0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x5E,0x40)
     remote:FireServer("UpdateSettings",{fovObject,buffer.fromstring(bytes)})
 end})
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local repairEnabled = false
-local repairDelay = 1.8
-local repairThread = nil
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -1044,9 +1038,9 @@ local repairThread = nil
 O:Toggle({
     Title = "自动修电箱",
     Value = false,
-    Callback = function(state)
-        repairEnabled = state
-        if state then
+    Callback = function()
+        repairEnabled = not repairEnabled
+        if repairEnabled then
             repairThread = task.spawn(function()
                 while repairEnabled do
                     pcall(function()
@@ -1092,9 +1086,9 @@ local sprintModule = nil
 O:Toggle({
     Title = "无限体力",
     Value = false,
-    Callback = function(state)
-        staminaEnabled = state
-        if state then
+    Callback = function()
+        staminaEnabled = not staminaEnabled
+        if staminaEnabled then
             pcall(function()
                 if not sprintModule then
                     local success, module = pcall(require, ReplicatedStorage.Systems.Character.Game.Sprinting)
