@@ -682,7 +682,7 @@ configGroup:Slider({
     Callback = function(v) espconfig.rainbowspeed = v end
 })
 
-local AimTab = D:Tab({Title="自瞄专区", Icon="crosshair"})
+local AimTab = D:Tab({Title="自瞄子追", Icon="crosshair"})
 
 local AimbotSettings = {
     Enabled = false,
@@ -788,6 +788,74 @@ AimTab:Toggle({ Title = "墙体检测", Value = false, Callback = function(s) Ai
 AimTab:Slider({ Title = "圆圈大小", Value = { Min = 30, Max = 500, Default = 100 }, Callback = function(v) AimbotSettings.CircleRadius = v end })
 AimTab:Slider({ Title = "圆圈厚度", Value = { Min = 1, Max = 10, Default = 2 }, Callback = function(v) AimbotSettings.CircleThickness = v end })
 AimTab:Dropdown({ Title = "圆圈颜色", Values = { "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "彩色", Callback = function(v) AimbotSettings.CircleColor = v end })
+
+local bulletTrackEnabled = false
+local bulletTrackConnection = nil
+local originalProps = {}
+
+local function applyBulletTrack(state)
+    if state then
+        if bulletTrackConnection then bulletTrackConnection:Disconnect() end
+        bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not bulletTrackEnabled then return end
+            for _, plr in pairs(game.Players:GetPlayers()) do
+                if plr == game.Players.LocalPlayer then continue end
+                if plr.Character then
+                    local char = plr.Character
+                    if not originalProps[plr] then
+                        originalProps[plr] = {}
+                        local parts = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
+                        for _, name in pairs(parts) do
+                            local part = char:FindFirstChild(name)
+                            if part then
+                                originalProps[plr][name] = {
+                                    CanCollide = part.CanCollide,
+                                    Transparency = part.Transparency,
+                                    Size = part.Size
+                                }
+                            end
+                        end
+                    end
+                    for _, name in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
+                        local part = char:FindFirstChild(name)
+                        if part then
+                            part.CanCollide = false
+                            part.Transparency = 0.9
+                            part.Size = Vector3.new(13, 13, 13)
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if bulletTrackConnection then
+            bulletTrackConnection:Disconnect()
+            bulletTrackConnection = nil
+        end
+        for plr, props in pairs(originalProps) do
+            if plr.Character then
+                for name, prop in pairs(props) do
+                    local part = plr.Character:FindFirstChild(name)
+                    if part then
+                        part.CanCollide = prop.CanCollide
+                        part.Transparency = prop.Transparency
+                        part.Size = prop.Size
+                    end
+                end
+            end
+            originalProps[plr] = nil
+        end
+    end
+end
+
+AimTab:Toggle({
+    Title = "子弹追踪",
+    Value = false,
+    Callback = function(s)
+        bulletTrackEnabled = s
+        applyBulletTrack(s)
+    end
+})
 
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
