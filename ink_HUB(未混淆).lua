@@ -1889,6 +1889,114 @@ CatTab:Toggle({
     end
 })
 
+local FractureTab = D:Tab({Title="骨折模拟器", Icon="bone"})
+
+local function updateStat(...)
+    local args = {...}
+    pcall(function()
+        game:GetService("ReplicatedStorage")
+            :WaitForChild("Functions")
+            :WaitForChild("UpdateStat")
+            :InvokeServer(unpack(args))
+    end)
+end
+
+local STATS = {
+    "elasticitylevel",
+    "frictionlevel",
+    "cooldownlevel",
+    "fuellevel",
+    "jumplevel",
+    "speedlevel",
+    "breakslevel",
+    "sprainslevel",
+    "flightlevel",
+    "dislocationslevel",
+}
+
+FractureTab:Section({ Title = "属性升级" })
+
+FractureTab:Button({
+    Title = "全部属性拉满 x10",
+    Callback = function()
+        for i = 1, 10 do
+            for _, stat in ipairs(STATS) do
+                updateStat(stat, 100)
+            end
+        end
+        A:SetCore("SendNotification",{Title="完成", Text="所有属性已设为100", Duration=3})
+    end
+})
+
+FractureTab:Section({ Title = "单独属性开关" })
+
+for _, stat in ipairs(STATS) do
+    local displayName = stat:gsub("^%l", string.upper):gsub("level", "")
+    FractureTab:Toggle({
+        Title = displayName,
+        Value = false,
+        Callback = function(state)
+            updateStat(stat, state and 100 or 0)
+        end
+    })
+end
+
+FractureTab:Section({ Title = "经济" })
+
+FractureTab:Button({
+    Title = "设置金钱 15e14",
+    Callback = function()
+        updateStat("money", 15e14)
+        A:SetCore("SendNotification",{Title="金钱", Text="已设置 money = 15e14", Duration=3})
+    end
+})
+
+FractureTab:Section({ Title = "Gravity Bubble" })
+
+FractureTab:Toggle({
+    Title = "Gravity Bubble 启用",
+    Value = false,
+    Callback = function(state)
+        updateStat("Gravity Bubble", 5, true)
+        updateStat("utility", "Gravity Bubble", true)
+        A:SetCore("SendNotification",{Title="Gravity Bubble", Text=state and "已启用" or "已禁用", Duration=3})
+    end
+})
+
+FractureTab:Section({ Title = "传送" })
+
+FractureTab:Button({
+    Title = "重新传送到本服",
+    Callback = function()
+        A:SetCore("SendNotification",{Title="传送中...", Text="即将传送", Duration=2})
+        task.wait(0.5)
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+        end)
+    end
+})
+
+FractureTab:Section({ Title = "一键全部执行" })
+
+FractureTab:Button({
+    Title = "执行全部功能",
+    Callback = function()
+        for i = 1, 10 do
+            for _, stat in ipairs(STATS) do
+                updateStat(stat, 100)
+            end
+        end
+        updateStat("money", 15e14)
+        updateStat("Gravity Bubble", 5, true)
+        updateStat("utility", "Gravity Bubble", true)
+        task.wait(0.5)
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+        end)
+        A:SetCore("SendNotification",{Title="完成", Text="全部执行完毕", Duration=3})
+    end
+})
+
 local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
 
 local leashEnabled = false
