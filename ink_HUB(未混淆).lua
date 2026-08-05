@@ -684,205 +684,110 @@ configGroup:Slider({
 
 local AimTab = D:Tab({Title="自瞄专区", Icon="crosshair"})
 
-local aimEnabled = false
-local aimPart = "Head"
-local fovSize = 100
-local smoothness = 0.3
-local wallCheck = true
-local teamCheck = false
-local fovVisible = false
-local aimConnection = nil
-local fovGui = nil
-local fovCircle = nil
+local AimbotSettings = {
+    Enabled = false,
+    TargetPart = "Head",
+    TeamCheck = false,
+    WallCheck = false,
+    CircleEnabled = false,
+    CircleRadius = 100,
+    CircleThickness = 2,
+    CircleColor = "彩色"
+}
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local Colors = {
+    ["红"] = Color3.fromRGB(255,0,0), ["橙"] = Color3.fromRGB(255,150,0), ["黄"] = Color3.fromRGB(255,255,15),
+    ["绿"] = Color3.fromRGB(0,255,0), ["青"] = Color3.fromRGB(0,255,219), ["蓝"] = Color3.fromRGB(0,0,255),
+    ["紫"] = Color3.fromRGB(183,0,255), ["彩色"] = nil,
+}
+
+local Circle = Drawing.new("Circle")
+Circle.Filled = false
+Circle.Visible = false
+
+local function getCircleColor()
+    if AimbotSettings.CircleColor ~= "彩色" and Colors[AimbotSettings.CircleColor] then
+        return Colors[AimbotSettings.CircleColor]
+    else
+        return Color3.fromHSV((tick() % 5) / 5, 1, 1)
+    end
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if AimbotSettings.CircleEnabled then
+        Circle.Visible = true
+        Circle.Position = workspace.CurrentCamera.ViewportSize / 2
+        Circle.Radius = AimbotSettings.CircleRadius
+        Circle.Thickness = AimbotSettings.CircleThickness
+        Circle.Color = getCircleColor()
+    else
+        Circle.Visible = false
+    end
+end)
+
+local LocalPlayer = game.Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local function getClosestTarget()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    local origin = root.Position
-    local best = nil
-    local bestDist = math.huge
-    local center = Camera.ViewportSize / 2
+local function isValidTarget(player)
+    if not player or player == LocalPlayer then return false end
+    if not player.Character then return false end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return false end
+    if AimbotSettings.TeamCheck and player.Team == LocalPlayer.Team then return false end
+    local part = player.Character:FindFirstChild(AimbotSettings.TargetPart)
+    if not part then return false end
+    if AimbotSettings.WallCheck then
+        local params = RaycastParams.new()
+        params.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+        params.FilterType = Enum.RaycastFilterType.Blacklist
+        local result = workspace:Raycast(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 1000, params)
+        if result and result.Instance ~= part then return false end
+    end
+    return true
+end
 
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then
-        elseif teamCheck and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
-        else
-            local pchar = plr.Character
-            if pchar then
-                local hum = pchar:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Health > 0 then
-                    local targetPart = pchar:FindFirstChild(aimPart)
-                    if targetPart then
-                        local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                        if onScreen then
-                            local screenDist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                            if screenDist <= fovSize then
-                                local proot = pchar:FindFirstChild("HumanoidRootPart")
-                                if proot then
-                                    local worldDist = (proot.Position - origin).Magnitude
-                                    if wallCheck then
-                                        local params = RaycastParams.new()
-                                        params.FilterDescendantsInstances = {char}
-                                        params.FilterType = Enum.RaycastFilterType.Blacklist
-                                        local ray = workspace:Raycast(origin, (targetPart.Position - origin).Unit * worldDist, params)
-                                        if ray and not ray.Instance:IsDescendantOf(pchar) then
-                                        else
-                                            if worldDist < bestDist then
-                                                bestDist = worldDist
-                                                best = plr
-                                            end
-                                        end
-                                    else
-                                        if worldDist < bestDist then
-                                            bestDist = worldDist
-                                            best = plr
-                                        end
-                                    end
-                                end
-                            end
-                        end
+local function getClosestInCircle()
+    local closest = nil
+    local minDist = math.huge
+    local center = Camera.ViewportSize / 2
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if isValidTarget(p) then
+            local head = p.Character:FindFirstChild(AimbotSettings.TargetPart)
+            if head then
+                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                if onScreen then
+                    local screenDist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if screenDist <= AimbotSettings.CircleRadius and screenDist < minDist then
+                        minDist = screenDist
+                        closest = p
                     end
                 end
             end
         end
     end
-    return best
+    return closest
 end
 
-local function updateAim()
-    if not aimEnabled then return end
-    local target = getClosestTarget()
-    if target and target.Character then
-        local part = target.Character:FindFirstChild(aimPart)
-        if part then
-            local targetCF = CFrame.new(Camera.CFrame.Position, part.Position)
-            if smoothness > 0 then
-                Camera.CFrame = Camera.CFrame:Lerp(targetCF, smoothness)
-            else
-                Camera.CFrame = targetCF
+game:GetService("RunService").Heartbeat:Connect(function()
+    if AimbotSettings.Enabled then
+        local target = getClosestInCircle()
+        if target then
+            local part = target.Character:FindFirstChild(AimbotSettings.TargetPart)
+            if part then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
             end
         end
     end
-end
+end)
 
-local function toggleAim(state)
-    aimEnabled = state
-    if state then
-        if not aimConnection then
-            aimConnection = RunService.RenderStepped:Connect(updateAim)
-        end
-    else
-        if aimConnection then
-            aimConnection:Disconnect()
-            aimConnection = nil
-        end
-    end
-end
-
-local function updateFOVCircle()
-    if fovVisible then
-        if not fovGui then
-            fovGui = Instance.new("ScreenGui")
-            fovGui.Name = "FOVCircle"
-            fovGui.IgnoreGuiInset = true
-            fovGui.Parent = game:GetService("CoreGui")
-            fovCircle = Instance.new("Frame")
-            fovCircle.Name = "Circle"
-            fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-            fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
-            fovCircle.BackgroundTransparency = 1
-            fovCircle.BorderSizePixel = 0
-            fovCircle.Parent = fovGui
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(1, 0)
-            corner.Parent = fovCircle
-            local stroke = Instance.new("UIStroke")
-            stroke.Color = Color3.fromRGB(255, 255, 255)
-            stroke.Thickness = 2
-            stroke.Parent = fovCircle
-        end
-        fovCircle.Size = UDim2.new(0, fovSize * 2, 0, fovSize * 2)
-        fovCircle.Visible = true
-    else
-        if fovGui then
-            fovGui:Destroy()
-            fovGui = nil
-            fovCircle = nil
-        end
-    end
-end
-
-AimTab:Toggle({
-    Title = "自瞄开关",
-    Value = false,
-    Callback = function(v)
-        toggleAim(v)
-    end
-})
-
-AimTab:Toggle({
-    Title = "队伍检测",
-    Value = false,
-    Callback = function(v)
-        teamCheck = v
-    end
-})
-
-AimTab:Toggle({
-    Title = "墙体检测",
-    Value = true,
-    Callback = function(v)
-        wallCheck = v
-    end
-})
-
-AimTab:Dropdown({
-    Title = "瞄准部位",
-    Values = { "头部", "身体" },
-    Value = "头部",
-    Callback = function(v)
-        if v == "头部" then
-            aimPart = "Head"
-        else
-            aimPart = "HumanoidRootPart"
-        end
-    end
-})
-
-AimTab:Slider({
-    Title = "FOV 大小",
-    Value = { Min = 30, Max = 500, Default = 100 },
-    Step = 1,
-    Callback = function(v)
-        fovSize = v
-        updateFOVCircle()
-    end
-})
-
-AimTab:Slider({
-    Title = "平滑速度",
-    Value = { Min = 0, Max = 1, Default = 0.3 },
-    Step = 0.01,
-    Callback = function(v)
-        smoothness = v
-    end
-})
-
-AimTab:Toggle({
-    Title = "显示 FOV 圆圈",
-    Value = false,
-    Callback = function(v)
-        fovVisible = v
-        updateFOVCircle()
-    end
-})
+AimTab:Toggle({ Title = "开启自瞄", Value = false, Callback = function(s) AimbotSettings.Enabled = s end })
+AimTab:Toggle({ Title = "自瞄圆圈", Value = false, Callback = function(s) AimbotSettings.CircleEnabled = s end })
+AimTab:Dropdown({ Title = "瞄准部位", Values = { "Head", "HumanoidRootPart" }, Value = "Head", Callback = function(v) AimbotSettings.TargetPart = v end })
+AimTab:Toggle({ Title = "队伍验证", Value = false, Callback = function(s) AimbotSettings.TeamCheck = s end })
+AimTab:Toggle({ Title = "墙体检测", Value = false, Callback = function(s) AimbotSettings.WallCheck = s end })
+AimTab:Slider({ Title = "圆圈大小", Value = { Min = 30, Max = 500, Default = 100 }, Callback = function(v) AimbotSettings.CircleRadius = v end })
+AimTab:Slider({ Title = "圆圈厚度", Value = { Min = 1, Max = 10, Default = 2 }, Callback = function(v) AimbotSettings.CircleThickness = v end })
+AimTab:Dropdown({ Title = "圆圈颜色", Values = { "红", "橙", "黄", "绿", "青", "蓝", "紫", "彩色" }, Value = "彩色", Callback = function(v) AimbotSettings.CircleColor = v end })
 
 local TransTab=D:Tab({Title="传送",Icon="send"})
 
