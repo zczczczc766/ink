@@ -304,7 +304,6 @@ E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('http
 
 local P = D:Tab({Title="透视专区", Icon="eye"})
 
--- ===== 透视变量（来自闪光） =====
 local espEnabled = false
 local outlineEnabled = false
 local tracersEnabled = false
@@ -328,6 +327,7 @@ local lastupdate = 0
 local espobjects = {}
 local playerconnections = {}
 local tracerlines = {}
+local activehighlights = {}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -374,7 +374,10 @@ end
 local function applyhighlighttocharacter(player, character)
     if not character then return end
     local userid = player.UserId
-    if activehighlights[userid] then activehighlights[userid]:Destroy() end
+    if activehighlights[userid] then
+        activehighlights[userid]:Destroy()
+        activehighlights[userid] = nil
+    end
     local highlighter = Instance.new("Highlight")
     highlighter.FillTransparency = espconfig.outlinefilltransparency
     highlighter.OutlineTransparency = espconfig.outlinetransparency
@@ -387,9 +390,14 @@ end
 
 local function removehighlight(player)
     local userid = player.UserId
-    if activehighlights[userid] then activehighlights[userid]:Destroy() activehighlights[userid] = nil end
+    if activehighlights[userid] then
+        activehighlights[userid]:Destroy()
+        activehighlights[userid] = nil
+    end
     if playerconnections[userid] then
-        for _, conn in pairs(playerconnections[userid]) do if conn then conn:Disconnect() end end
+        for _, conn in pairs(playerconnections[userid]) do
+            if conn then conn:Disconnect() end
+        end
         playerconnections[userid] = nil
     end
 end
@@ -402,14 +410,18 @@ local function setupplayerhighlight(player)
         task.spawn(function()
             local humanoid = character:WaitForChild("Humanoid", 5)
             if not humanoid then return end
-            if outlineEnabled then applyhighlighttocharacter(player, character) end
+            if outlineEnabled then
+                applyhighlighttocharacter(player, character)
+            end
             table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
                 local highlight = activehighlights[userid]
                 if highlight then
                     highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
                 end
             end))
-            table.insert(playerconnections[userid], humanoid.Died:Connect(function() removehighlight(player) end))
+            table.insert(playerconnections[userid], humanoid.Died:Connect(function()
+                removehighlight(player)
+            end))
         end)
     end
     local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
@@ -486,11 +498,13 @@ local function updatetracers()
     end
 end
 
--- 玩家加入/离开事件
 Players.PlayerAdded:Connect(function(p)
     if p ~= LocalPlayer then
         if espEnabled then createesp(p) end
-        if outlineEnabled then playerconnections[p.UserId] = {} setupplayerhighlight(p) end
+        if outlineEnabled then
+            playerconnections[p.UserId] = {}
+            setupplayerhighlight(p)
+        end
         if tracersEnabled then
             local line = Drawing.new("Line")
             line.Thickness = espconfig.tracersize
@@ -499,8 +513,14 @@ Players.PlayerAdded:Connect(function(p)
             tracerlines[p] = line
         end
         p.CharacterAdded:Connect(function(c)
-            if espEnabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
-            if outlineEnabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
+            if espEnabled then
+                task.wait(0.1)
+                if not espobjects[p] then createesp(p) end
+            end
+            if outlineEnabled then
+                task.wait(0.1)
+                applyhighlighttocharacter(p, c)
+            end
         end)
     end
 end)
@@ -508,28 +528,37 @@ end)
 Players.PlayerRemoving:Connect(function(p)
     removeesp(p)
     removehighlight(p)
-    if tracerlines[p] then tracerlines[p]:Remove() tracerlines[p] = nil end
+    if tracerlines[p] then
+        tracerlines[p]:Remove()
+        tracerlines[p] = nil
+    end
 end)
 
 for _, p in pairs(Players:GetPlayers()) do
     if p ~= LocalPlayer then
         p.CharacterAdded:Connect(function(c)
-            if espEnabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
-            if outlineEnabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
+            if espEnabled then
+                task.wait(0.1)
+                if not espobjects[p] then createesp(p) end
+            end
+            if outlineEnabled then
+                task.wait(0.1)
+                applyhighlighttocharacter(p, c)
+            end
         end)
     end
 end
 
--- ===== UI 控件 =====
 local espGroup = P:Section({ Title = "基础透视", Opened = true })
-
 espGroup:Toggle({
     Title = "透视",
     Value = false,
     Callback = function(v)
         espEnabled = v
         if v then
-            for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then createesp(p) end end
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then createesp(p) end
+            end
             RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value + 1, updateesp)
         else
             for p, _ in pairs(espobjects) do removeesp(p) end
@@ -537,13 +566,11 @@ espGroup:Toggle({
         end
     end
 })
-
 espGroup:Colorpicker({
     Title = "透视颜色",
     Default = Color3.fromRGB(255,255,255),
     Callback = function(v) espconfig.espcolor = v end
 })
-
 espGroup:Toggle({
     Title = "轮廓",
     Value = false,
@@ -561,19 +588,16 @@ espGroup:Toggle({
         end
     end
 })
-
 espGroup:Colorpicker({
     Title = "轮廓颜色",
     Default = Color3.fromRGB(255,255,255),
     Callback = function(v) espconfig.outlinecolor = v end
 })
-
 espGroup:Colorpicker({
     Title = "填充颜色",
     Default = Color3.fromRGB(255,255,255),
     Callback = function(v) espconfig.outlinefillcolor = v end
 })
-
 espGroup:Toggle({
     Title = "追踪线",
     Value = false,
@@ -589,62 +613,52 @@ espGroup:Toggle({
         end
     end
 })
-
 espGroup:Colorpicker({
     Title = "追踪线颜色",
     Default = Color3.fromRGB(255,255,255),
     Callback = function(v) espconfig.tracercolor = v end
 })
 
--- ===== 高级配置 =====
 local configGroup = P:Section({ Title = "高级配置", Opened = false })
-
 configGroup:Toggle({
     Title = "彩虹透视",
     Value = false,
     Callback = function(v) espconfig.rainbowesp = v end
 })
-
 configGroup:Toggle({
     Title = "彩虹轮廓",
     Value = false,
     Callback = function(v) espconfig.rainbowoutline = v end
 })
-
 configGroup:Toggle({
     Title = "彩虹追踪线",
     Value = false,
     Callback = function(v) espconfig.rainbowtracers = v end
 })
-
 configGroup:Slider({
     Title = "透视大小",
     Value = { Min = 16, Max = 48, Default = 16 },
     Step = 1,
     Callback = function(v) espconfig.espsize = v end
 })
-
 configGroup:Dropdown({
     Title = "追踪线位置",
     Values = { "底部", "中间", "顶部" },
     Value = "底部",
     Callback = function(v) espconfig.tracerposition = v end
 })
-
 configGroup:Slider({
     Title = "轮廓透明度",
     Value = { Min = 0, Max = 100, Default = 0 },
     Step = 1,
     Callback = function(v) espconfig.outlinetransparency = v / 100 end
 })
-
 configGroup:Slider({
     Title = "轮廓填充透明度",
     Value = { Min = 0, Max = 100, Default = 50 },
     Step = 1,
     Callback = function(v) espconfig.outlinefilltransparency = v / 100 end
 })
-
 configGroup:Slider({
     Title = "彩虹速度",
     Value = { Min = 1, Max = 10, Default = 5 },
