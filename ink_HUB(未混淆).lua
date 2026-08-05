@@ -1751,6 +1751,36 @@ BackstreetTab:Button({ Title = "传送到后街", Callback = function() teleport
 BackstreetTab:Button({ Title = "传送到后街对面", Callback = function() teleportTo(Vector3.new(-184.26, 4.00, -189.72)) end })
 BackstreetTab:Button({ Title = "传送到下水道", Callback = function() teleportTo(Vector3.new(-245.42, -22.96, -1349.19)) end })
 
+local NicoTab = D:Tab({Title="nico的下一个机器人", Icon="cpu"})
+
+local bunnyHopEnabled = false
+local bunnyHopConnection = nil
+
+NicoTab:Toggle({
+    Title = "自动跳跃",
+    Value = false,
+    Callback = function(v)
+        bunnyHopEnabled = v
+        if v then
+            bunnyHopConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not bunnyHopEnabled then return end
+                local char = game.Players.LocalPlayer.Character
+                if not char then return end
+                local humanoid = char:FindFirstChild("Humanoid")
+                if not humanoid then return end
+                if humanoid:GetState() == Enum.HumanoidStateType.Running and humanoid.FloorMaterial ~= Enum.Material.Air then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        else
+            if bunnyHopConnection then
+                bunnyHopConnection:Disconnect()
+                bunnyHopConnection = nil
+            end
+        end
+    end
+})
+
 local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
 
 local weaponCDEnabled = false
