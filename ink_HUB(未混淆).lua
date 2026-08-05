@@ -2060,101 +2060,6 @@ MurderTab:Toggle({
     end
 })
 
-local BladeTab = D:Tab({Title="刀刃球", Icon="sword"})
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Stats = game:GetService("Stats")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local VirtualUser = game:GetService("VirtualUser")
-local LocalPlayer = Players.LocalPlayer
-
-local parryCount = 0
-local roundCount = 0
-local AutoParryEnabled = true
-local AntiAfkEnabled = true
-
-LocalPlayer.CharacterAdded:Connect(function() roundCount = roundCount + 1 end)
-
-local function DoParry()
-    pcall(function()
-        ReplicatedStorage.Remotes.ParryButtonPress:Fire()
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-        parryCount = parryCount + 1
-    end)
-end
-
-local parryConnection = RunService.PreRender:Connect(function()
-    if not AutoParryEnabled then return end
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local ball = nil
-    local ballsFolder = workspace:FindFirstChild("Balls")
-    if ballsFolder then
-        for _, v in ballsFolder:GetChildren() do
-            if v:GetAttribute("realBall") == true then
-                ball = v
-                break
-            end
-        end
-    end
-    if ball and char:FindFirstChild("Highlight") then
-        local velocity = ball.AssemblyLinearVelocity.Magnitude
-        local distance = (ball.Position - char.HumanoidRootPart.Position).Magnitude
-        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
-        local range = (20 * ping) + (velocity / math.pi) * 2.3
-        if velocity > 5 and distance <= range then
-            DoParry()
-            task.wait(0.15)
-        end
-    end
-end)
-
-local afkConnection = LocalPlayer.Idled:Connect(function()
-    if AntiAfkEnabled then
-        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        task.wait(0.5)
-        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    end
-end)
-
-BladeTab:Section({ Title = "功能" })
-
-BladeTab:Toggle({
-    Title = "自动格挡",
-    Value = true,
-    Callback = function(state)
-        AutoParryEnabled = state
-    end
-})
-
-BladeTab:Toggle({
-    Title = "AFK防挂机",
-    Value = true,
-    Callback = function(state)
-        AntiAfkEnabled = state
-    end
-})
-
-BladeTab:Paragraph({
-    Title = "📊 实时统计",
-    Desc = "已成功格挡: " .. parryCount .. "\n当前游戏轮数: " .. roundCount,
-    Image = "activity",
-    ImageSize = 24,
-})
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        local para = BladeTab:GetParagraph("📊 实时统计")
-        if para then
-            para:SetDesc("已成功格挡: " .. parryCount .. "\n当前游戏轮数: " .. roundCount)
-        end
-    end
-end)
-
 local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
 
 local leashEnabled = false
@@ -2650,6 +2555,210 @@ ZombieTab:Toggle({
             startKillLoop()
         else
             stopKillLoop()
+        end
+    end
+})
+
+local FarmTab = D:Tab({Title="鸡场", Icon="egg"})
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local remoteFunction = ReplicatedStorage:WaitForChild("Paper"):WaitForChild("Remotes"):WaitForChild("__remotefunction")
+
+local function invokeRemote(action, ...)
+    pcall(function()
+        remoteFunction:InvokeServer(action, ...)
+    end)
+end
+
+local function collectWorkspaceEggs()
+    local eggs = workspace:FindFirstChild("Eggs")
+    if not eggs then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    for _, egg in pairs(eggs:GetChildren()) do
+        if egg:IsA("Model") or egg:IsA("BasePart") then
+            pcall(function()
+                if egg:IsA("BasePart") then
+                    egg.CFrame = hrp.CFrame
+                else
+                    egg:PivotTo(hrp.CFrame)
+                end
+            end)
+        end
+    end
+end
+
+FarmTab:Section({ Title = "自动功能" })
+
+local autoDeposit = false
+local depositConn = nil
+FarmTab:Toggle({
+    Title = "自动存放鸡蛋",
+    Value = false,
+    Callback = function(v)
+        autoDeposit = v
+        if v then
+            depositConn = RunService.Heartbeat:Connect(function()
+                if autoDeposit then invokeRemote("Deposit Eggs") end
+            end)
+        elseif depositConn then
+            depositConn:Disconnect()
+            depositConn = nil
+        end
+    end
+})
+
+local autoCash = false
+local cashConn = nil
+FarmTab:Toggle({
+    Title = "自动领取钱",
+    Value = false,
+    Callback = function(v)
+        autoCash = v
+        if v then
+            cashConn = RunService.Heartbeat:Connect(function()
+                if autoCash then invokeRemote("Collect Cash") end
+            end)
+        elseif cashConn then
+            cashConn:Disconnect()
+            cashConn = nil
+        end
+    end
+})
+
+local autoCollectEggs = false
+local collectEggsConn = nil
+FarmTab:Toggle({
+    Title = "自动收集鸡蛋(拉取)",
+    Value = false,
+    Callback = function(v)
+        autoCollectEggs = v
+        if v then
+            collectEggsConn = RunService.Heartbeat:Connect(function()
+                if autoCollectEggs then collectWorkspaceEggs() end
+            end)
+        elseif collectEggsConn then
+            collectEggsConn:Disconnect()
+            collectEggsConn = nil
+        end
+    end
+})
+
+local autoBuy = false
+local buyConn = nil
+FarmTab:Toggle({
+    Title = "自动购买鸡",
+    Value = false,
+    Callback = function(v)
+        autoBuy = v
+        if v then
+            buyConn = RunService.Heartbeat:Connect(function()
+                if autoBuy then invokeRemote("Buy Chickens", 1) end
+            end)
+        elseif buyConn then
+            buyConn:Disconnect()
+            buyConn = nil
+        end
+    end
+})
+
+local autoMerge = false
+local mergeConn = nil
+FarmTab:Toggle({
+    Title = "自动合并鸡",
+    Value = false,
+    Callback = function(v)
+        autoMerge = v
+        if v then
+            mergeConn = RunService.Heartbeat:Connect(function()
+                if autoMerge then invokeRemote("Merge Chickens") end
+            end)
+        elseif mergeConn then
+            mergeConn:Disconnect()
+            mergeConn = nil
+        end
+    end
+})
+
+FarmTab:Section({ Title = "人物功能" })
+
+local floatEnabled = false
+local floatForce = nil
+FarmTab:Toggle({
+    Title = "漂浮",
+    Value = false,
+    Callback = function(v)
+        floatEnabled = v
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if floatEnabled and hrp then
+            if floatForce then floatForce:Destroy() end
+            floatForce = Instance.new("BodyVelocity")
+            floatForce.Name = "FloatVelocity"
+            floatForce.MaxForce = Vector3.new(0, 100000, 0)
+            floatForce.Velocity = Vector3.new(0, 0, 0)
+            floatForce.Parent = hrp
+        else
+            if floatForce then
+                floatForce:Destroy()
+                floatForce = nil
+            end
+        end
+    end
+})
+
+local flingEnabled = false
+local flingThread = nil
+FarmTab:Toggle({
+    Title = "击飞所有",
+    Value = false,
+    Callback = function(v)
+        flingEnabled = v
+        if v then
+            if flingThread then return end
+            flingThread = task.spawn(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum then
+                    hum.PlatformStand = true
+                    local spinForce = Instance.new("BodyAngularVelocity")
+                    spinForce.Name = "TrollSpin"
+                    spinForce.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    spinForce.AngularVelocity = Vector3.new(0, 50000, 0)
+                    spinForce.Parent = hrp
+                    while flingEnabled do
+                        for _, target in pairs(Players:GetPlayers()) do
+                            if target ~= LocalPlayer and flingEnabled then
+                                local tChar = target.Character
+                                local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                                if tHrp then
+                                    local timer = tick()
+                                    while flingEnabled and tick() - timer < 0.2 and tHrp.Parent do
+                                        hrp.CFrame = tHrp.CFrame
+                                        hrp.Velocity = Vector3.new(math.random(-5000,5000), 5000, math.random(-5000,5000))
+                                        task.wait(0.01)
+                                    end
+                                end
+                            end
+                        end
+                        task.wait()
+                    end
+                    if hrp:FindFirstChild("TrollSpin") then hrp.TrollSpin:Destroy() end
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    hum.PlatformStand = false
+                end
+                flingThread = nil
+            end)
+        else
+            if flingThread then
+                repeat task.wait() until flingThread == nil
+            end
         end
     end
 })
