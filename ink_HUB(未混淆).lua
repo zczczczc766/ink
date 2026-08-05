@@ -1028,9 +1028,6 @@ O:Toggle({Title="改视野",Value=false,Callback=function()
     remote:FireServer("UpdateSettings",{fovObject,buffer.fromstring(bytes)})
 end})
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
 local repairEnabled = false
 local repairDelay = 1.8
 local repairThread = nil
@@ -1051,9 +1048,7 @@ O:Toggle({
                             for _, obj in ipairs(currentMap:GetChildren()) do
                                 if obj.Name == "Generator" and obj:FindFirstChild("Progress") and obj.Progress.Value < 100 then
                                     local remote = obj:FindFirstChild("Remotes") and obj.Remotes:FindFirstChild("RE")
-                                    if remote then
-                                        remote:FireServer()
-                                    end
+                                    if remote then remote:FireServer() end
                                 end
                             end
                         end
@@ -1061,11 +1056,9 @@ O:Toggle({
                     task.wait(repairDelay)
                 end
             end)
-        else
-            if repairThread then
-                task.cancel(repairThread)
-                repairThread = nil
-            end
+        elseif repairThread then
+            task.cancel(repairThread)
+            repairThread = nil
         end
     end
 })
@@ -1091,22 +1084,18 @@ O:Toggle({
         if staminaEnabled then
             pcall(function()
                 if not sprintModule then
-                    local success, module = pcall(require, ReplicatedStorage.Systems.Character.Game.Sprinting)
-                    if success and module then
-                        sprintModule = module
-                    end
+                    local success, module = pcall(require, game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting)
+                    if success then sprintModule = module end
                 end
-                if sprintModule then
+                if sprintModule and sprintModule.StaminaLossDisabled ~= nil then
                     sprintModule.StaminaLossDisabled = true
                 end
             end)
             if not staminaMonitor then
-                staminaMonitor = RunService.Heartbeat:Connect(function()
+                staminaMonitor = game:GetService("RunService").Heartbeat:Connect(function()
                     if not staminaEnabled then
-                        if staminaMonitor then
-                            staminaMonitor:Disconnect()
-                            staminaMonitor = nil
-                        end
+                        staminaMonitor:Disconnect()
+                        staminaMonitor = nil
                         return
                     end
                     pcall(function()
