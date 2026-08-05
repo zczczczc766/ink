@@ -1849,6 +1849,312 @@ FractureTab:Button({
     end
 })
 
+local MurderTab = D:Tab({Title="谋杀决斗", Icon="crosshair"})
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootReplicate")
+
+local FIRE_RATE = 0.1
+local bulletId = 1
+local ragebotEnabled = false
+local ragebotThread = nil
+local wallbangEnabled = false
+local speedEnabled = false
+local speedThread = nil
+local customSpeedValue = 50
+local originalWalkSpeed = 16
+
+MurderTab:Section({ Title = "RageBot" })
+
+local function isTargetVisible(fromPos, targetHead, targetChar)
+    local direction = (targetHead.Position - fromPos).Unit
+    local distance = (targetHead.Position - fromPos).Magnitude
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    local filter = {LocalPlayer.Character, targetChar}
+    rayParams.FilterDescendantsInstances = filter
+    rayParams.IgnoreWater = true
+    local result = Workspace:Raycast(fromPos, direction * distance, rayParams)
+    return result == nil
+end
+
+local function startRagebot()
+    if ragebotThread then return end
+    ragebotThread = task.spawn(function()
+        while ragebotEnabled do
+            task.wait(FIRE_RATE)
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                local weapon = character:FindFirstChildOfClass("Tool")
+                if not weapon then return end
+                local myHead = character:FindFirstChild("Head")
+                local myRoot = character:FindFirstChild("HumanoidRootPart")
+                if not myHead or not myRoot then return end
+                local myTeam = LocalPlayer.Team
+                local target = nil
+                local closest = math.huge
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player == LocalPlayer then continue end
+                    if myTeam and player.Team == myTeam then continue end
+                    local targetChar = player.Character
+                    if not targetChar then continue end
+                    if targetChar:FindFirstChildOfClass("ForceField") then continue end
+                    local head = targetChar:FindFirstChild("Head")
+                    local humanoid = targetChar:FindFirstChild("Humanoid")
+                    if head and humanoid and humanoid.Health > 0 then
+                        local dist = (myRoot.Position - head.Position).Magnitude
+                        if dist < closest then
+                            if not wallbangEnabled then
+                                if not isTargetVisible(myHead.Position, head, targetChar) then
+                                    continue
+                                end
+                            end
+                            closest = dist
+                            target = targetChar
+                        end
+                    end
+                end
+                if target then
+                    local head = target.Head
+                    local origin = myHead.Position
+                    local hitPos = head.Position
+                    local hitNormal = (origin - hitPos).Unit
+                    ShootRemote:FireServer({
+                        hitPos = hitPos,
+                        to = hitPos,
+                        origin = origin,
+                        id = bulletId,
+                        hitNormal = hitNormal,
+                        effects = {Frost = 0, Ricochet = 0, Barrage = 0},
+                        hitInstance = head,
+                        kind = "bullet",
+                        isCharacterHit = true,
+                        mode = "single",
+                        ownerUserId = LocalPlayer.UserId,
+                        isADS = false
+                    })
+                    bulletId = bulletId + 1
+                    if bulletId > 999999 then bulletId = 1 end
+                end
+            end)
+        end
+    end)
+end
+
+local function stopRagebot()
+    ragebotEnabled = false
+    if ragebotThread then
+        task.cancel(ragebotThread)
+        ragebotThread = nil
+    end
+end
+
+MurderTab:Toggle({
+    Title = "RageBot 开关",
+    Value = false,
+    Callback = function(state)
+        if state then
+            ragebotEnabled = true
+            startRagebot()
+        else
+            stopRagebot()
+        end
+    end
+})
+
+MurderTab:Toggle({
+    Title = "自动穿墙",
+    Value = false,
+    Callback = function(state)
+        wallbangEnabled = state
+    end
+})
+
+MurderTab:Slider({
+    Title = "射击速度",
+    Value = { Min = 0.05, Max = 1, Default = 0.1 },
+    Step = 0.01,
+    Callback = function(value)
+        FIRE_RATE = value
+    end
+})
+
+MurderTab:Section({ Title = "人物移动" })
+
+local function getLocalHumanoid()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("Humanoid")
+end
+
+task.spawn(function()
+    repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        originalWalkSpeed = hum.WalkSpeed
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        originalWalkSpeed = hum.WalkSpeed
+        if speedEnabled then
+            hum.WalkSpeed = customSpeedValue
+        end
+    end
+end)
+
+local function startSpeedModifier()
+    if speedThread then return end
+    speedThread = task.spawn(function()
+        while speedEnabled do
+            pcall(function()
+                local humanoid = getLocalHumanoid()
+                if humanoid then
+                    humanoid.WalkSpeed = customSpeedValue
+                end
+            end)
+            task.wait(0.01)
+        end
+        pcall(function()
+            local humanoid = getLocalHumanoid()
+            if humanoid then
+                humanoid.WalkSpeed = originalWalkSpeed
+            end
+        end)
+    end)
+end
+
+local function stopSpeedModifier()
+    speedEnabled = false
+    if speedThread then
+        task.cancel(speedThread)
+        speedThread = nil
+    end
+    pcall(function()
+        local humanoid = getLocalHumanoid()
+        if humanoid then
+            humanoid.WalkSpeed = originalWalkSpeed
+        end
+    end)
+end
+
+MurderTab:Toggle({
+    Title = "提前移动(加速)",
+    Value = false,
+    Callback = function(state)
+        if state then
+            speedEnabled = true
+            startSpeedModifier()
+        else
+            stopSpeedModifier()
+        end
+    end
+})
+
+local BladeTab = D:Tab({Title="刀刃球", Icon="sword"})
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Stats = game:GetService("Stats")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
+
+local parryCount = 0
+local roundCount = 0
+local AutoParryEnabled = true
+local AntiAfkEnabled = true
+
+LocalPlayer.CharacterAdded:Connect(function() roundCount = roundCount + 1 end)
+
+local function DoParry()
+    pcall(function()
+        ReplicatedStorage.Remotes.ParryButtonPress:Fire()
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+        parryCount = parryCount + 1
+    end)
+end
+
+local parryConnection = RunService.PreRender:Connect(function()
+    if not AutoParryEnabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local ball = nil
+    local ballsFolder = workspace:FindFirstChild("Balls")
+    if ballsFolder then
+        for _, v in ballsFolder:GetChildren() do
+            if v:GetAttribute("realBall") == true then
+                ball = v
+                break
+            end
+        end
+    end
+    if ball and char:FindFirstChild("Highlight") then
+        local velocity = ball.AssemblyLinearVelocity.Magnitude
+        local distance = (ball.Position - char.HumanoidRootPart.Position).Magnitude
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
+        local range = (20 * ping) + (velocity / math.pi) * 2.3
+        if velocity > 5 and distance <= range then
+            DoParry()
+            task.wait(0.15)
+        end
+    end
+end)
+
+local afkConnection = LocalPlayer.Idled:Connect(function()
+    if AntiAfkEnabled then
+        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        task.wait(0.5)
+        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    end
+end)
+
+BladeTab:Section({ Title = "功能" })
+
+BladeTab:Toggle({
+    Title = "自动格挡",
+    Value = true,
+    Callback = function(state)
+        AutoParryEnabled = state
+    end
+})
+
+BladeTab:Toggle({
+    Title = "AFK防挂机",
+    Value = true,
+    Callback = function(state)
+        AntiAfkEnabled = state
+    end
+})
+
+BladeTab:Paragraph({
+    Title = "📊 实时统计",
+    Desc = "已成功格挡: " .. parryCount .. "\n当前游戏轮数: " .. roundCount,
+    Image = "activity",
+    ImageSize = 24,
+})
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        local para = BladeTab:GetParagraph("📊 实时统计")
+        if para then
+            para:SetDesc("已成功格挡: " .. parryCount .. "\n当前游戏轮数: " .. roundCount)
+        end
+    end
+end)
+
 local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
 
 local leashEnabled = false
@@ -2211,6 +2517,342 @@ DogPoliceTab:Toggle({
             if muzzleThread then
                 task.cancel(muzzleThread)
                 muzzleThread = nil
+            end
+        end
+    end
+})
+
+local ZombieTab = D:Tab({Title="僵尸竞技场", Icon="skull"})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local killEnabled = false
+local killConnection = nil
+local activeZombies = {}
+local lastHit = {}
+local HIT_COOLDOWN = 0.2
+local PROCESS_RATE = 15
+
+local remotes = ReplicatedStorage:WaitForChild("ZombieRemotes")
+local damageRemote = remotes:WaitForChild("ZombieDamage")
+local zombieContainer = workspace:WaitForChild("Zombies_Local")
+
+local function tryTrack(obj)
+    if not obj:IsA("Model") then return end
+    if not obj.Name:find("Zombie") then return end
+    if activeZombies[obj] then return end
+    local id = tonumber(obj.Name:match("Zombie_(%d+)"))
+    if id then
+        activeZombies[obj] = id
+    end
+end
+
+local function tryUntrack(obj)
+    if obj:IsA("Model") then
+        local id = activeZombies[obj]
+        if id then lastHit[id] = nil end
+        activeZombies[obj] = nil
+    end
+end
+
+for _, obj in ipairs(zombieContainer:GetChildren()) do
+    tryTrack(obj)
+end
+
+zombieContainer.ChildAdded:Connect(tryTrack)
+zombieContainer.ChildRemoved:Connect(tryUntrack)
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        for _, obj in ipairs(zombieContainer:GetChildren()) do
+            tryTrack(obj)
+        end
+        for model in pairs(activeZombies) do
+            if not model or not model.Parent then
+                local id = activeZombies[model]
+                if id then lastHit[id] = nil end
+                activeZombies[model] = nil
+            end
+        end
+    end
+end)
+
+local function startKillLoop()
+    if killConnection then return end
+    killConnection = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local myPos = root.Position
+        local now = tick()
+        local sortableList = {}
+        for model, id in pairs(activeZombies) do
+            if not model or not model.Parent then
+                lastHit[id] = nil
+                activeZombies[model] = nil
+                continue
+            end
+            local hum = model:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health <= 0 then
+                lastHit[id] = nil
+                activeZombies[model] = nil
+                continue
+            end
+            local part = model.PrimaryPart
+                or model:FindFirstChild("HumanoidRootPart")
+                or model:FindFirstChildWhichIsA("BasePart")
+            if not part then continue end
+            local dist = (part.Position - myPos).Magnitude
+            local hasAnim = model:FindFirstChildOfClass("AnimationController") ~= nil
+            table.insert(sortableList, {
+                model = model,
+                id    = id,
+                dist  = dist,
+                anim  = hasAnim,
+            })
+        end
+        table.sort(sortableList, function(a, b)
+            if a.anim ~= b.anim then
+                return a.anim and not b.anim
+            end
+            return a.dist < b.dist
+        end)
+        local limit = math.min(#sortableList, PROCESS_RATE)
+        for i = 1, limit do
+            local target = sortableList[i]
+            local id = target.id
+            if not lastHit[id] or (now - lastHit[id]) >= HIT_COOLDOWN then
+                lastHit[id] = now
+                damageRemote:FireServer(id, 9999999999)
+            end
+        end
+    end)
+end
+
+local function stopKillLoop()
+    if killConnection then
+        killConnection:Disconnect()
+        killConnection = nil
+    end
+end
+
+ZombieTab:Section({ Title = "僵尸秒杀" })
+ZombieTab:Toggle({
+    Title = "启用秒杀",
+    Value = false,
+    Callback = function(state)
+        killEnabled = state
+        if state then
+            startKillLoop()
+        else
+            stopKillLoop()
+        end
+    end
+})
+
+local FarmTab = D:Tab({Title="鸡场", Icon="egg"})
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local remoteFunction = ReplicatedStorage:WaitForChild("Paper"):WaitForChild("Remotes"):WaitForChild("__remotefunction")
+
+local function invokeRemote(action, ...)
+    pcall(function()
+        remoteFunction:InvokeServer(action, ...)
+    end)
+end
+
+local function collectWorkspaceEggs()
+    local eggs = workspace:FindFirstChild("Eggs")
+    if not eggs then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    for _, egg in pairs(eggs:GetChildren()) do
+        if egg:IsA("Model") or egg:IsA("BasePart") then
+            pcall(function()
+                if egg:IsA("BasePart") then
+                    egg.CFrame = hrp.CFrame
+                else
+                    egg:PivotTo(hrp.CFrame)
+                end
+            end)
+        end
+    end
+end
+
+FarmTab:Section({ Title = "自动功能" })
+
+local autoDeposit = false
+local depositConn = nil
+FarmTab:Toggle({
+    Title = "自动存放鸡蛋",
+    Value = false,
+    Callback = function(v)
+        autoDeposit = v
+        if v then
+            depositConn = RunService.Heartbeat:Connect(function()
+                if autoDeposit then invokeRemote("Deposit Eggs") end
+            end)
+        elseif depositConn then
+            depositConn:Disconnect()
+            depositConn = nil
+        end
+    end
+})
+
+local autoCash = false
+local cashConn = nil
+FarmTab:Toggle({
+    Title = "自动领取钱",
+    Value = false,
+    Callback = function(v)
+        autoCash = v
+        if v then
+            cashConn = RunService.Heartbeat:Connect(function()
+                if autoCash then invokeRemote("Collect Cash") end
+            end)
+        elseif cashConn then
+            cashConn:Disconnect()
+            cashConn = nil
+        end
+    end
+})
+
+local autoCollectEggs = false
+local collectEggsConn = nil
+FarmTab:Toggle({
+    Title = "自动收集鸡蛋(拉取)",
+    Value = false,
+    Callback = function(v)
+        autoCollectEggs = v
+        if v then
+            collectEggsConn = RunService.Heartbeat:Connect(function()
+                if autoCollectEggs then collectWorkspaceEggs() end
+            end)
+        elseif collectEggsConn then
+            collectEggsConn:Disconnect()
+            collectEggsConn = nil
+        end
+    end
+})
+
+local autoBuy = false
+local buyConn = nil
+FarmTab:Toggle({
+    Title = "自动购买鸡",
+    Value = false,
+    Callback = function(v)
+        autoBuy = v
+        if v then
+            buyConn = RunService.Heartbeat:Connect(function()
+                if autoBuy then invokeRemote("Buy Chickens", 1) end
+            end)
+        elseif buyConn then
+            buyConn:Disconnect()
+            buyConn = nil
+        end
+    end
+})
+
+local autoMerge = false
+local mergeConn = nil
+FarmTab:Toggle({
+    Title = "自动合并鸡",
+    Value = false,
+    Callback = function(v)
+        autoMerge = v
+        if v then
+            mergeConn = RunService.Heartbeat:Connect(function()
+                if autoMerge then invokeRemote("Merge Chickens") end
+            end)
+        elseif mergeConn then
+            mergeConn:Disconnect()
+            mergeConn = nil
+        end
+    end
+})
+
+FarmTab:Section({ Title = "人物功能" })
+
+local floatEnabled = false
+local floatForce = nil
+FarmTab:Toggle({
+    Title = "漂浮",
+    Value = false,
+    Callback = function(v)
+        floatEnabled = v
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if floatEnabled and hrp then
+            if floatForce then floatForce:Destroy() end
+            floatForce = Instance.new("BodyVelocity")
+            floatForce.Name = "FloatVelocity"
+            floatForce.MaxForce = Vector3.new(0, 100000, 0)
+            floatForce.Velocity = Vector3.new(0, 0, 0)
+            floatForce.Parent = hrp
+        else
+            if floatForce then
+                floatForce:Destroy()
+                floatForce = nil
+            end
+        end
+    end
+})
+
+local flingEnabled = false
+local flingThread = nil
+FarmTab:Toggle({
+    Title = "击飞所有",
+    Value = false,
+    Callback = function(v)
+        flingEnabled = v
+        if v then
+            if flingThread then return end
+            flingThread = task.spawn(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum then
+                    hum.PlatformStand = true
+                    local spinForce = Instance.new("BodyAngularVelocity")
+                    spinForce.Name = "TrollSpin"
+                    spinForce.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    spinForce.AngularVelocity = Vector3.new(0, 50000, 0)
+                    spinForce.Parent = hrp
+                    while flingEnabled do
+                        for _, target in pairs(Players:GetPlayers()) do
+                            if target ~= LocalPlayer and flingEnabled then
+                                local tChar = target.Character
+                                local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                                if tHrp then
+                                    local timer = tick()
+                                    while flingEnabled and tick() - timer < 0.2 and tHrp.Parent do
+                                        hrp.CFrame = tHrp.CFrame
+                                        hrp.Velocity = Vector3.new(math.random(-5000,5000), 5000, math.random(-5000,5000))
+                                        task.wait(0.01)
+                                    end
+                                end
+                            end
+                        end
+                        task.wait()
+                    end
+                    if hrp:FindFirstChild("TrollSpin") then hrp.TrollSpin:Destroy() end
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    hum.PlatformStand = false
+                end
+                flingThread = nil
+            end)
+        else
+            if flingThread then
+                repeat task.wait() until flingThread == nil
             end
         end
     end
