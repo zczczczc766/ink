@@ -1849,660 +1849,216 @@ FractureTab:Button({
     end
 })
 
-local FishingTab = D:Tab({Title="重型钓鱼", Icon="fish"})
+local MurderTab = D:Tab({Title="谋杀决斗", Icon="crosshair"})
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Events = ReplicatedStorage:WaitForChild("Events")
 
-local AutoCastEnabled = false
-local AutoFishingEnabled = false
-local AutoSkillEnabled = false
-local AutoSellEnabled = false
-local AutoTeleToBoss = false
-local AutoSkillF = false
-local SkillFDelay = 30
-local AutoFavoriteRareFish = false
-local AutoTicketQuest = false
-local AutoBuyAncestralBait = false
-local AutoNormalTicketQuest = false
-local AutoTeleToMerchant = false
-local BossLockMode = false
-local AutoWeatherTP = false
+local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootReplicate")
 
-local isSpeedEnabled = false
-local speedValue = 50
-local autoDeleteAFK = false
-local afkConnection = nil
-local getgenv = getgenv or {}
+local FIRE_RATE = 0.1
+local bulletId = 1
+local ragebotEnabled = false
+local ragebotThread = nil
+local wallbangEnabled = false
+local speedEnabled = false
+local speedThread = nil
+local customSpeedValue = 50
+local originalWalkSpeed = 16
 
-FishingTab:Section({ Title = "钓鱼自动化" })
+MurderTab:Section({ Title = "RageBot" })
 
-FishingTab:Button({
-    Title = "打开饵料商城",
-    Callback = function()
-        pcall(function()
-            Events.ChooseDialogueOption:FireServer("BuyBait", 1, "BaitShop", nil)
-        end)
-    end
-})
-
-FishingTab:Toggle({
-    Title = "自动抛竿",
-    Value = false,
-    Callback = function(state) AutoCastEnabled = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动钓鱼",
-    Value = false,
-    Callback = function(state) AutoFishingEnabled = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动技能",
-    Value = false,
-    Callback = function(state) AutoSkillEnabled = state end
-})
-
-FishingTab:Section({ Title = "过滤与Boss" })
-
-local AutoFishEnabled = false
-local KeepFish = {
-    ["Rainbow Dragonfish"] = true, ["Sanguine Fish"] = true, ["Heavenpiercer Turtle"] = true,
-    ["Reborn Puffer Beast"] = true, ["Flying Fish Empress"] = true, ["Flying Fish Emperor"] = true,
-    ["Draconic Koi"] = true, ["Elder Scarlet Fish"] = true, ["Verdant Bonefang"] = true,
-    ["Scarlet Fish"] = true, ["Crimson Electric Eel"] = true, ["Colossal Tigerfish"] = true,
-    ["Ascended Perch"] = true, ["Warbringer Shark"] = true, ["Frost Kingfish"] = true,
-    ["Crimson Bonefang"] = true, ["Primordial Kunfish Overlord"] = true
-}
-local processedFish = setmetatable({}, {__mode = "k"})
-local ToggleHotbarEvent = Events.ToggleHotbar
-
-FishingTab:Toggle({
-    Title = "自动过滤小鱼",
-    Value = false,
-    Callback = function(state)
-        AutoFishEnabled = state
-    end
-})
-
-FishingTab:Toggle({
-    Title = "抢Boss",
-    Desc = "开启后自动功能不能用否则会冲突",
-    Value = false,
-    Callback = function(state)
-        BossLockMode = state
-        if not state then
-            AutoFishingEnabled = false
-            AutoCastEnabled = false
-            AutoSkillEnabled = false
-        end
-    end
-})
-
-FishingTab:Section({ Title = "天气与技能" })
-
-local function TeleportTo(data)
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    hrp.CFrame = CFrame.new(data.Pos, data.Pos + data.Look)
+local function isTargetVisible(fromPos, targetHead, targetChar)
+    local direction = (targetHead.Position - fromPos).Unit
+    local distance = (targetHead.Position - fromPos).Magnitude
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    local filter = {LocalPlayer.Character, targetChar}
+    rayParams.FilterDescendantsInstances = filter
+    rayParams.IgnoreWater = true
+    local result = Workspace:Raycast(fromPos, direction * distance, rayParams)
+    return result == nil
 end
 
-local function GetCurrentWeather()
-    local WeatherFolder = ReplicatedStorage.ClientModule.Weather.Weather
-    local currentSky = game.Lighting:FindFirstChildOfClass("Sky")
-    if not currentSky then return nil end
-    for _, weather in pairs(WeatherFolder:GetChildren()) do
-        local sky = weather:FindFirstChild("Sky")
-        if sky and sky.SkyboxBk == currentSky.SkyboxBk then
-            return weather.Name
-        end
-    end
-    return nil
-end
-
-local Islands = {
-    Bass = { Pos = Vector3.new(-62.20, 9.28, -1350.26), Look = Vector3.new(0.00873366, 0, -0.99996185) },
-    Bamboo = { Pos = Vector3.new(-1292.66, 9.76, -42.57), Look = Vector3.new(-0.99991846, 0, 0.01276829) },
-    Coconut = { Pos = Vector3.new(1413.75, 9.28, -1452.20), Look = Vector3.new(-0.03845364, 0, 0.99926036) }
-}
-
-FishingTab:Toggle({
-    Title = "自动天气传送",
-    Value = false,
-    Callback = function(state)
-        AutoWeatherTP = state
-        if state then
-            task.spawn(function()
-                local lastWeather = ""
-                while AutoWeatherTP do
-                    local weather = GetCurrentWeather()
-                    if weather and weather ~= lastWeather then
-                        lastWeather = weather
-                        if weather == "Foggy" then
-                            TeleportTo(Islands.Coconut)
-                        elseif weather == "Thunderstorm" then
-                            TeleportTo(Islands.Bamboo)
-                        elseif weather == "Windy" or weather == "Clear" then
-                            TeleportTo(Islands.Bass)
+local function startRagebot()
+    if ragebotThread then return end
+    ragebotThread = task.spawn(function()
+        while ragebotEnabled do
+            task.wait(FIRE_RATE)
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                local weapon = character:FindFirstChildOfClass("Tool")
+                if not weapon then return end
+                local myHead = character:FindFirstChild("Head")
+                local myRoot = character:FindFirstChild("HumanoidRootPart")
+                if not myHead or not myRoot then return end
+                local myTeam = LocalPlayer.Team
+                local target = nil
+                local closest = math.huge
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player == LocalPlayer then continue end
+                    if myTeam and player.Team == myTeam then continue end
+                    local targetChar = player.Character
+                    if not targetChar then continue end
+                    if targetChar:FindFirstChildOfClass("ForceField") then continue end
+                    local head = targetChar:FindFirstChild("Head")
+                    local humanoid = targetChar:FindFirstChild("Humanoid")
+                    if head and humanoid and humanoid.Health > 0 then
+                        local dist = (myRoot.Position - head.Position).Magnitude
+                        if dist < closest then
+                            if not wallbangEnabled then
+                                if not isTargetVisible(myHead.Position, head, targetChar) then
+                                    continue
+                                end
+                            end
+                            closest = dist
+                            target = targetChar
                         end
                     end
-                    task.wait(2)
+                end
+                if target then
+                    local head = target.Head
+                    local origin = myHead.Position
+                    local hitPos = head.Position
+                    local hitNormal = (origin - hitPos).Unit
+                    ShootRemote:FireServer({
+                        hitPos = hitPos,
+                        to = hitPos,
+                        origin = origin,
+                        id = bulletId,
+                        hitNormal = hitNormal,
+                        effects = {Frost = 0, Ricochet = 0, Barrage = 0},
+                        hitInstance = head,
+                        kind = "bullet",
+                        isCharacterHit = true,
+                        mode = "single",
+                        ownerUserId = LocalPlayer.UserId,
+                        isADS = false
+                    })
+                    bulletId = bulletId + 1
+                    if bulletId > 999999 then bulletId = 1 end
                 end
             end)
         end
+    end)
+end
+
+local function stopRagebot()
+    ragebotEnabled = false
+    if ragebotThread then
+        task.cancel(ragebotThread)
+        ragebotThread = nil
     end
-})
+end
 
-FishingTab:Toggle({
-    Title = "杆门断自动释放",
-    Value = false,
-    Callback = function(state) AutoSkillF = state end
-})
-
-FishingTab:Input({
-    Title = "杆门断释放延时(秒)",
-    Placeholder = "默认30秒",
-    Value = "30",
-    Callback = function(text)
-        local num = tonumber(text)
-        if num and num >= 0 then
-            SkillFDelay = num
-        end
-    end
-})
-
-FishingTab:Section({ Title = "其他" })
-
-FishingTab:Toggle({
-    Title = "自动卖鱼",
-    Value = false,
-    Callback = function(state) AutoSellEnabled = state end
-})
-
-FishingTab:Section({ Title = "杂项功能" })
-
-FishingTab:Button({
-    Title = "换服",
-    Callback = function()
-        local TeleportService = game:GetService("TeleportService")
-        local HttpService = game:GetService("HttpService")
-        local PlaceId = game.PlaceId
-        local JobId = game.JobId
-        local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-        local success, response = pcall(function() return game:HttpGet(url) end)
-        if success then
-            local data = HttpService:JSONDecode(response)
-            for _, server in ipairs(data.data) do
-                if server.playing < server.maxPlayers and server.id ~= JobId then
-                    TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
-                    break
-                end
-            end
-        end
-    end
-})
-
-FishingTab:Button({
-    Title = "打开饵料制作",
-    Callback = function()
-        pcall(function() Events.ChooseDialogueOption:FireServer("BuyBait", 2, "CraftBait", nil) end)
-    end
-})
-
-FishingTab:Toggle({
-    Title = "自动传送Boss",
-    Value = false,
-    Callback = function(state) AutoTeleToBoss = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动收藏稀有鱼",
-    Value = false,
-    Callback = function(state) AutoFavoriteRareFish = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动传送小道士",
-    Value = false,
-    Callback = function(state) AutoTeleToMerchant = state end
-})
-
-FishingTab:Section({ Title = "任务相关" })
-
-FishingTab:Toggle({
-    Title = "自动接刘老板困难任务",
-    Value = false,
-    Callback = function(state) AutoTicketQuest = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动认领刘老板任务",
-    Value = false,
-    Callback = function(state) AutoNormalTicketQuest = state end
-})
-
-FishingTab:Toggle({
-    Title = "自动购买祖先饵料",
-    Value = false,
-    Callback = function(state) AutoBuyAncestralBait = state end
-})
-
-FishingTab:Section({ Title = "防踢设置" })
-
-FishingTab:Toggle({
-    Title = "阻止自动换服",
-    Value = false,
-    Callback = function(state)
-        autoDeleteAFK = state
-        if state then
-            local searchAreas = {LocalPlayer, workspace, ReplicatedStorage, game:GetService("Lighting")}
-            local function wipeAFK()
-                local count = 0
-                for _, area in ipairs(searchAreas) do
-                    pcall(function()
-                        for _, obj in ipairs(area:GetDescendants()) do
-                            if obj.Name == "AFK" or string.match(string.upper(obj.Name), "^AFK$") then
-                                pcall(function()
-                                    if obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-                                        obj.Disabled = true
-                                    end
-                                    obj:Destroy()
-                                    count = count + 1
-                                end)
-                            end
-                        end
-                    end)
-                end
-                return count
-            end
-            wipeAFK()
-            task.spawn(function()
-                while autoDeleteAFK do
-                    task.wait(1.5)
-                    wipeAFK()
-                end
-            end)
-        end
-    end
-})
-
-FishingTab:Toggle({
-    Title = "AFK(必开)",
+MurderTab:Toggle({
+    Title = "RageBot 开关",
     Value = false,
     Callback = function(state)
         if state then
-            afkConnection = LocalPlayer.Idled:Connect(function()
-                game:GetService("VirtualUser"):CaptureController()
-                game:GetService("VirtualUser"):ClickButton2(Vector2.new(0, 0))
-            end)
+            ragebotEnabled = true
+            startRagebot()
         else
-            if afkConnection then afkConnection:Disconnect(); afkConnection = nil end
+            stopRagebot()
         end
     end
 })
 
-FishingTab:Section({ Title = "移动加速" })
-
-FishingTab:Toggle({
-    Title = "加速",
+MurderTab:Toggle({
+    Title = "自动穿墙",
     Value = false,
     Callback = function(state)
-        isSpeedEnabled = state
-        if not state and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = 16
-        end
+        wallbangEnabled = state
     end
 })
 
-FishingTab:Slider({
-    Title = "移动速度",
-    Value = { Min = 16, Max = 200, Default = 50 },
-    Step = 1,
+MurderTab:Slider({
+    Title = "射击速度",
+    Value = { Min = 0.05, Max = 1, Default = 0.1 },
+    Step = 0.01,
     Callback = function(value)
-        speedValue = value
-        if isSpeedEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = speedValue
-        end
+        FIRE_RATE = value
     end
 })
 
-FishingTab:Section({ Title = "娱乐功能" })
+MurderTab:Section({ Title = "人物移动" })
 
-FishingTab:Toggle({
-    Title = "获取饮料的老婆(Spirit跟随)",
-    Value = false,
-    Callback = function(state)
-        getgenv().AttachSpirit = state
-    end
-})
-
-FishingTab:Section({ Title = "岛屿传送" })
-
-local function TeleportToCoords(coords)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(coords)
-    end
+local function getLocalHumanoid()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("Humanoid")
 end
 
-local locations = {
-    {Name = "初始岛屿", Coords = Vector3.new(-283.78, 11.06, 37.06)},
-    {Name = "竹子岛", Coords = Vector3.new(-1194.62, 5.57, -30.08)},
-    {Name = "核弹岛", Coords = Vector3.new(-48.12, 5.88, 1234.68)},
-    {Name = "主权岛屿", Coords = Vector3.new(-1174.37, 7.26, 1279.27)},
-    {Name = "鲈鱼岛", Coords = Vector3.new(-63.82, 11.11, -1361.63)},
-    {Name = "冰霜岛屿", Coords = Vector3.new(-1389.85, 9.50, -1397.23)},
-    {Name = "椰子岛", Coords = Vector3.new(1431.24, 11.14, -1445.49)},
-    {Name = "琥珀岛", Coords = Vector3.new(1123.59, 10.86, 1414.99)},
-    {Name = "战场岛", Coords = Vector3.new(1342.56, 9.64, 229.71)}
-}
-
-for _, loc in ipairs(locations) do
-    FishingTab:Button({
-        Title = "传送至: " .. loc.Name,
-        Callback = function() TeleportToCoords(loc.Coords) end
-    })
-end
-
--- 后台循环任务
 task.spawn(function()
-    while true do
-        if AutoTeleToBoss then
+    repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        originalWalkSpeed = hum.WalkSpeed
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        originalWalkSpeed = hum.WalkSpeed
+        if speedEnabled then
+            hum.WalkSpeed = customSpeedValue
+        end
+    end
+end)
+
+local function startSpeedModifier()
+    if speedThread then return end
+    speedThread = task.spawn(function()
+        while speedEnabled do
             pcall(function()
-                local boss = workspace:FindFirstChild("Ocean") and workspace.Ocean:FindFirstChild("Boss")
-                if boss and LocalPlayer.Character then
-                    LocalPlayer.Character:PivotTo(boss:GetPivot() * CFrame.new(0, 5, 0))
+                local humanoid = getLocalHumanoid()
+                if humanoid then
+                    humanoid.WalkSpeed = customSpeedValue
                 end
             end)
+            task.wait(0.01)
         end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if AutoCastEnabled and LocalPlayer.Character and not LocalPlayer.Character:FindFirstChild("Buoy") then
-            Events.Fishing:FireServer()
-        end
-    end
-end)
-
-task.spawn(function()
-    local isPlaying = false
-    Events.FishingMinigame.OnClientEvent:Connect(function()
-        if AutoFishingEnabled then isPlaying = true end
-    end)
-    Events.Slam.OnClientEvent:Connect(function()
-        if AutoFishingEnabled then
-            pcall(function()
-                LocalPlayer.PlayerGui.MainGui.Fishing.TrashCan.Slam.Button.MouseButton1Click:Fire()
-            end)
-        end
-    end)
-    Events.Charge.OnClientEvent:Connect(function()
-        if AutoFishingEnabled then
-            pcall(function()
-                LocalPlayer.PlayerGui.MainGui.Fishing.TrashCan.Charge.Button.MouseButton1Click:Fire()
-            end)
-        end
-    end)
-    while true do
-        task.wait()
-        if AutoFishingEnabled and isPlaying then
-            pcall(function()
-                local fishingGui = LocalPlayer.PlayerGui.MainGui.Fishing
-                if fishingGui and fishingGui.Visible then
-                    fishingGui.BarFrame.Bar.Position = UDim2.new(0.5, 0, 0.5, 0)
-                else
-                    isPlaying = false
-                end
-            end)
-        end
-    end
-end)
-
-task.spawn(function()
-    local UseSkillEvent = Events:WaitForChild("UseSkill")
-    local keys = {"Z", "C", "V", "X"}
-    while true do
-        if AutoSkillEnabled then
-            for _, key in ipairs(keys) do
-                UseSkillEvent:FireServer(key)
-            end
-        end
-        task.wait(0.1)
-    end
-end)
-
-task.spawn(function()
-    getgenv().AutoFavoriteFish = getgenv().AutoFavoriteFish or {}
-    local inventory = ReplicatedStorage:WaitForChild("Data"):WaitForChild(tostring(LocalPlayer.UserId)):WaitForChild("Inventory")
-    local FavoriteEvent = Events:WaitForChild("FavoriteItem")
-    local TargetFish = {
-        ["Rainbow Dragonfish"] = true, ["Sanguine Fish"] = true, ["Heavenpiercer Turtle"] = true,
-        ["Reborn Puffer Beast"] = true, ["Flying Fish Empress"] = true, ["Flying Fish Emperor"] = true,
-        ["Draconic Koi"] = true, ["Elder Scarlet Fish"] = true, ["Verdant Bonefang"] = true,
-        ["Scarlet Fish"] = true, ["Crimson Electric Eel"] = true, ["Colossal Tigerfish"] = true,
-        ["Ascended Perch"] = true, ["Warbringer Shark"] = true, ["Frost Kingfish"] = true,
-        ["Crimson Bonefang"] = true, ["Primordial Kunfish Overlord"] = true
-    }
-    local function AutoFavorite(fish)
-        if not AutoFavoriteRareFish then return end
-        if not fish or not fish.Name then return end
-        local fullName = fish.Name
-        local fishType = string.match(fullName, "^(.-)%s*|") or fullName
-        fishType = fishType:gsub("%s+$", "")
-        if not TargetFish[fishType] then return end
-        if getgenv().AutoFavoriteFish[fullName] then return end
-        getgenv().AutoFavoriteFish[fullName] = true
-        task.wait(0.2)
-        pcall(function() FavoriteEvent:FireServer(fullName) end)
-    end
-    inventory.ChildAdded:Connect(function(fish)
-        task.spawn(function() AutoFavorite(fish) end)
-    end)
-end)
-
-task.spawn(function()
-    local inventory = ReplicatedStorage:WaitForChild("Data"):WaitForChild(tostring(LocalPlayer.UserId)):WaitForChild("Inventory")
-    local SellEvent = Events:WaitForChild("SellFish")
-    getgenv().AutoFavoriteFish = getgenv().AutoFavoriteFish or {}
-    while true do
-        if AutoSellEnabled then
-            for _, fish in ipairs(inventory:GetChildren()) do
-                if not getgenv().AutoFavoriteFish[fish.Name] then
-                    pcall(function() SellEvent:FireServer(fish.Name) end)
-                end
-            end
-        end
-        task.wait(10)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if isSpeedEnabled then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") and char.Humanoid.WalkSpeed ~= speedValue then
-                char.Humanoid.WalkSpeed = speedValue
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    local VirtualInputManager = game:GetService("VirtualInputManager")
-    local TARGET_ANIMATIONS = {
-        "rbxassetid://139310377090355",
-        "rbxassetid://126829237727532",
-        "rbxassetid://93648246978510"
-    }
-    local busy = false
-    local function HookCharacter(character)
-        local humanoid = character:WaitForChild("Humanoid")
-        humanoid.AnimationPlayed:Connect(function(track)
-            local anim = track.Animation
-            if not AutoSkillF then return end
-            if busy then return end
-            if not anim then return end
-            local matched = false
-            for _, id in ipairs(TARGET_ANIMATIONS) do
-                if anim.AnimationId == id then
-                    matched = true
-                    break
-                end
-            end
-            if matched then
-                busy = true
-                task.delay(SkillFDelay, function()
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                    task.wait(0.05)
-                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-                    task.wait(1)
-                    busy = false
-                end)
+        pcall(function()
+            local humanoid = getLocalHumanoid()
+            if humanoid then
+                humanoid.WalkSpeed = originalWalkSpeed
             end
         end)
-    end
-    if LocalPlayer.Character then HookCharacter(LocalPlayer.Character) end
-    LocalPlayer.CharacterAdded:Connect(HookCharacter)
-end)
+    end)
+end
 
-task.spawn(function()
-    while true do
-        if AutoTicketQuest then
-            pcall(function()
-                Events.ChooseDialogueOption:FireServer(
-                    "Ticket Quest Giver",
-                    2,
-                    "HardAcceptQuest",
-                    {workspace.NPC.Function["Ticket Quest Giver"], "Ticket Quest"}
-                )
-            end)
+local function stopSpeedModifier()
+    speedEnabled = false
+    if speedThread then
+        task.cancel(speedThread)
+        speedThread = nil
+    end
+    pcall(function()
+        local humanoid = getLocalHumanoid()
+        if humanoid then
+            humanoid.WalkSpeed = originalWalkSpeed
         end
-        task.wait(3)
-    end
-end)
+    end)
+end
 
-task.spawn(function()
-    while true do
-        if AutoBuyAncestralBait then
-            pcall(function() Events.BuyBait:FireServer("Ancestral Bait") end)
-        end
-        task.wait(0.1)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if AutoNormalTicketQuest then
-            pcall(function()
-                Events.ChooseDialogueOption:FireServer(
-                    "Ticket Quest Giver",
-                    1,
-                    "Quest",
-                    {workspace.NPC.Function["Ticket Quest Giver"]}
-                )
-            end)
-        end
-        task.wait(3)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if AutoTeleToMerchant then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local npcFolder = workspace:FindFirstChild("NPC")
-                if npcFolder then
-                    local merchant = npcFolder:FindFirstChild("Merchant", true)
-                    if merchant and merchant:IsA("Model") then
-                        char:PivotTo(merchant:GetPivot() * CFrame.new(0, 0, -3))
-                    end
-                end
-            end
+MurderTab:Toggle({
+    Title = "提前移动(加速)",
+    Value = false,
+    Callback = function(state)
+        if state then
+            speedEnabled = true
+            startSpeedModifier()
+        else
+            stopSpeedModifier()
         end
     end
-end)
-
-task.spawn(function()
-    while true do
-        if BossLockMode then
-            local ocean = workspace:FindFirstChild("Ocean")
-            local boss = ocean and ocean:FindFirstChild("Boss")
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if boss and hrp then
-                local bossPivot = boss:GetPivot()
-                local bossPos = bossPivot.Position
-                local direction = (hrp.Position - bossPos).Magnitude > 0.1 and (hrp.Position - bossPos).Unit or Vector3.new(1, 0, 0)
-                local targetPos = bossPos + (direction * 20) + Vector3.new(0, 10, 0)
-                char:PivotTo(CFrame.lookAt(targetPos, bossPos))
-                AutoFishingEnabled = true
-                AutoSkillEnabled = true
-                AutoCastEnabled = true
-            else
-                AutoFishingEnabled = false
-                AutoCastEnabled = false
-                AutoSkillEnabled = false
-            end
-        end
-        task.wait(0.01)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if AutoFishEnabled then
-            for _, v in pairs(getgc(true)) do
-                if type(v) == "table" then
-                    local name = rawget(v, "FishName")
-                    if name and rawget(v, "Weight") and rawget(v, "Power") then
-                        if not processedFish[v] then
-                            processedFish[v] = true
-                            local fishName = tostring(name)
-                            if not KeepFish[fishName] then
-                                pcall(function()
-                                    ToggleHotbarEvent:InvokeServer("1", nil)
-                                    task.wait(0.1)
-                                    ToggleHotbarEvent:InvokeServer("1", nil)
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(1.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if AutoWeatherTP then
-            local weather = GetCurrentWeather()
-            if weather == "Foggy" then
-                TeleportTo(Islands.Coconut)
-            elseif weather == "Thunderstorm" then
-                TeleportTo(Islands.Bamboo)
-            elseif weather == "Windy" or weather == "Clear" then
-                TeleportTo(Islands.Bass)
-            end
-        end
-        task.wait(2)
-    end
-end)
-
-local function TeleportToCoords(coords)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Cha
+})
 
 local DogPoliceTab = D:Tab({Title="狗对警察", Icon="dog"})
 
