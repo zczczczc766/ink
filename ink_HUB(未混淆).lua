@@ -1849,134 +1849,206 @@ FractureTab:Button({
     end
 })
 
-local ZombieTab = D:Tab({Title="僵尸竞技场", Icon="skull"})
+local FarmTab = D:Tab({Title="鸡场", Icon="egg"})
 
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+local remoteFunction = ReplicatedStorage:WaitForChild("Paper"):WaitForChild("Remotes"):WaitForChild("__remotefunction")
 
-local killEnabled = false
-local killConnection = nil
-local activeZombies = {}
-local lastHit = {}
-local HIT_COOLDOWN = 0.2
-local PROCESS_RATE = 15
-
-local remotes = ReplicatedStorage:WaitForChild("ZombieRemotes")
-local damageRemote = remotes:WaitForChild("ZombieDamage")
-local zombieContainer = workspace:WaitForChild("Zombies_Local")
-
-local function tryTrack(obj)
-    if not obj:IsA("Model") then return end
-    if not obj.Name:find("Zombie") then return end
-    if activeZombies[obj] then return end
-    local id = tonumber(obj.Name:match("Zombie_(%d+)"))
-    if id then
-        activeZombies[obj] = id
-    end
-end
-
-local function tryUntrack(obj)
-    if obj:IsA("Model") then
-        local id = activeZombies[obj]
-        if id then lastHit[id] = nil end
-        activeZombies[obj] = nil
-    end
-end
-
-for _, obj in ipairs(zombieContainer:GetChildren()) do
-    tryTrack(obj)
-end
-
-zombieContainer.ChildAdded:Connect(tryTrack)
-zombieContainer.ChildRemoved:Connect(tryUntrack)
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        for _, obj in ipairs(zombieContainer:GetChildren()) do
-            tryTrack(obj)
-        end
-        for model in pairs(activeZombies) do
-            if not model or not model.Parent then
-                local id = activeZombies[model]
-                if id then lastHit[id] = nil end
-                activeZombies[model] = nil
-            end
-        end
-    end
-end)
-
-local function startKillLoop()
-    if killConnection then return end
-    killConnection = RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        local myPos = root.Position
-        local now = tick()
-        local sortableList = {}
-        for model, id in pairs(activeZombies) do
-            if not model or not model.Parent then
-                lastHit[id] = nil
-                activeZombies[model] = nil
-                continue
-            end
-            local hum = model:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health <= 0 then
-                lastHit[id] = nil
-                activeZombies[model] = nil
-                continue
-            end
-            local part = model.PrimaryPart
-                or model:FindFirstChild("HumanoidRootPart")
-                or model:FindFirstChildWhichIsA("BasePart")
-            if not part then continue end
-            local dist = (part.Position - myPos).Magnitude
-            local hasAnim = model:FindFirstChildOfClass("AnimationController") ~= nil
-            table.insert(sortableList, {
-                model = model,
-                id    = id,
-                dist  = dist,
-                anim  = hasAnim,
-            })
-        end
-        table.sort(sortableList, function(a, b)
-            if a.anim ~= b.anim then
-                return a.anim and not b.anim
-            end
-            return a.dist < b.dist
-        end)
-        local limit = math.min(#sortableList, PROCESS_RATE)
-        for i = 1, limit do
-            local target = sortableList[i]
-            local id = target.id
-            if not lastHit[id] or (now - lastHit[id]) >= HIT_COOLDOWN then
-                lastHit[id] = now
-                damageRemote:FireServer(id, 9999999999)
-            end
-        end
+local function invokeRemote(action, ...)
+    pcall(function()
+        remoteFunction:InvokeServer(action, ...)
     end)
 end
 
-local function stopKillLoop()
-    if killConnection then
-        killConnection:Disconnect()
-        killConnection = nil
+local function collectWorkspaceEggs()
+    local eggs = workspace:FindFirstChild("Eggs")
+    if not eggs then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    for _, egg in pairs(eggs:GetChildren()) do
+        if egg:IsA("Model") or egg:IsA("BasePart") then
+            pcall(function()
+                if egg:IsA("BasePart") then
+                    egg.CFrame = hrp.CFrame
+                else
+                    egg:PivotTo(hrp.CFrame)
+                end
+            end)
+        end
     end
 end
 
-ZombieTab:Section({ Title = "僵尸秒杀" })
-ZombieTab:Toggle({
-    Title = "启用秒杀",
+FarmTab:Section({ Title = "自动功能" })
+
+local autoDeposit = false
+local depositConn = nil
+FarmTab:Toggle({
+    Title = "自动存放鸡蛋",
     Value = false,
-    Callback = function(state)
-        killEnabled = state
-        if state then
-            startKillLoop()
+    Callback = function(v)
+        autoDeposit = v
+        if v then
+            depositConn = RunService.Heartbeat:Connect(function()
+                if autoDeposit then invokeRemote("Deposit Eggs") end
+            end)
+        elseif depositConn then
+            depositConn:Disconnect()
+            depositConn = nil
+        end
+    end
+})
+
+local autoCash = false
+local cashConn = nil
+FarmTab:Toggle({
+    Title = "自动领取钱",
+    Value = false,
+    Callback = function(v)
+        autoCash = v
+        if v then
+            cashConn = RunService.Heartbeat:Connect(function()
+                if autoCash then invokeRemote("Collect Cash") end
+            end)
+        elseif cashConn then
+            cashConn:Disconnect()
+            cashConn = nil
+        end
+    end
+})
+
+local autoCollectEggs = false
+local collectEggsConn = nil
+FarmTab:Toggle({
+    Title = "自动收集鸡蛋(拉取)",
+    Value = false,
+    Callback = function(v)
+        autoCollectEggs = v
+        if v then
+            collectEggsConn = RunService.Heartbeat:Connect(function()
+                if autoCollectEggs then collectWorkspaceEggs() end
+            end)
+        elseif collectEggsConn then
+            collectEggsConn:Disconnect()
+            collectEggsConn = nil
+        end
+    end
+})
+
+local autoBuy = false
+local buyConn = nil
+FarmTab:Toggle({
+    Title = "自动购买鸡",
+    Value = false,
+    Callback = function(v)
+        autoBuy = v
+        if v then
+            buyConn = RunService.Heartbeat:Connect(function()
+                if autoBuy then invokeRemote("Buy Chickens", 1) end
+            end)
+        elseif buyConn then
+            buyConn:Disconnect()
+            buyConn = nil
+        end
+    end
+})
+
+local autoMerge = false
+local mergeConn = nil
+FarmTab:Toggle({
+    Title = "自动合并鸡",
+    Value = false,
+    Callback = function(v)
+        autoMerge = v
+        if v then
+            mergeConn = RunService.Heartbeat:Connect(function()
+                if autoMerge then invokeRemote("Merge Chickens") end
+            end)
+        elseif mergeConn then
+            mergeConn:Disconnect()
+            mergeConn = nil
+        end
+    end
+})
+
+FarmTab:Section({ Title = "人物功能" })
+
+local floatEnabled = false
+local floatForce = nil
+FarmTab:Toggle({
+    Title = "漂浮",
+    Value = false,
+    Callback = function(v)
+        floatEnabled = v
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if floatEnabled and hrp then
+            if floatForce then floatForce:Destroy() end
+            floatForce = Instance.new("BodyVelocity")
+            floatForce.Name = "FloatVelocity"
+            floatForce.MaxForce = Vector3.new(0, 100000, 0)
+            floatForce.Velocity = Vector3.new(0, 0, 0)
+            floatForce.Parent = hrp
         else
-            stopKillLoop()
+            if floatForce then
+                floatForce:Destroy()
+                floatForce = nil
+            end
+        end
+    end
+})
+
+local flingEnabled = false
+local flingThread = nil
+FarmTab:Toggle({
+    Title = "击飞所有",
+    Value = false,
+    Callback = function(v)
+        flingEnabled = v
+        if v then
+            if flingThread then return end
+            flingThread = task.spawn(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum then
+                    hum.PlatformStand = true
+                    local spinForce = Instance.new("BodyAngularVelocity")
+                    spinForce.Name = "TrollSpin"
+                    spinForce.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    spinForce.AngularVelocity = Vector3.new(0, 50000, 0)
+                    spinForce.Parent = hrp
+                    while flingEnabled do
+                        for _, target in pairs(Players:GetPlayers()) do
+                            if target ~= LocalPlayer and flingEnabled then
+                                local tChar = target.Character
+                                local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                                if tHrp then
+                                    local timer = tick()
+                                    while flingEnabled and tick() - timer < 0.2 and tHrp.Parent do
+                                        hrp.CFrame = tHrp.CFrame
+                                        hrp.Velocity = Vector3.new(math.random(-5000,5000), 5000, math.random(-5000,5000))
+                                        task.wait(0.01)
+                                    end
+                                end
+                            end
+                        end
+                        task.wait()
+                    end
+                    if hrp:FindFirstChild("TrollSpin") then hrp.TrollSpin:Destroy() end
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    hum.PlatformStand = false
+                end
+                flingThread = nil
+            end)
+        else
+            if flingThread then
+                repeat task.wait() until flingThread == nil
+            end
         end
     end
 })
