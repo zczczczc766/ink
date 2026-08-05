@@ -1849,213 +1849,134 @@ FractureTab:Button({
     end
 })
 
-local MurderTab = D:Tab({Title="谋杀决斗", Icon="crosshair"})
+local ZombieTab = D:Tab({Title="僵尸竞技场", Icon="skull"})
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
-local ShootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShootReplicate")
+local killEnabled = false
+local killConnection = nil
+local activeZombies = {}
+local lastHit = {}
+local HIT_COOLDOWN = 0.2
+local PROCESS_RATE = 15
 
-local FIRE_RATE = 0.1
-local bulletId = 1
-local ragebotEnabled = false
-local ragebotThread = nil
-local wallbangEnabled = false
-local speedEnabled = false
-local speedThread = nil
-local customSpeedValue = 50
-local originalWalkSpeed = 16
+local remotes = ReplicatedStorage:WaitForChild("ZombieRemotes")
+local damageRemote = remotes:WaitForChild("ZombieDamage")
+local zombieContainer = workspace:WaitForChild("Zombies_Local")
 
-MurderTab:Section({ Title = "RageBot" })
-
-local function isTargetVisible(fromPos, targetHead, targetChar)
-    local direction = (targetHead.Position - fromPos).Unit
-    local distance = (targetHead.Position - fromPos).Magnitude
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    local filter = {LocalPlayer.Character, targetChar}
-    rayParams.FilterDescendantsInstances = filter
-    rayParams.IgnoreWater = true
-    local result = Workspace:Raycast(fromPos, direction * distance, rayParams)
-    return result == nil
-end
-
-local function startRagebot()
-    if ragebotThread then return end
-    ragebotThread = task.spawn(function()
-        while ragebotEnabled do
-            task.wait(FIRE_RATE)
-            pcall(function()
-                local character = LocalPlayer.Character
-                if not character then return end
-                local weapon = character:FindFirstChildOfClass("Tool")
-                if not weapon then return end
-                local myHead = character:FindFirstChild("Head")
-                local myRoot = character:FindFirstChild("HumanoidRootPart")
-                if not myHead or not myRoot then return end
-                local myTeam = LocalPlayer.Team
-                local target = nil
-                local closest = math.huge
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player == LocalPlayer then continue end
-                    if myTeam and player.Team == myTeam then continue end
-                    local targetChar = player.Character
-                    if not targetChar then continue end
-                    if targetChar:FindFirstChildOfClass("ForceField") then continue end
-                    local head = targetChar:FindFirstChild("Head")
-                    local humanoid = targetChar:FindFirstChild("Humanoid")
-                    if head and humanoid and humanoid.Health > 0 then
-                        local dist = (myRoot.Position - head.Position).Magnitude
-                        if dist < closest then
-                            if not wallbangEnabled then
-                                if not isTargetVisible(myHead.Position, head, targetChar) then
-                                    continue
-                                end
-                            end
-                            closest = dist
-                            target = targetChar
-                        end
-                    end
-                end
-                if target then
-                    local head = target.Head
-                    local origin = myHead.Position
-                    local hitPos = head.Position
-                    local hitNormal = (origin - hitPos).Unit
-                    ShootRemote:FireServer({
-                        hitPos = hitPos,
-                        to = hitPos,
-                        origin = origin,
-                        id = bulletId,
-                        hitNormal = hitNormal,
-                        effects = {Frost = 0, Ricochet = 0, Barrage = 0},
-                        hitInstance = head,
-                        kind = "bullet",
-                        isCharacterHit = true,
-                        mode = "single",
-                        ownerUserId = LocalPlayer.UserId,
-                        isADS = false
-                    })
-                    bulletId = bulletId + 1
-                    if bulletId > 999999 then bulletId = 1 end
-                end
-            end)
-        end
-    end)
-end
-
-local function stopRagebot()
-    ragebotEnabled = false
-    if ragebotThread then
-        task.cancel(ragebotThread)
-        ragebotThread = nil
+local function tryTrack(obj)
+    if not obj:IsA("Model") then return end
+    if not obj.Name:find("Zombie") then return end
+    if activeZombies[obj] then return end
+    local id = tonumber(obj.Name:match("Zombie_(%d+)"))
+    if id then
+        activeZombies[obj] = id
     end
 end
 
-MurderTab:Toggle({
-    Title = "RageBot 开关",
-    Value = false,
-    Callback = function(state)
-        if state then
-            ragebotEnabled = true
-            startRagebot()
-        else
-            stopRagebot()
-        end
+local function tryUntrack(obj)
+    if obj:IsA("Model") then
+        local id = activeZombies[obj]
+        if id then lastHit[id] = nil end
+        activeZombies[obj] = nil
     end
-})
-
-MurderTab:Toggle({
-    Title = "自动穿墙",
-    Value = false,
-    Callback = function(state)
-        wallbangEnabled = state
-    end
-})
-
-MurderTab:Slider({
-    Title = "射击速度",
-    Value = { Min = 0.05, Max = 1, Default = 0.1 },
-    Step = 0.01,
-    Callback = function(value)
-        FIRE_RATE = value
-    end
-})
-
-MurderTab:Section({ Title = "人物移动" })
-
-local function getLocalHumanoid()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("Humanoid")
 end
+
+for _, obj in ipairs(zombieContainer:GetChildren()) do
+    tryTrack(obj)
+end
+
+zombieContainer.ChildAdded:Connect(tryTrack)
+zombieContainer.ChildRemoved:Connect(tryUntrack)
 
 task.spawn(function()
-    repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-    if hum then
-        originalWalkSpeed = hum.WalkSpeed
-    end
-end)
-
-LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(0.5)
-    local hum = char:FindFirstChild("Humanoid")
-    if hum then
-        originalWalkSpeed = hum.WalkSpeed
-        if speedEnabled then
-            hum.WalkSpeed = customSpeedValue
+    while true do
+        task.wait(0.5)
+        for _, obj in ipairs(zombieContainer:GetChildren()) do
+            tryTrack(obj)
         end
-    end
-end)
-
-local function startSpeedModifier()
-    if speedThread then return end
-    speedThread = task.spawn(function()
-        while speedEnabled do
-            pcall(function()
-                local humanoid = getLocalHumanoid()
-                if humanoid then
-                    humanoid.WalkSpeed = customSpeedValue
-                end
-            end)
-            task.wait(0.01)
-        end
-        pcall(function()
-            local humanoid = getLocalHumanoid()
-            if humanoid then
-                humanoid.WalkSpeed = originalWalkSpeed
+        for model in pairs(activeZombies) do
+            if not model or not model.Parent then
+                local id = activeZombies[model]
+                if id then lastHit[id] = nil end
+                activeZombies[model] = nil
             end
-        end)
-    end)
-end
-
-local function stopSpeedModifier()
-    speedEnabled = false
-    if speedThread then
-        task.cancel(speedThread)
-        speedThread = nil
+        end
     end
-    pcall(function()
-        local humanoid = getLocalHumanoid()
-        if humanoid then
-            humanoid.WalkSpeed = originalWalkSpeed
+end)
+
+local function startKillLoop()
+    if killConnection then return end
+    killConnection = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local myPos = root.Position
+        local now = tick()
+        local sortableList = {}
+        for model, id in pairs(activeZombies) do
+            if not model or not model.Parent then
+                lastHit[id] = nil
+                activeZombies[model] = nil
+                continue
+            end
+            local hum = model:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health <= 0 then
+                lastHit[id] = nil
+                activeZombies[model] = nil
+                continue
+            end
+            local part = model.PrimaryPart
+                or model:FindFirstChild("HumanoidRootPart")
+                or model:FindFirstChildWhichIsA("BasePart")
+            if not part then continue end
+            local dist = (part.Position - myPos).Magnitude
+            local hasAnim = model:FindFirstChildOfClass("AnimationController") ~= nil
+            table.insert(sortableList, {
+                model = model,
+                id    = id,
+                dist  = dist,
+                anim  = hasAnim,
+            })
+        end
+        table.sort(sortableList, function(a, b)
+            if a.anim ~= b.anim then
+                return a.anim and not b.anim
+            end
+            return a.dist < b.dist
+        end)
+        local limit = math.min(#sortableList, PROCESS_RATE)
+        for i = 1, limit do
+            local target = sortableList[i]
+            local id = target.id
+            if not lastHit[id] or (now - lastHit[id]) >= HIT_COOLDOWN then
+                lastHit[id] = now
+                damageRemote:FireServer(id, 9999999999)
+            end
         end
     end)
 end
 
-MurderTab:Toggle({
-    Title = "提前移动(加速)",
+local function stopKillLoop()
+    if killConnection then
+        killConnection:Disconnect()
+        killConnection = nil
+    end
+end
+
+ZombieTab:Section({ Title = "僵尸秒杀" })
+ZombieTab:Toggle({
+    Title = "启用秒杀",
     Value = false,
     Callback = function(state)
+        killEnabled = state
         if state then
-            speedEnabled = true
-            startSpeedModifier()
+            startKillLoop()
         else
-            stopSpeedModifier()
+            stopKillLoop()
         end
     end
 })
