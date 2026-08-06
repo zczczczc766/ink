@@ -1014,15 +1014,13 @@ MusicTab:Button({
 
 local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
 
-local player = game.Players.LocalPlayer
 local accessoryStates = {}
 local wornAccessories = {}
+local player = game.Players.LocalPlayer
 
 local function loadAccessory(id, name)
-    local char = player.Character or player.CharacterAdded:Wait()
-    if not char or not char:FindFirstChild("Head") then
-        return false
-    end
+    local char = player.Character or player.CharacterAdded:Wait(3)
+    if not char or not char:FindFirstChild("Head") then return false end
     if wornAccessories[name] then
         wornAccessories[name]:Destroy()
         wornAccessories[name] = nil
@@ -1087,7 +1085,9 @@ for _, acc in ipairs(accessories) do
         Callback = function(state)
             accessoryStates[acc.name] = state
             if state then
-                loadAccessory(acc.id, acc.name)
+                task.spawn(function()
+                    loadAccessory(acc.id, acc.name)
+                end)
             else
                 removeAccessory(acc.name)
             end
@@ -1099,7 +1099,9 @@ player.CharacterAdded:Connect(function(char)
     task.wait(0.8)
     for _, acc in ipairs(accessories) do
         if accessoryStates[acc.name] then
-            loadAccessory(acc.id, acc.name)
+            task.spawn(function()
+                loadAccessory(acc.id, acc.name)
+            end)
         end
     end
 end)
