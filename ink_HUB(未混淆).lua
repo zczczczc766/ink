@@ -1012,7 +1012,7 @@ MusicTab:Button({
     end
 })
 
-local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
+local CosmeticsTab = D:Tab({Title="美化饰品1", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
 local accessoryStates = {}
