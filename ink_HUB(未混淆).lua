@@ -1741,6 +1741,29 @@ NicoTab:Toggle({
     end
 })
 
+local PowerLegendTab = D:Tab({Title="力量传奇", Icon="dumbbell"})
+
+PowerLegendTab:Section({ Title = "传送功能" })
+
+PowerLegendTab:Button({
+    Title = "传送到力量之王健身房",
+    Callback = function()
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        if not char then
+            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
+            return
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
+            return
+        end
+        hrp.CFrame = CFrame.new(-8624.00, 13.57, -5871.08)
+        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到力量之王健身房", Duration=2})
+    end
+})
+
 local FractureTab = D:Tab({Title="骨折模拟器", Icon="bone"})
 
 local function updateStat(...)
