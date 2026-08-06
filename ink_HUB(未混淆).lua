@@ -1018,10 +1018,10 @@ local player = game.Players.LocalPlayer
 local accessoryStates = {}
 local wornAccessories = {}
 local InsertService = game:GetService("InsertService")
-local isLoaded = false
 
 local function loadAccessory(id, name)
-    task.defer(function()
+    task.spawn(function()
+        task.wait(3)
         pcall(function()
             local char = player.Character
             if not char or not char:FindFirstChild("Head") then
@@ -1045,7 +1045,7 @@ local function loadAccessory(id, name)
             local weld = Instance.new("Weld", handle)
             weld.Part0 = handle
             weld.Part1 = head
-            weld.C0 = CFrame.new(0, 0.5, 0)  -- 头顶偏移
+            weld.C0 = CFrame.new(0, 0.5, 0)
             wornAccessories[name] = model
         end)
     end)
