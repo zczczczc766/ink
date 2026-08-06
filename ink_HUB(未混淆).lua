@@ -1012,6 +1012,111 @@ MusicTab:Button({
     end
 })
 
+local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local wornAccessories = {}
+
+local function loadAccessory(id, name)
+    local char = player.Character or player.CharacterAdded:Wait()
+    if not char or not char:FindFirstChild("Head") then return end
+    if wornAccessories[name] then
+        wornAccessories[name]:Destroy()
+        wornAccessories[name] = nil
+    end
+    if not id then return end
+    local success, acc = pcall(function()
+        return game:GetObjects("rbxassetid://"..id)[1]
+    end)
+    if not success or not acc then return end
+    local handle = acc:FindFirstChild("Handle")
+    if not handle then return end
+    local A1 = handle:FindFirstChildOfClass("Attachment")
+    if not A1 then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    local A0 = head:FindFirstChild(A1.Name, true)
+    if not A0 then
+        acc:Destroy()
+        return
+    end
+    acc.Parent = char
+    handle.Anchored = false
+    handle.Massless = true
+    handle.CFrame = A0.WorldCFrame * A1.CFrame:Inverse()
+    local weld = Instance.new("WeldConstraint", handle)
+    weld.Part0 = handle
+    weld.Part1 = A0.Parent
+    wornAccessories[name] = acc
+end
+
+local function removeAccessory(name)
+    if wornAccessories[name] then
+        wornAccessories[name]:Destroy()
+        wornAccessories[name] = nil
+    end
+end
+
+local function setupAccessoryToggle(name, id)
+    local toggleState = false
+    CosmeticsTab:Toggle({
+        Title = name,
+        Value = false,
+        Callback = function(state)
+            toggleState = state
+            if state then
+                loadAccessory(id, name)
+            else
+                removeAccessory(name)
+            end
+        end
+    })
+    return function()
+        return toggleState
+    end
+end
+
+local function getState()
+    local states = {}
+    for _, child in ipairs(CosmeticsTab:GetChildren()) do
+        if child:IsA("Toggle") and child.Title then
+            states[child.Title] = child.Value
+        end
+    end
+    return states
+end
+
+local accessories = {
+    {name = "8位皇家王冠", id = 10159600649},
+    {name = "8位血条", id = 10159610478},
+    {name = "8位章鱼先生", id = 507795810},
+    {name = "红色多米诺王冠", id = 42211680},
+    {name = "火焰莫西干", id = 191101707},
+    {name = "闪亮女武神", id = 1180433861},
+}
+
+for _, acc in ipairs(accessories) do
+    setupAccessoryToggle(acc.name, acc.id)
+end
+
+player.CharacterAdded:Connect(function(char)
+    character = char
+    task.wait(0.8)
+    for _, acc in ipairs(accessories) do
+        local found = false
+        for _, child in ipairs(CosmeticsTab:GetChildren()) do
+            if child:IsA("Toggle") and child.Title == acc.name and child.Value == true then
+                found = true
+                break
+            end
+        end
+        if found then
+            loadAccessory(acc.id, acc.name)
+        end
+    end
+end)
+
 local L=D:Tab({Title="FE",Icon="zap"})
 L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
 L:Button({Title="被遗弃人物",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))()end})
