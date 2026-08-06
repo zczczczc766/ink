@@ -1951,8 +1951,46 @@ PowerLegendTab:Button({
             A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
             return
         end
-        hrp.CFrame = CFrame.new(-1972.65, 3.71, -6010.31)
+        hrp.CFrame = CFrame.new(-1925.47, 13.57, -6337.44)
         A:SetCore("SendNotification",{Title="传送成功", Text="已传送到拳击擂台内部", Duration=2})
+    end
+})
+
+PowerLegendTab:Button({
+    Title = "传送到沙漠擂台观战台",
+    Callback = function()
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        if not char then
+            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
+            return
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
+            return
+        end
+        hrp.CFrame = CFrame.new(938.67, 99.97, -7044.35)
+        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到沙漠擂台观战台", Duration=2})
+    end
+})
+
+PowerLegendTab:Button({
+    Title = "传送到沙漠擂台内部",
+    Callback = function()
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        if not char then
+            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
+            return
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
+            return
+        end
+        hrp.CFrame = CFrame.new(736.07, 10.20, -7665.00)
+        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到沙漠擂台内部", Duration=2})
     end
 })
 
