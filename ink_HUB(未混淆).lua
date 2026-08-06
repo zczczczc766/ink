@@ -1743,6 +1743,94 @@ NicoTab:Toggle({
 
 local PowerLegendTab = D:Tab({Title="力量传奇", Icon="dumbbell"})
 
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local bulletTrackConnection = nil
+local originalProps = {}
+
+local function enlargeParts()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if plr.Character then
+            local char = plr.Character
+            if not originalProps[plr] then
+                originalProps[plr] = {}
+                local parts = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
+                for _, name in pairs(parts) do
+                    local part = char:FindFirstChild(name)
+                    if part then
+                        originalProps[plr][name] = {
+                            CanCollide = part.CanCollide,
+                            Transparency = part.Transparency,
+                            Size = part.Size,
+                            ShowCollision = part.ShowCollision
+                        }
+                    end
+                end
+            end
+            for _, name in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
+                local part = char:FindFirstChild(name)
+                if part then
+                    part.CanCollide = false
+                    part.Transparency = 0.9
+                    part.Size = Vector3.new(999999999, 999999999, 999999999)
+                    part.ShowCollision = false
+                end
+            end
+        end
+    end
+end
+
+local function restoreParts()
+    for plr, props in pairs(originalProps) do
+        if plr.Character then
+            for name, prop in pairs(props) do
+                local part = plr.Character:FindFirstChild(name)
+                if part then
+                    part.CanCollide = prop.CanCollide
+                    part.Transparency = prop.Transparency
+                    part.Size = prop.Size
+                    part.ShowCollision = prop.ShowCollision
+                end
+            end
+        end
+        originalProps[plr] = nil
+    end
+end
+
+local function applyBulletTrack(state)
+    if state then
+        if bulletTrackConnection then bulletTrackConnection:Disconnect() end
+        enlargeParts()
+        bulletTrackConnection = RunService.Heartbeat:Connect(function()
+            if not state then return end
+            enlargeParts()
+        end)
+        return bulletTrackConnection
+    else
+        if bulletTrackConnection then
+            bulletTrackConnection:Disconnect()
+            bulletTrackConnection = nil
+        end
+        restoreParts()
+        return nil
+    end
+end
+
+PowerLegendTab:Toggle({
+    Title = "全图攻击",
+    Value = false,
+    Callback = function(v)
+        if v then
+            bulletTrackConnection = applyBulletTrack(true)
+        else
+            applyBulletTrack(false)
+            bulletTrackConnection = nil
+        end
+    end
+})
+
 PowerLegendTab:Button({
     Title = "传送到出生点",
     Callback = function()
