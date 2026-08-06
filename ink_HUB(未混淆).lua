@@ -1014,97 +1014,24 @@ MusicTab:Button({
 
 local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
 
-local accessoryStates = {}
-local wornAccessories = {}
-local player = game.Players.LocalPlayer
-
-local function loadAccessory(id, name)
-    local char = player.Character or player.CharacterAdded:Wait(3)
-    if not char or not char:FindFirstChild("Head") then return false end
-    if wornAccessories[name] then
-        wornAccessories[name]:Destroy()
-        wornAccessories[name] = nil
-    end
-    if not id then return false end
-    local success, acc = pcall(function()
-        return game:GetObjects("rbxassetid://"..id)[1]
-    end)
-    if not success or not acc then return false end
-    local handle = acc:FindFirstChild("Handle")
-    if not handle then
-        acc:Destroy()
-        return false
-    end
-    local A1 = handle:FindFirstChildOfClass("Attachment")
-    if not A1 then
-        acc:Destroy()
-        return false
-    end
-    local head = char:FindFirstChild("Head")
-    if not head then
-        acc:Destroy()
-        return false
-    end
-    local A0 = head:FindFirstChild(A1.Name, true)
-    if not A0 then
-        acc:Destroy()
-        return false
-    end
-    acc.Parent = char
-    handle.Anchored = false
-    handle.Massless = true
-    handle.CFrame = A0.WorldCFrame * A1.CFrame:Inverse()
-    local weld = Instance.new("WeldConstraint", handle)
-    weld.Part0 = handle
-    weld.Part1 = A0.Parent
-    wornAccessories[name] = acc
-    return true
-end
-
-local function removeAccessory(name)
-    if wornAccessories[name] then
-        wornAccessories[name]:Destroy()
-        wornAccessories[name] = nil
-    end
-end
-
 local accessories = {
-    {name = "8位皇家王冠", id = 10159600649},
-    {name = "8位血条", id = 10159610478},
-    {name = "8位章鱼先生", id = 507795810},
-    {name = "红色多米诺王冠", id = 42211680},
-    {name = "火焰莫西干", id = 191101707},
-    {name = "闪亮女武神", id = 1180433861},
+    "8位皇家王冠",
+    "8位血条",
+    "8位章鱼先生",
+    "红色多米诺王冠",
+    "火焰莫西干",
+    "闪亮女武神",
 }
 
-for _, acc in ipairs(accessories) do
-    accessoryStates[acc.name] = false
+for _, name in ipairs(accessories) do
     CosmeticsTab:Toggle({
-        Title = acc.name,
+        Title = name,
         Value = false,
         Callback = function(state)
-            accessoryStates[acc.name] = state
-            if state then
-                task.spawn(function()
-                    loadAccessory(acc.id, acc.name)
-                end)
-            else
-                removeAccessory(acc.name)
-            end
+            print(name .. " 状态: " .. tostring(state))
         end
     })
 end
-
-player.CharacterAdded:Connect(function(char)
-    task.wait(0.8)
-    for _, acc in ipairs(accessories) do
-        if accessoryStates[acc.name] then
-            task.spawn(function()
-                loadAccessory(acc.id, acc.name)
-            end)
-        end
-    end
-end)
 
 local L=D:Tab({Title="FE",Icon="zap"})
 L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
