@@ -862,7 +862,7 @@ AimTab:Toggle({
 
 AimTab:Slider({
     Title = "碰撞箱大小",
-    Value = { Min = 5, Max = 100, Default = 13 },
+    Value = { Min = 1, Max = 99999999999999999999999999999999, Default = 13 },
     Step = 1,
     Callback = function(v)
         bulletTrackSize = v
