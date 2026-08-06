@@ -1015,31 +1015,42 @@ MusicTab:Button({
 local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local accessoryStates = {}
 local wornAccessories = {}
 
 local function loadAccessory(id, name)
     local char = player.Character or player.CharacterAdded:Wait()
-    if not char or not char:FindFirstChild("Head") then return end
+    if not char or not char:FindFirstChild("Head") then
+        return false
+    end
     if wornAccessories[name] then
         wornAccessories[name]:Destroy()
         wornAccessories[name] = nil
     end
-    if not id then return end
+    if not id then return false end
     local success, acc = pcall(function()
         return game:GetObjects("rbxassetid://"..id)[1]
     end)
-    if not success or not acc then return end
+    if not success or not acc then return false end
     local handle = acc:FindFirstChild("Handle")
-    if not handle then return end
+    if not handle then
+        acc:Destroy()
+        return false
+    end
     local A1 = handle:FindFirstChildOfClass("Attachment")
-    if not A1 then return end
+    if not A1 then
+        acc:Destroy()
+        return false
+    end
     local head = char:FindFirstChild("Head")
-    if not head then return end
+    if not head then
+        acc:Destroy()
+        return false
+    end
     local A0 = head:FindFirstChild(A1.Name, true)
     if not A0 then
         acc:Destroy()
-        return
+        return false
     end
     acc.Parent = char
     handle.Anchored = false
@@ -1049,6 +1060,7 @@ local function loadAccessory(id, name)
     weld.Part0 = handle
     weld.Part1 = A0.Parent
     wornAccessories[name] = acc
+    return true
 end
 
 local function removeAccessory(name)
@@ -1056,35 +1068,6 @@ local function removeAccessory(name)
         wornAccessories[name]:Destroy()
         wornAccessories[name] = nil
     end
-end
-
-local function setupAccessoryToggle(name, id)
-    local toggleState = false
-    CosmeticsTab:Toggle({
-        Title = name,
-        Value = false,
-        Callback = function(state)
-            toggleState = state
-            if state then
-                loadAccessory(id, name)
-            else
-                removeAccessory(name)
-            end
-        end
-    })
-    return function()
-        return toggleState
-    end
-end
-
-local function getState()
-    local states = {}
-    for _, child in ipairs(CosmeticsTab:GetChildren()) do
-        if child:IsA("Toggle") and child.Title then
-            states[child.Title] = child.Value
-        end
-    end
-    return states
 end
 
 local accessories = {
@@ -1097,21 +1080,25 @@ local accessories = {
 }
 
 for _, acc in ipairs(accessories) do
-    setupAccessoryToggle(acc.name, acc.id)
+    accessoryStates[acc.name] = false
+    CosmeticsTab:Toggle({
+        Title = acc.name,
+        Value = false,
+        Callback = function(state)
+            accessoryStates[acc.name] = state
+            if state then
+                loadAccessory(acc.id, acc.name)
+            else
+                removeAccessory(acc.name)
+            end
+        end
+    })
 end
 
 player.CharacterAdded:Connect(function(char)
-    character = char
     task.wait(0.8)
     for _, acc in ipairs(accessories) do
-        local found = false
-        for _, child in ipairs(CosmeticsTab:GetChildren()) do
-            if child:IsA("Toggle") and child.Title == acc.name and child.Value == true then
-                found = true
-                break
-            end
-        end
-        if found then
+        if accessoryStates[acc.name] then
             loadAccessory(acc.id, acc.name)
         end
     end
