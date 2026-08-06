@@ -1743,92 +1743,71 @@ NicoTab:Toggle({
 
 local PowerLegendTab = D:Tab({Title="力量传奇", Icon="dumbbell"})
 
--- ========== 全图攻击（增大碰撞箱，隐藏碰撞线） ==========
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local bulletTrackEnabled = false
 local bulletTrackConnection = nil
 local originalProps = {}
-
-local function enlargeParts()
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local char = plr.Character
-            if not originalProps[plr] then
-                originalProps[plr] = {}
-                local parts = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
-                for _, name in pairs(parts) do
-                    local part = char:FindFirstChild(name)
-                    if part then
-                        originalProps[plr][name] = {
-                            CanCollide = part.CanCollide,
-                            Transparency = part.Transparency,
-                            Size = part.Size,
-                            ShowCollision = part.ShowCollision
-                        }
-                    end
-                end
-            end
-            for _, name in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
-                local part = char:FindFirstChild(name)
-                if part then
-                    part.CanCollide = false
-                    part.Transparency = 0.9
-                    -- 修改下方数值即可调整碰撞箱大小（默认50）
-                    part.Size = Vector3.new(50, 50, 50)
-                    part.ShowCollision = false  -- 隐藏碰撞线
-                end
-            end
-        end
-    end
-end
-
-local function restoreParts()
-    for plr, props in pairs(originalProps) do
-        if plr.Character then
-            for name, prop in pairs(props) do
-                local part = plr.Character:FindFirstChild(name)
-                if part then
-                    part.CanCollide = prop.CanCollide
-                    part.Transparency = prop.Transparency
-                    part.Size = prop.Size
-                    part.ShowCollision = prop.ShowCollision
-                end
-            end
-        end
-        originalProps[plr] = nil
-    end
-end
 
 local function applyBulletTrack(state)
     if state then
         if bulletTrackConnection then bulletTrackConnection:Disconnect() end
-        enlargeParts()
-        bulletTrackConnection = RunService.Heartbeat:Connect(function()
-            if not state then return end
-            enlargeParts()
+        bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not bulletTrackEnabled then return end
+            for _, plr in pairs(game.Players:GetPlayers()) do
+                if plr == game.Players.LocalPlayer then continue end
+                if plr.Character then
+                    local char = plr.Character
+                    if not originalProps[plr] then
+                        originalProps[plr] = {}
+                        local parts = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
+                        for _, name in pairs(parts) do
+                            local part = char:FindFirstChild(name)
+                            if part then
+                                originalProps[plr][name] = {
+                                    CanCollide = part.CanCollide,
+                                    Transparency = part.Transparency,
+                                    Size = part.Size
+                                }
+                            end
+                        end
+                    end
+                    for _, name in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
+                        local part = char:FindFirstChild(name)
+                        if part then
+                            part.CanCollide = false
+                            part.Transparency = 0.9
+                            part.Size = Vector3.new(13, 13, 13)
+                        end
+                    end
+                end
+            end
         end)
-        return bulletTrackConnection
     else
         if bulletTrackConnection then
             bulletTrackConnection:Disconnect()
             bulletTrackConnection = nil
         end
-        restoreParts()
-        return nil
+        for plr, props in pairs(originalProps) do
+            if plr.Character then
+                for name, prop in pairs(props) do
+                    local part = plr.Character:FindFirstChild(name)
+                    if part then
+                        part.CanCollide = prop.CanCollide
+                        part.Transparency = prop.Transparency
+                        part.Size = prop.Size
+                    end
+                end
+            end
+            originalProps[plr] = nil
+        end
     end
 end
 
-PowerLegendTab:Toggle({
-    Title = "全图攻击（增大碰撞箱）",
+AimTab:Toggle({
+    Title = "碰撞箱扩展",
     Value = false,
-    Callback = function(v)
-        if v then
-            bulletTrackConnection = applyBulletTrack(true)
-        else
-            applyBulletTrack(false)
-            bulletTrackConnection = nil
-        end
+    Callback = function(s)
+        bulletTrackEnabled = s
+        applyBulletTrack(s)
     end
 })
 
