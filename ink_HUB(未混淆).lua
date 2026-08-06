@@ -794,60 +794,67 @@ local bulletTrackConnection = nil
 local originalProps = {}
 local bulletTrackSize = 13
 
-local function applyBulletTrack(state)
-    if state then
-        if bulletTrackConnection then bulletTrackConnection:Disconnect() end
-        bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not bulletTrackEnabled then return end
-            for _, plr in pairs(game.Players:GetPlayers()) do
-                if plr ~= game.Players.LocalPlayer and plr.Character then
-                    local char = plr.Character
-                    if not originalProps[plr] then
-                        originalProps[plr] = {}
-                        local parts = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
-                        for _, name in pairs(parts) do
-                            local part = char:FindFirstChild(name)
-                            if part then
-                                originalProps[plr][name] = {
-                                    CanCollide = part.CanCollide,
-                                    Transparency = part.Transparency,
-                                    Size = part.Size,
-                                    ShowCollision = part.ShowCollision
-                                }
-                            end
-                        end
-                    end
-                    for _, name in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
-                        local part = char:FindFirstChild(name)
-                        if part then
-                            part.CanCollide = false
-                            part.Transparency = 0.9
-                            part.Size = Vector3.new(bulletTrackSize, bulletTrackSize, bulletTrackSize)
-                            part.ShowCollision = false
-                        end
+local PART_NAMES = {"Head", "Torso", "HumanoidRootPart", "RightUpperLeg", "LeftUpperLeg", "RightLowerLeg", "LeftLowerLeg", "RightArm", "LeftArm", "HeadHB"}
+
+local function enlargeParts()
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= game.Players.LocalPlayer and plr.Character then
+            local char = plr.Character
+            if not originalProps[plr] then
+                originalProps[plr] = {}
+                for _, name in ipairs(PART_NAMES) do
+                    local part = char:FindFirstChild(name)
+                    if part then
+                        originalProps[plr][name] = {
+                            CanCollide = part.CanCollide,
+                            Transparency = part.Transparency,
+                            Size = part.Size
+                        }
                     end
                 end
             end
+            for _, name in ipairs(PART_NAMES) do
+                local part = char:FindFirstChild(name)
+                if part then
+                    part.CanCollide = false
+                    part.Transparency = 0.9
+                    part.Size = Vector3.new(bulletTrackSize, bulletTrackSize, bulletTrackSize)
+                end
+            end
+        end
+    end
+end
+
+local function restoreParts()
+    for plr, props in pairs(originalProps) do
+        if plr.Character then
+            for name, prop in pairs(props) do
+                local part = plr.Character:FindFirstChild(name)
+                if part then
+                    part.CanCollide = prop.CanCollide
+                    part.Transparency = prop.Transparency
+                    part.Size = prop.Size
+                end
+            end
+        end
+        originalProps[plr] = nil
+    end
+end
+
+local function applyBulletTrack(state)
+    if state then
+        if bulletTrackConnection then bulletTrackConnection:Disconnect() end
+        enlargeParts()
+        bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not bulletTrackEnabled then return end
+            enlargeParts()
         end)
     else
         if bulletTrackConnection then
             bulletTrackConnection:Disconnect()
             bulletTrackConnection = nil
         end
-        for plr, props in pairs(originalProps) do
-            if plr.Character then
-                for name, prop in pairs(props) do
-                    local part = plr.Character:FindFirstChild(name)
-                    if part then
-                        part.CanCollide = prop.CanCollide
-                        part.Transparency = prop.Transparency
-                        part.Size = prop.Size
-                        part.ShowCollision = prop.ShowCollision
-                    end
-                end
-            end
-            originalProps[plr] = nil
-        end
+        restoreParts()
     end
 end
 
@@ -863,7 +870,7 @@ AimTab:Toggle({
 AimTab:Input({
     Title = "碰撞箱大小",
     Value = "13",
-    Placeholder = "输入数值",
+    Placeholder = "输入数值 (最小1)",
     Callback = function(text)
         local val = tonumber(text)
         if val and val >= 1 then
