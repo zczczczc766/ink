@@ -1743,6 +1743,7 @@ NicoTab:Toggle({
 
 local PowerLegendTab = D:Tab({Title="力量传奇", Icon="dumbbell"})
 
+-- ========== 全图攻击（增大碰撞箱，隐藏碰撞线） ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -1751,8 +1752,7 @@ local originalProps = {}
 
 local function enlargeParts()
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then continue end
-        if plr.Character then
+        if plr ~= LocalPlayer and plr.Character then
             local char = plr.Character
             if not originalProps[plr] then
                 originalProps[plr] = {}
@@ -1774,8 +1774,9 @@ local function enlargeParts()
                 if part then
                     part.CanCollide = false
                     part.Transparency = 0.9
-                    part.Size = Vector3.new(999999999, 999999999, 999999999)
-                    part.ShowCollision = false
+                    -- 修改下方数值即可调整碰撞箱大小（默认50）
+                    part.Size = Vector3.new(50, 50, 50)
+                    part.ShowCollision = false  -- 隐藏碰撞线
                 end
             end
         end
@@ -1819,7 +1820,7 @@ local function applyBulletTrack(state)
 end
 
 PowerLegendTab:Toggle({
-    Title = "全图攻击",
+    Title = "全图攻击（增大碰撞箱）",
     Value = false,
     Callback = function(v)
         if v then
