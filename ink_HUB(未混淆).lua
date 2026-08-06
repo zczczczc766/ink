@@ -1753,8 +1753,7 @@ local function applyBulletTrack(state)
         bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
             if not bulletTrackEnabled then return end
             for _, plr in pairs(game.Players:GetPlayers()) do
-                if plr == game.Players.LocalPlayer then continue end
-                if plr.Character then
+                if plr ~= game.Players.LocalPlayer and plr.Character then
                     local char = plr.Character
                     if not originalProps[plr] then
                         originalProps[plr] = {}
@@ -1765,7 +1764,8 @@ local function applyBulletTrack(state)
                                 originalProps[plr][name] = {
                                     CanCollide = part.CanCollide,
                                     Transparency = part.Transparency,
-                                    Size = part.Size
+                                    Size = part.Size,
+                                    ShowCollision = part.ShowCollision
                                 }
                             end
                         end
@@ -1775,7 +1775,8 @@ local function applyBulletTrack(state)
                         if part then
                             part.CanCollide = false
                             part.Transparency = 0.9
-                            part.Size = Vector3.new(13, 13, 13)
+                            part.Size = Vector3.new(50, 50, 50)  -- 修改数值调整大小
+                            part.ShowCollision = false
                         end
                     end
                 end
@@ -1794,6 +1795,7 @@ local function applyBulletTrack(state)
                         part.CanCollide = prop.CanCollide
                         part.Transparency = prop.Transparency
                         part.Size = prop.Size
+                        part.ShowCollision = prop.ShowCollision
                     end
                 end
             end
@@ -1803,7 +1805,7 @@ local function applyBulletTrack(state)
 end
 
 AimTab:Toggle({
-    Title = "碰撞箱扩展",
+    Title = "全图攻击（增大碰撞箱）",
     Value = false,
     Callback = function(s)
         bulletTrackEnabled = s
