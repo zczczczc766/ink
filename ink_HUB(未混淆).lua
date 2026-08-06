@@ -792,6 +792,7 @@ AimTab:Dropdown({ Title = "圆圈颜色", Values = { "红", "橙", "黄", "绿",
 local bulletTrackEnabled = false
 local bulletTrackConnection = nil
 local originalProps = {}
+local bulletTrackSize = 13
 
 local function applyBulletTrack(state)
     if state then
@@ -799,8 +800,7 @@ local function applyBulletTrack(state)
         bulletTrackConnection = game:GetService("RunService").Heartbeat:Connect(function()
             if not bulletTrackEnabled then return end
             for _, plr in pairs(game.Players:GetPlayers()) do
-                if plr == game.Players.LocalPlayer then continue end
-                if plr.Character then
+                if plr ~= game.Players.LocalPlayer and plr.Character then
                     local char = plr.Character
                     if not originalProps[plr] then
                         originalProps[plr] = {}
@@ -811,7 +811,8 @@ local function applyBulletTrack(state)
                                 originalProps[plr][name] = {
                                     CanCollide = part.CanCollide,
                                     Transparency = part.Transparency,
-                                    Size = part.Size
+                                    Size = part.Size,
+                                    ShowCollision = part.ShowCollision
                                 }
                             end
                         end
@@ -821,7 +822,8 @@ local function applyBulletTrack(state)
                         if part then
                             part.CanCollide = false
                             part.Transparency = 0.9
-                            part.Size = Vector3.new(13, 13, 13)
+                            part.Size = Vector3.new(bulletTrackSize, bulletTrackSize, bulletTrackSize)
+                            part.ShowCollision = false
                         end
                     end
                 end
@@ -840,6 +842,7 @@ local function applyBulletTrack(state)
                         part.CanCollide = prop.CanCollide
                         part.Transparency = prop.Transparency
                         part.Size = prop.Size
+                        part.ShowCollision = prop.ShowCollision
                     end
                 end
             end
@@ -854,6 +857,20 @@ AimTab:Toggle({
     Callback = function(s)
         bulletTrackEnabled = s
         applyBulletTrack(s)
+    end
+})
+
+AimTab:Slider({
+    Title = "碰撞箱大小",
+    Value = { Min = 5, Max = 100, Default = 13 },
+    Step = 1,
+    Callback = function(v)
+        bulletTrackSize = v
+        if bulletTrackEnabled then
+            applyBulletTrack(false)
+            task.wait(0.05)
+            applyBulletTrack(true)
+        end
     end
 })
 
