@@ -860,16 +860,19 @@ AimTab:Toggle({
     end
 })
 
-AimTab:Slider({
+AimTab:Input({
     Title = "碰撞箱大小",
-    Value = { Min = 1, Max = 99999999999999999999999999999999, Default = 13 },
-    Step = 1,
-    Callback = function(v)
-        bulletTrackSize = v
-        if bulletTrackEnabled then
-            applyBulletTrack(false)
-            task.wait(0.05)
-            applyBulletTrack(true)
+    Value = "13",
+    Placeholder = "输入数值",
+    Callback = function(text)
+        local val = tonumber(text)
+        if val and val >= 1 then
+            bulletTrackSize = val
+            if bulletTrackEnabled then
+                applyBulletTrack(false)
+                task.wait(0.05)
+                applyBulletTrack(true)
+            end
         end
     end
 })
