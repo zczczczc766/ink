@@ -1014,85 +1014,6 @@ MusicTab:Button({
     end
 })
 
-local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
-
-local player = game.Players.LocalPlayer
-local accessoryStates = {}
-local wornAccessories = {}
-local InsertService = game:GetService("InsertService")
-
-local function loadAccessory(id, name)
-    task.defer(function()
-        pcall(function()
-            local char = player.Character
-            if not char or not char:FindFirstChild("Head") then
-                return
-            end
-            if wornAccessories[name] then
-                wornAccessories[name]:Destroy()
-                wornAccessories[name] = nil
-            end
-            local model = InsertService:LoadAsset(id)
-            if not model then return end
-            local handle = model:FindFirstChild("Handle")
-            if not handle then
-                model:Destroy()
-                return
-            end
-            local head = char.Head
-            model.Parent = char
-            handle.Anchored = false
-            handle.Massless = true
-            local weld = Instance.new("Weld", handle)
-            weld.Part0 = handle
-            weld.Part1 = head
-            weld.C0 = CFrame.new(0, 0.5, 0)
-            wornAccessories[name] = model
-        end)
-    end)
-end
-
-local function removeAccessory(name)
-    if wornAccessories[name] then
-        wornAccessories[name]:Destroy()
-        wornAccessories[name] = nil
-    end
-end
-
-local accessories = {
-    {name = "8位皇家王冠", id = 10159600649},
-    {name = "8位血条", id = 10159610478},
-    {name = "8位章鱼先生", id = 507795810},
-    {name = "红色多米诺王冠", id = 42211680},
-    {name = "火焰莫西干", id = 191101707},
-    {name = "闪亮女武神", id = 1180433861},
-}
-
-for _, acc in ipairs(accessories) do
-    accessoryStates[acc.name] = false
-    CosmeticsTab:Toggle({
-        Title = acc.name,
-        Value = false,
-        Callback = function(state)
-            accessoryStates[acc.name] = state
-            if state then
-                loadAccessory(acc.id, acc.name)
-            else
-                removeAccessory(acc.name)
-            end
-        end
-    })
-end
-
-player.CharacterAdded:Connect(function(char)
-    task.wait(0.8)
-    for _, acc in ipairs(accessories) do
-        if accessoryStates[acc.name] then
-            loadAccessory(acc.id, acc.name)
-        end
-    end
-end)
-
 local L=D:Tab({Title="FE",Icon="zap"})
 L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
 L:Button({Title="被遗弃人物",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))()end})
@@ -2562,6 +2483,114 @@ DogPoliceTab:Toggle({
             if muzzleThread then
                 task.cancel(muzzleThread)
                 muzzleThread = nil
+            end
+        end
+    end
+})
+
+local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
+
+local weaponCDEnabled = false
+local weaponCDThread = nil
+
+CatTab:Toggle({
+    Title = "武器无CD",
+    Value = false,
+    Callback = function(state)
+        if state then
+            weaponCDEnabled = true
+            _G.StopWeaponCD = false
+            weaponCDThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
+                for _, weapon in pairs(Weapons) do
+                    if type(weapon) == "table" then
+                        weapon.Cooldown = 0
+                    end
+                end
+
+                local oldGetServerTimeNow = workspace.GetServerTimeNow
+                workspace.GetServerTimeNow = function(self, ...)
+                    return oldGetServerTimeNow(self, ...) + 999999
+                end
+
+                local CooldownEvent = ReplicatedStorage.Events.Cooldown
+                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
+                    conn:Disable()
+                end
+
+                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
+                _G.WeaponFiring = false
+
+                function startRapidFire()
+                    if _G.WeaponFiring then return end
+                    _G.WeaponFiring = true
+                    task.spawn(function()
+                        while _G.WeaponFiring and not _G.StopWeaponCD do
+                            local cam = workspace.CurrentCamera
+                            local mouse = LocalPlayer:GetMouse()
+                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+                            WeaponEvent:FireServer(ray.Direction.Unit, true)
+                            task.wait(0.01)
+                        end
+                        _G.WeaponFiring = false
+                    end)
+                end
+
+                function stopRapidFire()
+                    _G.WeaponFiring = false
+                end
+
+                startRapidFire()
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        local char = LocalPlayer.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
+                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
+                        task.wait(0.1)
+                    end
+                end)
+
+                while not _G.StopWeaponCD do
+                    task.wait(1)
+                end
+            end)
+        else
+            weaponCDEnabled = false
+            _G.StopWeaponCD = true
+            if weaponCDThread then
+                task.cancel(weaponCDThread)
+                weaponCDThread = nil
+            end
+            if _G.WeaponFiring then
+                _G.WeaponFiring = false
             end
         end
     end
