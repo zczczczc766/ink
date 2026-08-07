@@ -256,6 +256,39 @@ E:Toggle({
 
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
 
+local noFallConnection=nil
+E:Toggle({Title="防止摔落伤害",Value=false,Callback=function(state)
+    if noFallConnection then
+        noFallConnection:Disconnect()
+        noFallConnection=nil
+    end
+    if state then
+        noFallConnection=LocalPlayer.CharacterAdded:Connect(function(char)
+            local hum=char:WaitForChild("Humanoid")
+            hum.StateChanged:Connect(function(_,new)
+                if new==Enum.HumanoidStateType.Freefall then
+                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+                end
+            end)
+        end)
+        local char=LocalPlayer.Character
+        if char then
+            local hum=char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+            end
+        end
+    else
+        local char=LocalPlayer.Character
+        if char then
+            local hum=char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+            end
+        end
+    end
+end})
+
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
 
 E:Button({Title="无敌少侠飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/Script/refs/heads/main/MobileFly.lua"))()end})
