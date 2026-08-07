@@ -198,6 +198,25 @@ E:Toggle({Title="穿墙",Value=false,Callback=function(s)noclipEnabled=s applyNo
 local infJumpEnabled = false
 local infJumpConnection = nil
 
+local noFallDamageEnabled = false
+E:Toggle({
+    Title = "禁用坠落损坏",
+    Value = false,
+    Callback = function(state)
+        noFallDamageEnabled = state
+        task.spawn(function()
+            while noFallDamageEnabled do
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local script = char:FindFirstChild("FallDamageScript")
+                    if script then script:Destroy() end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
 E:Toggle({
     Title = "无限跳",
     Value = false,
