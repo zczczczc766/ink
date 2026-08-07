@@ -2486,63 +2486,6 @@ DogPoliceTab:Toggle({
     end
 })
 
-local BladeSpinTab = D:Tab({Title="刀片旋转", Icon="sword"})
-
-local addCoinsEnabled = false
-local addCoinsThread = nil
-local addXPEnabled = false
-local addXPThread = nil
-
-BladeSpinTab:Toggle({
-    Title = "疯狂加金币",
-    Value = false,
-    Callback = function(s)
-        addCoinsEnabled = s
-        if s then
-            addCoinsThread = task.spawn(function()
-                local rs = game:GetService("ReplicatedStorage")
-                local event = rs:WaitForChild("ReplicatedStorageHolders"):WaitForChild("Events"):WaitForChild("AddCoins")
-                while addCoinsEnabled do
-                    pcall(function()
-                        event:FireServer(999999)
-                    end)
-                    task.wait(0.01)
-                end
-            end)
-        else
-            if addCoinsThread then
-                task.cancel(addCoinsThread)
-                addCoinsThread = nil
-            end
-        end
-    end
-})
-
-BladeSpinTab:Toggle({
-    Title = "疯狂加经验",
-    Value = false,
-    Callback = function(s)
-        addXPEnabled = s
-        if s then
-            addXPThread = task.spawn(function()
-                local rs = game:GetService("ReplicatedStorage")
-                local event = rs:WaitForChild("ReplicatedStorageHolders"):WaitForChild("Events"):WaitForChild("AddXP")
-                while addXPEnabled do
-                    pcall(function()
-                        event:FireServer(99999)
-                    end)
-                    task.wait(0.01)
-                end
-            end)
-        else
-            if addXPThread then
-                task.cancel(addXPThread)
-                addXPThread = nil
-            end
-        end
-    end
-})
-
 local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
 
 local weaponCDEnabled = false
