@@ -284,12 +284,14 @@ local function removeAntiFall()
     antiFallConnections = {}
 end
 
-player.CharacterAdded:Connect(function(char)
+local charAddedConn
+charAddedConn = player.CharacterAdded:Connect(function(char)
     if antiFallEnabled then
         task.wait(0.1)
         applyAntiFall(char)
     end
 end)
+table.insert(antiFallConnections, charAddedConn)
 
 E:Toggle({
     Title = "防止摔落伤害",
