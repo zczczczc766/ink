@@ -2,6 +2,8 @@ local A=game:GetService("StarterGui")
 A:SetCore("SendNotification",{Title="正在执行 ink_HUB",Text="加载中...",Duration=1})
 task.wait(0.6)
 A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
+task.wait(0.3)
+A:SetCore("SendNotification",{Title="作者声明",Text="开源的4000+\n没惹你就开源的自动给我30年寿命",Duration=3})
 
 local function gradient(text,startColor,endColor)
     local result=""
@@ -54,7 +56,7 @@ local D=C:Section({Title="功能菜单",Opened=true})
 local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
     Title = "欢迎使用 ink_HUB",
-    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n公益脚本禁止倒卖\n认准 ink_HUB",
+    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n开源并公开的4000+\n没惹你就开源的自动给我30年寿命\n公益脚本禁止倒卖\n认准 ink_HUB",
     Image = "rbxassetid://107039115828792",
     ImageSize = 100,
 })
