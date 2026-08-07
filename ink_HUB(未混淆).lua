@@ -302,52 +302,6 @@ E:Button({Title="走路撞人",Callback=function()loadstring(game:HttpGet(('http
 
 E:Button({Title="铁拳打人",Callback=function()loadstring(game:HttpGet(('https://raw.githubusercontent.com/0Ben1/fe/main/obf_rf6iQURzu1fqrytcnLBAvW34C9N55kS9g9G3CKz086rC47M6632sEd4ZZYB0AYgV.lua.txt'),true))()end})
 
--- 定义加载皇冠的函数（可以放在 E 定义之后，或脚本任意位置）
-local function loadRoyalCrown()
-    local plr = game.Players.LocalPlayer
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    char:WaitForChild("Head")
-    -- 移除已存在的同名饰品，避免重复
-    local old = char:FindFirstChild("8BitRoyalCrown")
-    if old then old:Destroy() end
-
-    local id = 10159600649
-    local acc = game:GetObjects("rbxassetid://"..id)[1]
-    if not acc then
-        warn("加载饰品失败，请检查ID")
-        return
-    end
-    acc.Name = "8BitRoyalCrown"
-    local handle = acc.Handle
-    local A1 = handle:FindFirstChildOfClass("Attachment")
-    if not A1 then
-        warn("饰品缺少 Attachment")
-        return
-    end
-    local A0 = char:FindFirstChild(A1.Name, true)  -- 查找角色头部的同名Attachment
-    if not A0 then
-        warn("角色头部没有对应的 Attachment，无法焊接")
-        return
-    end
-    acc.Parent = char
-    handle.Anchored = false
-    handle.Massless = true
-    handle.CFrame = A0.WorldCFrame * A1.CFrame:Inverse()
-
-    local weld = Instance.new("WeldConstraint", handle)
-    weld.Part0 = handle
-    weld.Part1 = A0.Parent
-end
-
--- 在通用选项卡（E）中添加按钮
-E:Button({
-    Title = "加载8位皇家王冠",
-    Callback = function()
-        loadRoyalCrown()
-        A:SetCore("SendNotification", {Title="饰品", Text="已加载8位皇家王冠", Duration=2})
-    end
-})
-
 local P = D:Tab({Title="透视", Icon="eye"})
 
 local espEnabled = false
@@ -1054,6 +1008,60 @@ MusicTab:Button({
             A:SetCore("SendNotification",{Title="已停止", Text="音乐已停止", Duration=2})
         else
             A:SetCore("SendNotification",{Title="提示", Text="当前没有正在播放的音乐", Duration=2})
+        end
+    end
+})
+
+-- ========== 饰品美化选项卡 ==========
+local CosmeticsTab = D:Tab({Title="饰品美化", Icon="crown"})
+
+-- 加载8位皇家王冠
+local function loadRoyalCrown()
+    local plr = game.Players.LocalPlayer
+    local char = plr.Character
+    if not char then return end
+    -- 移除已存在的同名饰品
+    if royalCrownInstance and royalCrownInstance.Parent then
+        royalCrownInstance:Destroy()
+        royalCrownInstance = nil
+    end
+    local id = 10159600649
+    local acc = game:GetObjects("rbxassetid://"..id)[1]
+    if not acc then return end
+    acc.Name = "8BitRoyalCrown"
+    local handle = acc.Handle
+    local A1 = handle:FindFirstChildOfClass("Attachment")
+    if not A1 then return end
+    local A0 = char:FindFirstChild(A1.Name, true)
+    if not A0 then return end
+    acc.Parent = char
+    handle.Anchored = false
+    handle.Massless = true
+    handle.CFrame = A0.WorldCFrame * A1.CFrame:Inverse()
+    local weld = Instance.new("WeldConstraint", handle)
+    weld.Part0 = handle
+    weld.Part1 = A0.Parent
+    royalCrownInstance = acc
+end
+
+-- 卸载8位皇家王冠
+local function unloadRoyalCrown()
+    if royalCrownInstance and royalCrownInstance.Parent then
+        royalCrownInstance:Destroy()
+        royalCrownInstance = nil
+    end
+end
+
+-- Toggle开关
+CosmeticsTab:Toggle({
+    Title = "8位皇家王冠",
+    Value = false,
+    Callback = function(state)
+        royalCrownEnabled = state
+        if state then
+            loadRoyalCrown()
+        else
+            unloadRoyalCrown()
         end
     end
 })
