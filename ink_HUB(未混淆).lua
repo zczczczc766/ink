@@ -222,49 +222,6 @@ E:Toggle({
     end
 })
 
-local reviveEnabled = false
-local revivePos = nil
-local reviveConnection = nil
-
-E:Toggle({
-    Title = "原地复活",
-    Value = false,
-    Callback = function(state)
-        reviveEnabled = state
-        if state then
-            if not reviveConnection then
-                reviveConnection = {}
-                -- 记录死亡位置
-                reviveConnection.removing = game.Players.LocalPlayer.CharacterRemoving:Connect(function(char)
-                    if reviveEnabled then
-                        local root = char:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            revivePos = root.CFrame
-                        end
-                    end
-                end)
-                -- 重生后传送回记录位置
-                reviveConnection.added = game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
-                    if reviveEnabled and revivePos then
-                        local root = char:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            root.CFrame = revivePos
-                            revivePos = nil
-                        end
-                    end
-                end)
-            end
-        else
-            if reviveConnection then
-                if reviveConnection.removing then reviveConnection.removing:Disconnect() end
-                if reviveConnection.added then reviveConnection.added:Disconnect() end
-                reviveConnection = nil
-                revivePos = nil
-            end
-        end
-    end
-})
-
 local Lighting=game:GetService("Lighting")
 local origBright=Lighting.Brightness
 E:Toggle({Title="高亮",Value=false,Callback=function(s)
