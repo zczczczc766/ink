@@ -256,38 +256,55 @@ E:Toggle({
 
 E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
 
-local noFallConnection=nil
-E:Toggle({Title="防止摔落伤害",Value=false,Callback=function(state)
-    if noFallConnection then
-        noFallConnection:Disconnect()
-        noFallConnection=nil
-    end
-    if state then
-        noFallConnection=LocalPlayer.CharacterAdded:Connect(function(char)
-            local hum=char:WaitForChild("Humanoid")
-            hum.StateChanged:Connect(function(_,new)
-                if new==Enum.HumanoidStateType.Freefall then
-                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
-                end
-            end)
-        end)
-        local char=LocalPlayer.Character
-        if char then
-            local hum=char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
-            end
+local antiFallEnabled = false
+local antiFallConnections = {}
+local player = game.Players.LocalPlayer
+
+local function applyAntiFall(character)
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local conn = game:GetService("RunService").Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then
+            conn:Disconnect()
+            return
         end
-    else
-        local char=LocalPlayer.Character
-        if char then
-            local hum=char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+        local vel = hrp.AssemblyLinearVelocity
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        game:GetService("RunService").RenderStepped:Wait()
+        hrp.AssemblyLinearVelocity = vel
+    end)
+    table.insert(antiFallConnections, conn)
+end
+
+local function removeAntiFall()
+    for _, conn in ipairs(antiFallConnections) do
+        pcall(conn.Disconnect, conn)
+    end
+    antiFallConnections = {}
+end
+
+player.CharacterAdded:Connect(function(char)
+    if antiFallEnabled then
+        task.wait(0.1)
+        applyAntiFall(char)
+    end
+end)
+
+E:Toggle({
+    Title = "防止摔落伤害",
+    Value = false,
+    Callback = function(state)
+        antiFallEnabled = state
+        if state then
+            if player.Character then
+                applyAntiFall(player.Character)
             end
+        else
+            removeAntiFall()
         end
     end
-end})
+})
 
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
 
