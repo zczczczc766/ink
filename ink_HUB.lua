@@ -2679,287 +2679,287 @@ HitTab:Toggle({
                                     pcall(function()
                                         root.Velocity = Vector3.new(0, 150, 0)
                                     end)
-local function startStickPickup()
-    if stickPickupConnection then return end
-    stickPickupConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not stickPickupEnabled then return end
-        local player = game.Players.LocalPlayer
-        local backpack = player:FindFirstChild("Backpack")
-        if not backpack then return end
-        for _, item in pairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and item.Name:sub(1,5):lower() == "stick" then
-                local char = player.Character or workspace:FindFirstChild(player.Name)
-                if char then item.Parent = char end
-                break
-            end
-        end
-    end)
-end
-local function stopStickPickup()
-    stickPickupEnabled = false
-    if stickPickupConnection then stickPickupConnection:Disconnect(); stickPickupConnection = nil end
-end
-
-BackstreetTab:Toggle({
-    Title = "自动拿起木棍",
-    Value = false,
-    Callback = function(state)
-        stickPickupEnabled = state
-        if state then startStickPickup() else stopStickPickup() end
-    end
-})
-
-BackstreetTab:Section({ Title = "传送" })
-
-BackstreetTab:Button({ Title = "传送到垃圾大师", Callback = function() teleportTo(Vector3.new(-173.27, 3.50, 47.06)) end })
-BackstreetTab:Button({ Title = "传送回原位置", Callback = function()
-    if not lastPosition then return end
-    local char = game.Players.LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    hrp.CFrame = CFrame.new(lastPosition)
-end })
-
-BackstreetTab:Section({ Title = "地点传送" })
-
-BackstreetTab:Button({ Title = "传送到豆子工厂", Callback = function() teleportTo(Vector3.new(-269.05, 3.50, 155.16)) end })
-BackstreetTab:Button({ Title = "传送到后街", Callback = function() teleportTo(Vector3.new(-196.88, 3.50, 63.44)) end })
-BackstreetTab:Button({ Title = "传送到后街对面", Callback = function() teleportTo(Vector3.new(-184.26, 4.00, -189.72)) end })
-BackstreetTab:Button({ Title = "传送到下水道", Callback = function() teleportTo(Vector3.new(-245.42, -22.96, -1349.19)) end })
-
-local NicoTab = D:Tab({Title="nico的下一个机器人", Icon="cpu"})
-
-local bunnyHopEnabled = false
-local bunnyHopConnection = nil
-
-NicoTab:Toggle({
-    Title = "自动跳跃",
-    Value = false,
-    Callback = function(v)
-        bunnyHopEnabled = v
-        if v then
-            bunnyHopConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if not bunnyHopEnabled then return end
-                local char = game.Players.LocalPlayer.Character
-                if not char then return end
-                local humanoid = char:FindFirstChild("Humanoid")
-                if not humanoid then return end
-                if humanoid:GetState() == Enum.HumanoidStateType.Running and humanoid.FloorMaterial ~= Enum.Material.Air then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.05)
                 end
             end)
         else
-            if bunnyHopConnection then
-                bunnyHopConnection:Disconnect()
-                bunnyHopConnection = nil
+            _G.StopHit = true
+            if hitThread then
+                task.cancel(hitThread)
+                hitThread = nil
             end
         end
     end
 })
 
-local PowerLegendTab = D:Tab({Title="力量传奇", Icon="dumbbell"})
+local BlockWarTab = D:Tab({Title="方块战争", Icon="pickaxe"})
 
-PowerLegendTab:Button({
-    Title = "传送到出生点",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
+local mineEnabled = false
+local mineThread = nil
+local originalMineSeconds = nil
+local originalBreakSeconds = nil
+local originalBreakSecondsForHP = nil
+local originalBrickHPForBought = nil
+
+BlockWarTab:Toggle({
+    Title = "稿子秒挖",
+    Value = false,
+    Callback = function(s)
+        if s then
+            mineEnabled = true
+            _G.StopMine = false
+            mineThread = task.spawn(function()
+                local RS = game:GetService("ReplicatedStorage")
+                while not _G.StopMine do
+                    pcall(function()
+                        local MineDefs = require(RS.Modules.Configs.MineDefs)
+                        if MineDefs and MineDefs.MineSeconds then
+                            if not originalMineSeconds then
+                                originalMineSeconds = MineDefs.MineSeconds
+                            end
+                            MineDefs.MineSeconds = function() return 0 end
+                        end
+                    end)
+                    pcall(function()
+                        local BBC = require(RS.Modules.Configs.BlockBreakConfig)
+                        if BBC.BreakSeconds then
+                            if not originalBreakSeconds then
+                                originalBreakSeconds = BBC.BreakSeconds
+                            end
+                            BBC.BreakSeconds = function() return 0 end
+                        end
+                        if BBC.BreakSecondsForHP then
+                            if not originalBreakSecondsForHP then
+                                originalBreakSecondsForHP = BBC.BreakSecondsForHP
+                            end
+                            BBC.BreakSecondsForHP = function() return 0 end
+                        end
+                    end)
+                    pcall(function()
+                        local GUC = require(RS.Modules.Configs.GeneratorUpgradeConfig)
+                        if GUC and GUC.BrickHPForBought then
+                            if not originalBrickHPForBought then
+                                originalBrickHPForBought = GUC.BrickHPForBought
+                            end
+                            GUC.BrickHPForBought = function() return 0 end
+                        end
+                    end)
+                    task.wait(1)
+                end
+            end)
+        else
+            _G.StopMine = true
+            if mineThread then task.cancel(mineThread); mineThread = nil end
+            pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local MineDefs = require(RS.Modules.Configs.MineDefs)
+                if MineDefs and originalMineSeconds then
+                    MineDefs.MineSeconds = originalMineSeconds
+                end
+                local BBC = require(RS.Modules.Configs.BlockBreakConfig)
+                if BBC and originalBreakSeconds then
+                    BBC.BreakSeconds = originalBreakSeconds
+                end
+                if BBC and originalBreakSecondsForHP then
+                    BBC.BreakSecondsForHP = originalBreakSecondsForHP
+                end
+                local GUC = require(RS.Modules.Configs.GeneratorUpgradeConfig)
+                if GUC and originalBrickHPForBought then
+                    GUC.BrickHPForBought = originalBrickHPForBought
+                end
+            end)
+            originalMineSeconds = nil
+            originalBreakSeconds = nil
+            originalBreakSecondsForHP = nil
+            originalBrickHPForBought = nil
         end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(72.74, 3.71, 141.13)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到出生点", Duration=2})
     end
 })
 
-PowerLegendTab:Section({ Title = "传送到健身房" })
+local weaponEnabled = false
+local weaponThread = nil
+local weaponConnections = {}
+local originalWeaponData = {}
 
-PowerLegendTab:Button({
-    Title = "传送到力量之王健身房",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
+BlockWarTab:Toggle({
+    Title = "近战武器无CD",
+    Value = false,
+    Callback = function(s)
+        if s then
+            weaponEnabled = true
+            _G.StopWeapon = false
+            weaponThread = task.spawn(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local Run = game:GetService("RunService")
+                local LP = Players.LocalPlayer
+
+                pcall(function()
+                    local Reg = require(RS.Data.Registries.WeaponRegistry)
+                    if Reg and Reg.Entries then
+                        for k, v in pairs(Reg.Entries) do
+                            if not originalWeaponData[k] then
+                                originalWeaponData[k] = {
+                                    HitDelay = v.HitDelay,
+                                    HitDuration = v.HitDuration,
+                                    Cooldown = v.Cooldown,
+                                    ComboTimeout = v.ComboTimeout
+                                }
+                            end
+                            v.HitDelay = 0
+                            v.HitDuration = 0.05
+                            v.Cooldown = 0
+                            v.ComboTimeout = 0
+                        end
+                    end
+                end)
+
+                LP:SetAttribute("AttackSpeedMul", 999999)
+                local attrConn = LP:GetAttributeChangedSignal("AttackSpeedMul"):Connect(function()
+                    if not _G.StopWeapon and LP:GetAttribute("AttackSpeedMul") ~= 999999 then
+                        LP:SetAttribute("AttackSpeedMul", 999999)
+                    end
+                end)
+                table.insert(weaponConnections, attrConn)
+
+                LP:SetAttribute("StunEndsAt", 0)
+                local stunConn = LP:GetAttributeChangedSignal("StunEndsAt"):Connect(function()
+                    if not _G.StopWeapon and (LP:GetAttribute("StunEndsAt") or 0) > workspace:GetServerTimeNow() then
+                        LP:SetAttribute("StunEndsAt", 0)
+                    end
+                end)
+                table.insert(weaponConnections, stunConn)
+
+                local heartbeatConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    LP:SetAttribute("StunEndsAt", 0)
+                    pcall(function()
+                        for _, m in ipairs(getloadedmodules and getloadedmodules() or {}) do
+                            if m and m.SwingState then
+                                m.SwingState.cooldownEndsAt = -1
+                                m.SwingState.duration = 0
+                            end
+                        end
+                    end)
+                end)
+                table.insert(weaponConnections, heartbeatConn)
+
+                local CombatRemotes = RS:WaitForChild("GameEvents"):WaitForChild("CombatRemotes")
+                local AtkRemote = CombatRemotes:WaitForChild("Combat_RequestAttack")
+                local last = 0
+
+                local atkConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    if tick() - last < 0.05 then return end
+                    local char = LP.Character
+                    local tool = char and char:FindFirstChildWhichIsA("Tool")
+                    if tool then
+                        local ok, wtype = pcall(function()
+                            return require(RS.Data.Registries.WeaponRegistry).GetTypeFromTool(tool)
+                        end)
+                        if ok and wtype then
+                            last = tick()
+                            pcall(function()
+                                AtkRemote:FireServer(wtype)
+                            end)
+                        end
+                    end
+                end)
+                table.insert(weaponConnections, atkConn)
+
+                while not _G.StopWeapon do
+                    task.wait(1)
+                end
+            end)
+        else
+            _G.StopWeapon = true
+            if weaponThread then task.cancel(weaponThread); weaponThread = nil end
+            for _, conn in ipairs(weaponConnections) do
+                pcall(function() conn:Disconnect() end)
+            end
+            weaponConnections = {}
+            pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LP = Players.LocalPlayer
+                local Reg = require(RS.Data.Registries.WeaponRegistry)
+                if Reg and Reg.Entries then
+                    for k, v in pairs(Reg.Entries) do
+                        if originalWeaponData[k] then
+                            v.HitDelay = originalWeaponData[k].HitDelay
+                            v.HitDuration = originalWeaponData[k].HitDuration
+                            v.Cooldown = originalWeaponData[k].Cooldown
+                            v.ComboTimeout = originalWeaponData[k].ComboTimeout
+                        end
+                    end
+                end
+                LP:SetAttribute("AttackSpeedMul", 1)
+                LP:SetAttribute("StunEndsAt", 0)
+            end)
+            originalWeaponData = {}
         end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-8624.00, 13.57, -5871.08)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到力量之王健身房", Duration=2})
     end
 })
 
-PowerLegendTab:Button({
-    Title = "传送到传奇健身房",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
+local Players=game:GetService("Players")
+local player=Players.LocalPlayer
+local mouse=player:GetMouse()
+
+local bombState={active=false,thread=nil,fireEvent=nil}
+local rocketState={active=false,thread=nil,fireEvent=nil}
+
+local function getBombFire()
+    local backpack=player:FindFirstChild("Backpack")
+    if not backpack then return nil end
+    local timebomb=backpack:FindFirstChild("Timebomb")
+    if not timebomb then return nil end
+    return timebomb:FindFirstChild("Fire")
+end
+
+local function getRocketFire()
+    local char=player.Character
+    if not char then return nil end
+    local launcher=char:FindFirstChild("RocketLauncher")
+    if not launcher then return nil end
+    return launcher:FindFirstChild("Fire")
+end
+
+local function bombLoop()
+    local lastRetryTime=0
+    while bombState.active do
+        local char=player.Character
+        if char then
+            local rootPart=char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+            if rootPart then
+                if not bombState.fireEvent or not bombState.fireEvent.Parent then
+                    local now=tick()
+                    if now-lastRetryTime>0.2 then
+                        lastRetryTime=now
+                        bombState.fireEvent=getBombFire()
+                    end
+                end
+                if bombState.fireEvent then
+                    bombState.fireEvent:FireServer(rootPart.CFrame)
+                end
+            end
         end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-8678.00, 3.15, 2348.04)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到传奇健身房", Duration=2})
+        task.wait(0.01)
     end
-})
+end
 
-PowerLegendTab:Button({
-    Title = "传送到永恒健身房",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
+local function rocketLoop()
+    while rocketState.active do
+        if rocketState.fireEvent then
+            rocketState.fireEvent:FireServer(mouse.Hit.p)
         end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(4630.12, 987.90, -3893.76)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到永恒健身房", Duration=2})
+        task.wait(0.01)
     end
-})
+end
 
-PowerLegendTab:Button({
-    Title = "传送到神话健身房",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-6769.98, 3.72, -1287.33)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到神话健身房", Duration=2})
-    end
-})
-
-PowerLegendTab:Button({
-    Title = "传送到冰霜健身房",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-2823.86, 3.72, -248.66)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到冰霜健身房", Duration=2})
-    end
-})
-
-PowerLegendTab:Button({
-    Title = "传送到小岛",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-32.20, 7.03, 1860.85)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到小岛", Duration=2})
-    end
-})
-
-PowerLegendTab:Section({ Title = "传送到竞技场" })
-
-PowerLegendTab:Button({
-    Title = "传送到熔岩竞技场观战台",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(4460.67, 99.97, -8454.09)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到熔岩竞技场观战台", Duration=2})
-    end
-})
-
-PowerLegendTab:Button({
-    Title = "传送到熔岩竞技场内部",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(4421.18, 13.17, -8789.72)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到熔岩竞技场内部", Duration=2})
-    end
-})
-
-PowerLegendTab:Button({
-    Title = "传送到拳击擂台观战台",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
-            A:SetCore("SendNotification",{Title="错误", Text="角色不存在", Duration=2})
-            return
-        end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then
-            A:SetCore("SendNotification",{Title="错误", Text="找不到 HumanoidRootPart", Duration=2})
-            return
-        end
-        hrp.CFrame = CFrame.new(-1972.65, 99.97, -6010.31)
-        A:SetCore("SendNotification",{Title="传送成功", Text="已传送到拳击擂台观战台", Duration=2})
-    end
-})
-
-PowerLegendTab:Button({
-    Title = "传送到拳击擂台内部",
-    Callback = function()
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character
-        if not char then
 N:Toggle({Title="炸弹",Value=false,Callback=function()
     if bombState.active then
         bombState.active=false
