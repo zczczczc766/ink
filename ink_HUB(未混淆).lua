@@ -18,6 +18,9 @@ local function gradient(text,startColor,endColor)
     return result
 end
 
+local royalCrownEnabled = false
+local royalCrownInstance = nil
+
 local B=loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
 if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI 库加载失败",Duration=3}) return end
 B.Transparency=0.3
@@ -174,6 +177,18 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     if hum then
         hum.WalkSpeed=speedEnabled and speedValue or 16
         hum.JumpPower=jumpEnabled and jumpValue or 50
+    end
+    
+    LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.1)
+    local hum=char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed=speedEnabled and speedValue or 16
+        hum.JumpPower=jumpEnabled and jumpValue or 50
+    end
+    if royalCrownEnabled then
+        task.wait(0.2)
+        loadRoyalCrown()
     end
 end)
 
@@ -1012,15 +1027,12 @@ MusicTab:Button({
     end
 })
 
--- ========== 饰品美化选项卡 ==========
 local CosmeticsTab = D:Tab({Title="饰品美化", Icon="crown"})
 
--- 加载8位皇家王冠
 local function loadRoyalCrown()
     local plr = game.Players.LocalPlayer
     local char = plr.Character
     if not char then return end
-    -- 移除已存在的同名饰品
     if royalCrownInstance and royalCrownInstance.Parent then
         royalCrownInstance:Destroy()
         royalCrownInstance = nil
@@ -1044,7 +1056,6 @@ local function loadRoyalCrown()
     royalCrownInstance = acc
 end
 
--- 卸载8位皇家王冠
 local function unloadRoyalCrown()
     if royalCrownInstance and royalCrownInstance.Parent then
         royalCrownInstance:Destroy()
@@ -1052,7 +1063,6 @@ local function unloadRoyalCrown()
     end
 end
 
--- Toggle开关
 CosmeticsTab:Toggle({
     Title = "8位皇家王冠",
     Value = false,
