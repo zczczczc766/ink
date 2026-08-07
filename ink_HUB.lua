@@ -1,3 +1,7 @@
+开源并公开的4000+
+删掉这几行的出门被车撞
+不是作者在这里面加东西的是穷傻逼
+没惹你就开源的自动给我30年寿命（十秒之内退出的可以加回来）
 local A=game:GetService("StarterGui")
 A:SetCore("SendNotification",{Title="正在执行 ink_HUB",Text="加载中...",Duration=1})
 task.wait(0.6)
