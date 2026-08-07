@@ -1216,6 +1216,335 @@ O:Toggle({Title="访客666大运",Value=false,Callback=function(s)
     end
 end})
 
+local NaturalTab = D:Tab({Title="自然灾害", Icon="cloud-rain"})
+
+NaturalTab:Section({ Title = "功能" })
+
+NaturalTab:Toggle({
+    Title = "自动农场胜出",
+    Value = false,
+    Callback = function(state)
+        _G.autowinfarm = state
+        task.spawn(function()
+            while _G.autowinfarm do
+                local char = game.Players.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(-236, 180, 360)
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+NaturalTab:Toggle({
+    Title = "地图投票用户界面",
+    Value = false,
+    Callback = function(state)
+        local plr = game.Players.LocalPlayer
+        local gui = plr.PlayerGui:FindFirstChild("MainGui")
+        if gui and gui:FindFirstChild("MapVotePage") then
+            gui.MapVotePage.Visible = state
+        end
+    end
+})
+
+local nextdis = false
+local Message = Instance.new("TextLabel")
+Message.Size = UDim2.new(0, 300, 0, 50)
+Message.Position = UDim2.new(0.5, -150, 0.5, -25)
+Message.BackgroundTransparency = 1
+Message.TextColor3 = Color3.new(1, 1, 1)
+Message.TextSize = 20
+Message.Font = Enum.Font.GothamBold
+Message.Visible = false
+Message.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+NaturalTab:Toggle({
+    Title = "预测灾害",
+    Value = false,
+    Callback = function(state)
+        nextdis = state
+        task.spawn(function()
+            while nextdis do
+                task.wait(1)
+                local plr = game.Players.LocalPlayer
+                local char = plr.Character
+                if char then
+                    local tag = char:FindFirstChild("SurvivalTag")
+                    if tag then
+                        local disasterName = tag.Value
+                        local text = ""
+                        if disasterName == "Blizzard" then text = "暴风雪"
+                        elseif disasterName == "Sandstorm" then text = "沙尘暴"
+                        elseif disasterName == "Tornado" then text = "龙卷风"
+                        elseif disasterName == "Volcanic Eruption" then text = "火山"
+                        elseif disasterName == "Flash Flood" then text = "洪水"
+                        elseif disasterName == "Deadly Virus" then text = "病毒"
+                        elseif disasterName == "Tsunami" then text = "海啸"
+                        elseif disasterName == "Acid Rain" then text = "酸雨"
+                        elseif disasterName == "Fire" then text = "火焰"
+                        elseif disasterName == "Meteor Shower" then text = "流星雨"
+                        elseif disasterName == "Earthquake" then text = "地震"
+                        elseif disasterName == "Thunder Storm" then text = "暴风雨"
+                        else text = "未知"
+                        end
+                        Message.Text = "下一个灾难是：" .. text
+                        Message.Visible = true
+                    else
+                        Message.Visible = false
+                    end
+                end
+            end
+        end)
+    end
+})
+
+NaturalTab:Toggle({
+    Title = "在水上行走",
+    Value = false,
+    Callback = function(state)
+        local water = workspace:FindFirstChild("WaterLevel")
+        if water then
+            water.CanCollide = state
+            water.Size = state and Vector3.new(5000, 1, 5000) or Vector3.new(10, 1, 10)
+        end
+    end
+})
+
+NaturalTab:Toggle({
+    Title = "游戏岛悬崖碰撞",
+    Value = false,
+    Callback = function(state)
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v.Name == "LowerRocks" and v:IsA("BasePart") then
+                v.CanCollide = state
+            end
+        end
+    end
+})
+
+NaturalTab:Button({
+    Title = "禁用坠落损坏",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local script = char:FindFirstChild("FallDamageScript")
+            if script then script:Destroy() end
+        end
+    end
+})
+
+NaturalTab:Toggle({
+    Title = "自动禁用坠落伤害",
+    Value = false,
+    Callback = function(state)
+        _G.NoFallDamage = state
+        task.spawn(function()
+            while _G.NoFallDamage do
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local script = char:FindFirstChild("FallDamageScript")
+                    if script then script:Destroy() end
+                end
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+NaturalTab:Button({
+    Title = "打印下一次灾难 (/console)",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local tag = char:FindFirstChild("SurvivalTag")
+            if tag then
+                warn("下一次灾难: " .. tostring(tag.Value))
+            else
+                warn("未找到 SurvivalTag")
+            end
+        end
+    end
+})
+
+NaturalTab:Button({
+    Title = "移除灾难界面 (暴风雪和沙尘暴)",
+    Callback = function()
+        local plr = game.Players.LocalPlayer
+        local gui = plr.PlayerGui
+        local blizzard = gui:FindFirstChild("BlizzardGui")
+        local sand = gui:FindFirstChild("SandStormGui")
+        if blizzard then blizzard:Destroy() end
+        if sand then sand:Destroy() end
+    end
+})
+
+NaturalTab:Button({
+    Title = "传送到地图",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(-115.828506, 65.4863434, 18.8461514)
+        end
+    end
+})
+
+NaturalTab:Button({
+    Title = "传送到游戏岛",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(-83.5, 38.5, -27.5)
+        end
+    end
+})
+
+NaturalTab:Button({
+    Title = "传送到产卵塔",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(-280, 170, 341)
+        end
+    end
+})
+
+NaturalTab:Button({
+    Title = "自然灾害-高级脚本",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/9NLK7/93qjoadnlaknwldk/main/main"))()
+    end
+})
+
+NaturalTab:Button({
+    Title = "黑洞脚本 (按E)",
+    Callback = function()
+        local UserInputService = game:GetService("UserInputService")
+        local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+        local Folder = Instance.new("Folder", game:GetService("Workspace"))
+        local Part = Instance.new("Part", Folder)
+        local Attachment1 = Instance.new("Attachment", Part)
+        Part.Anchored = true
+        Part.CanCollide = false
+        Part.Transparency = 1
+        local Updated = Mouse.Hit + Vector3.new(0, 5, 0)
+        local NetworkAccess =
+            coroutine.create(
+            function()
+                settings().Physics.AllowSleep = false
+                while game:GetService("RunService").RenderStepped:Wait() do
+                    for _, Players in next, game:GetService("Players"):GetPlayers() do
+                        if Players ~= game:GetService("Players").LocalPlayer then
+                            Players.MaximumSimulationRadius = 0
+                            sethiddenproperty(Players, "SimulationRadius", 0)
+                        end
+                    end
+                    game:GetService("Players").LocalPlayer.MaximumSimulationRadius = math.pow(math.huge, math.huge)
+                    setsimulationradius(math.huge)
+                end
+            end
+        )
+        coroutine.resume(NetworkAccess)
+
+        local function EnhanceAndInvinciblePart(part)
+            if
+                part:IsA("Part") and part.Anchored == false and part.Parent:FindFirstChild("Humanoid") == nil and
+                    part.Parent:FindFirstChild("Head") == nil and
+                    part.Name ~= "Handle"
+             then
+                Mouse.TargetFilter = part
+                for _, x in next, part:GetChildren() do
+                    if
+                        x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or
+                            x:IsA("BodyThrust") or
+                            x:IsA("BodyVelocity") or
+                            x:IsA("RocketPropulsion")
+                     then
+                        x:Destroy()
+                    end
+                end
+                if part:FindFirstChild("Attachment") then
+                    part:FindFirstChild("Attachment"):Destroy()
+                end
+                if part:FindFirstChild("AlignPosition") then
+                    part:FindFirstChild("AlignPosition"):Destroy()
+                end
+                if part:FindFirstChild("Torque") then
+                    part:FindFirstChild("Torque"):Destroy()
+                end
+                part.CanCollide = false
+                local Torque = Instance.new("Torque", part)
+                Torque.Torque = Vector3.new(100000, 100000, 100000)
+                local AlignPosition = Instance.new("AlignPosition", part)
+                local Attachment2 = Instance.new("Attachment", part)
+                Torque.Attachment0 = Attachment2
+                AlignPosition.MaxForce = 9999999999999999
+                AlignPosition.MaxVelocity = math.huge
+                AlignPosition.Responsiveness = 200
+                AlignPosition.Attachment0 = Attachment2
+                AlignPosition.Attachment1 = Attachment1
+            end
+        end
+
+        for _, part in next, game:GetService("Workspace"):GetDescendants() do
+            EnhanceAndInvinciblePart(part)
+        end
+
+        game:GetService("Workspace").DescendantAdded:Connect(
+            function(part)
+                EnhanceAndInvinciblePart(part)
+            end
+        )
+        UserInputService.InputBegan:Connect(
+            function(input, isProcessed)
+                if input.KeyCode == Enum.KeyCode.E and not isProcessed then
+                    Updated = Mouse.Hit + Vector3.new(0, 5, 0)
+                end
+            end
+        )
+
+        spawn(
+            function()
+                while game:GetService("RunService").RenderStepped:Wait() do
+                    Attachment1.WorldCFrame = Updated
+                end
+            end
+        )
+    end
+})
+
+NaturalTab:Button({
+    Title = "自然灾害-1脚本",
+    Callback = function()
+        loadstring(
+            game:HttpGet(
+                "https://gist.githubusercontent.com/TurkOyuncu99/7c75386107937fa006304efd24543ad4/raw/8d759dfcd95d39949c692735cfdf62baec0bf835/cafwetweg",
+                true
+            )
+        )()
+    end
+})
+
+NaturalTab:Button({
+    Title = "自然灾害-2脚本",
+    Callback = function()
+        loadstring(
+            game:HttpGet(
+                "https://raw.githubusercontent.com/2dgeneralspam1/scripts-and-stuff/master/scripts/    loadstringUjHI6RQpz2o8",
+                true
+            )
+        )()
+    end
+})
+
+NaturalTab:Button({
+    Title = "自然灾害-3脚本",
+    Callback = function()
+        loadstring(game:HttpGet(("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"), true))()
+    end
+})
+
 local FlashTab = D:Tab({Title="闪光", Icon="sparkles"})
 
 FlashTab:Section({ Title = "角色增强" })
