@@ -143,9 +143,15 @@ local function updateAccessoryVisibility()
     for _, obj in ipairs(char:GetChildren()) do
         if obj:IsA("Accessory") then
             if isWhitelistAccessory(obj) then
+                -- 脚本添加的饰品永远保留
                 setAccessoryHidden(obj, false)
             elseif allAccessoriesHidden then
-                setAccessoryHidden(obj, true)
+                -- 去掉所有饰品，但保留头发
+                if isHairAccessory(obj) then
+                    setAccessoryHidden(obj, false)
+                else
+                    setAccessoryHidden(obj, true)
+                end
             elseif hairHidden and isHairAccessory(obj) then
                 setAccessoryHidden(obj, true)
             else
