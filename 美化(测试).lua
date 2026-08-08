@@ -67,6 +67,97 @@ Z:Button({Title="复制作者副群", Callback=function() setclipboard("10638285
 local CosmeticsTab = D:Tab({Title="角色美化", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
+
+-- 角色美化顶部功能：去掉头发 / 去掉所有饰品
+local hairHidden = false
+local allAccessoriesHidden = false
+local accessoryOriginal = {}
+
+local function rememberAccessoryPart(part)
+    if not part or not part:IsA("BasePart") then return end
+    if accessoryOriginal[part] == nil then
+        accessoryOriginal[part] = {
+            Transparency = part.Transparency,
+            LocalTransparencyModifier = part.LocalTransparencyModifier,
+        }
+    end
+end
+
+local function setAccessoryHidden(accessory, hidden)
+    if not accessory or not accessory:IsA("Accessory") then return end
+    for _, obj in ipairs(accessory:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if hidden then
+                rememberAccessoryPart(obj)
+                obj.LocalTransparencyModifier = 1
+                obj.Transparency = 1
+            else
+                local old = accessoryOriginal[obj]
+                if old then
+                    obj.Transparency = old.Transparency
+                    obj.LocalTransparencyModifier = old.LocalTransparencyModifier
+                    accessoryOriginal[obj] = nil
+                end
+            end
+        end
+    end
+end
+
+local function isHairAccessory(accessory)
+    if not accessory or not accessory:IsA("Accessory") then return false end
+
+    local ok, accessoryType = pcall(function()
+        return accessory.AccessoryType
+    end)
+    if ok and accessoryType == Enum.AccessoryType.Hair then
+        return true
+    end
+
+    -- 某些游戏/饰品没有正确设置 AccessoryType 时，用 HairAttachment 补充判断。
+    local handle = accessory:FindFirstChild("Handle")
+    if handle and handle:FindFirstChild("HairAttachment") then
+        return true
+    end
+
+    local lowerName = string.lower(accessory.Name)
+    return lowerName:find("hair") ~= nil or lowerName:find("头发") ~= nil
+end
+
+local function updateAccessoryVisibility()
+    local char = player.Character
+    if not char then return end
+
+    for _, obj in ipairs(char:GetChildren()) do
+        if obj:IsA("Accessory") then
+            if allAccessoriesHidden then
+                setAccessoryHidden(obj, true)
+            elseif hairHidden and isHairAccessory(obj) then
+                setAccessoryHidden(obj, true)
+            else
+                setAccessoryHidden(obj, false)
+            end
+        end
+    end
+end
+
+CosmeticsTab:Toggle({
+    Title = "去掉头发",
+    Value = false,
+    Callback = function(state)
+        hairHidden = state
+        updateAccessoryVisibility()
+    end
+})
+
+CosmeticsTab:Toggle({
+    Title = "去掉所有饰品",
+    Value = false,
+    Callback = function(state)
+        allAccessoriesHidden = state
+        updateAccessoryVisibility()
+    end
+})
+
 local accessoryStates = {}
 local wornAccessories = {}
 
@@ -442,6 +533,9 @@ task.spawn(function()
     while task.wait(0.25) do
         local char = player.Character
         if char then
+            if hairHidden or allAccessoriesHidden then
+                updateAccessoryVisibility()
+            end
             if accessoryStates["无头"] then
                 applyBodyPart("无头", true)
             end
@@ -595,6 +689,7 @@ end
 player.CharacterAdded:Connect(function(char)
     savedBodyDescriptions = {}
     task.wait(0.8)
+    updateAccessoryVisibility()
     for _, acc in ipairs(accessories) do
         if accessoryStates[acc.name] then
             loadAccessory(acc.id, acc.name)
