@@ -96,7 +96,7 @@ local function getBodyParts(char, kind)
             table.insert(parts, r6)
         end
     elseif kind == "无腿" then
-        for _, n in ipairs({"LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot","Left Leg","Right Leg"}) do
+        for _, n in ipairs({"RightUpperLeg","RightLowerLeg","RightFoot","Right Leg"}) do
             local p = char:FindFirstChild(n)
             if p and p:IsA("BasePart") then
                 table.insert(parts, p)
@@ -116,6 +116,10 @@ local function setLocalHidden(part, hidden)
             }
         end
         part.LocalTransparencyModifier = 1
+        part.Transparency = 1
+        part.CanCollide = false
+        part.CanTouch = false
+        part.CanQuery = false
     else
         local old = bodyPartOriginal[part]
         if old then
@@ -440,6 +444,11 @@ task.spawn(function()
         if char then
             if accessoryStates["无头"] then
                 applyBodyPart("无头", true)
+            end
+            if accessoryStates["无腿"] then
+                for _, p in ipairs(getBodyParts(char, "无腿")) do
+                    setLocalHidden(p, true)
+                end
             end
             if accessoryStates["断腿"] then
                 -- 只维持右腿隐藏/模型存在，不重复加载 139607718。
