@@ -281,56 +281,6 @@ E:Toggle({
     end
 })
 
-local antiFallEnabled = false
-local antiFallConnections = {}
-local player = game.Players.LocalPlayer
-
-local function startAntiFall()
-    -- 执行远程脚本，它会自动创建 Heartbeat 连接
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E9%98%B2%E6%AD%A2%E6%91%94%E8%90%BD%E4%BC%A4%E5%AE%B3.lua"))()
-    
-    -- 由于远程脚本没有暴露连接对象，我们需要主动拦截并保存
-    -- 方法：通过监听 RunService.Heartbeat 来捕获新增的连接
-    local RunService = game:GetService("RunService")
-    local metatable = getrawmetatable(RunService)
-    if metatable then
-        local oldIndex = metatable.__index
-        metatable.__index = function(self, key)
-            if key == "Heartbeat" then
-                local signal = oldIndex(self, key)
-                local oldConnect = signal.Connect
-                signal.Connect = function(self, callback)
-                    local conn = oldConnect(self, callback)
-                    table.insert(antiFallConnections, conn)
-                    return conn
-                end
-                return signal
-            end
-            return oldIndex(self, key)
-        end
-    end
-end
-
-local function stopAntiFall()
-    for _, conn in ipairs(antiFallConnections) do
-        pcall(conn.Disconnect, conn)
-    end
-    antiFallConnections = {}
-end
-
-E:Toggle({
-    Title = "防止摔落伤害",
-    Value = false,
-    Callback = function(state)
-        antiFallEnabled = state
-        if state then
-            startAntiFall()
-        else
-            stopAntiFall()
-        end
-    end
-})
-
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
 
 E:Button({Title="无敌少侠飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/Script/refs/heads/main/MobileFly.lua"))()end})
