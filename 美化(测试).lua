@@ -1,27 +1,90 @@
+local A=game:GetService("StarterGui")
+A:SetCore("SendNotification",{Title="正在执行 ink_美化",Text="加载中...",Duration=1})
+task.wait(0.6)
+A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
+task.wait(0.3)
+A:SetCore("SendNotification",{Title="作者声明",Text="开源的4000+\n没惹你就开源的自动给我30年寿命",Duration=3})
+
+local function gradient(text,startColor,endColor)
+    local result=""
+    local chars={}
+    for uchar in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do table.insert(chars,uchar) end
+    local length=#chars
+    for i=1,length do
+        local t=(i-1)/math.max(length-1,1)
+        local r=startColor.R+(endColor.R-startColor.R)*t
+        local g=startColor.G+(endColor.G-startColor.G)*t
+        local b=startColor.B+(endColor.B-startColor.B)*t
+        result=result..string.format('<font color="rgb(%d,%d,%d)">%s</font>',math.floor(r*255),math.floor(g*255),math.floor(b*255),chars[i])
+    end
+    return result
+end
+
+local B=loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
+if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI 库加载失败",Duration=3}) return end
+B.Transparency=0.3
+B:SetTheme("Dark")
+
+local C=B:CreateWindow({Icon="moon",Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_美化",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+C:EditOpenButton({Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
+
+local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
+if windowFrame then
+    local stroke=Instance.new("UIStroke")
+    stroke.Name="RainbowStroke"
+    stroke.Thickness=2
+    stroke.Color=Color3.new(1,1,1)
+    stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+    local grad=Instance.new("UIGradient")
+    grad.Name="RainbowGradient"
+    grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.3,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(0.7,Color3.fromRGB(120,120,120)),ColorSequenceKeypoint.new(1,Color3.fromRGB(90,90,90))})
+    grad.Enabled=true
+    grad.Offset=Vector2.new(0,0)
+    grad.Parent=stroke
+    stroke.Parent=windowFrame
+    task.spawn(function()
+        local rotationSpeed=40
+        while stroke and stroke.Parent do
+            task.wait(0.01)
+            grad.Rotation=(grad.Rotation+rotationSpeed*0.1)%360
+        end
+    end)
+end
+
+local D=C:Section({Title="功能菜单",Opened=true})
+
+local Z = D:Tab({Title="公告", Icon="bell"})
+Z:Paragraph({
+    Title = "欢迎使用 ink_美化",
+    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n开源并公开的4000+\n没惹你就开源的自动给我30年寿命\n公益脚本禁止倒卖",
+    Image = "rbxassetid://107039115828792",
+    ImageSize = 100,
+})
+Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ：2047955671", Duration=2}) end})
+Z:Button({Title="复制作者QQ群", Callback=function() setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ群：1101093219", Duration=2}) end})
+Z:Button({Title="复制作者副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者副群：1063828524", Duration=2}) end})
+
 local CosmeticsTab = D:Tab({Title="角色美化", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
 
-local accessories = {
-    {name = "无头", id = 15093053680},
-    {name = "断腿", id = 139607718},
-    {name = "无腿", id = 0},
-    {name = "8位皇家王冠", id = 10159600649},
-    {name = "8位血条", id = 10159610478},
-    {name = "美金气球", id = 14559645454},
-    {name = "火角", id = 215718515},
-    {name = "冰角", id = 74891470},
-    {name = "毒角", id = 1744060292},
-    {name = "紫色瓦尔基里", id = 1402432199},
-    {name = "8位章鱼先生", id = 507795810},
-    {name = "红色多米诺王冠", id = 42211680},
-    {name = "火焰莫西干", id = 191101707},
-    {name = "闪亮女武神", id = 1180433861},
-}
-
+-- 角色美化顶部功能：去掉头发 / 去掉所有饰品
 local hairHidden = false
 local allAccessoriesHidden = false
 local accessoryOriginal = {}
+
+-- 脚本添加饰品白名单（不会被“去掉所有饰品”隐藏）
+local accessoryWhitelist = {}
+
+local function addAccessoryWhitelist(accessory)
+    if accessory then
+        accessoryWhitelist[accessory] = true
+    end
+end
+
+local function isWhitelistAccessory(accessory)
+    return accessoryWhitelist[accessory] == true
+end
 
 local function rememberAccessoryPart(part)
     if not part or not part:IsA("BasePart") then return end
@@ -63,6 +126,7 @@ local function isHairAccessory(accessory)
         return true
     end
 
+    -- 某些游戏/饰品没有正确设置 AccessoryType 时，用 HairAttachment 补充判断。
     local handle = accessory:FindFirstChild("Handle")
     if handle and handle:FindFirstChild("HairAttachment") then
         return true
@@ -76,22 +140,17 @@ local function updateAccessoryVisibility()
     local char = player.Character
     if not char then return end
 
-    local exemptNames = {}
-    for _, acc in ipairs(accessories) do
-        exemptNames[acc.name] = true
-    end
-
     for _, obj in ipairs(char:GetChildren()) do
         if obj:IsA("Accessory") then
-            local shouldHide = false
-            if allAccessoriesHidden then
-                if not exemptNames[obj.Name] then
-                    shouldHide = true
-                end
+            if isWhitelistAccessory(obj) then
+                setAccessoryHidden(obj, false)
+            elseif allAccessoriesHidden then
+                setAccessoryHidden(obj, true)
             elseif hairHidden and isHairAccessory(obj) then
-                shouldHide = true
+                setAccessoryHidden(obj, true)
+            else
+                setAccessoryHidden(obj, false)
             end
-            setAccessoryHidden(obj, shouldHide)
         end
     end
 end
@@ -120,6 +179,8 @@ local wornAccessories = {}
 local savedBodyDescriptions = {}
 local bodyPartOriginal = {}
 
+-- 只处理“无头”和“断腿”。
+-- 不依赖 Humanoid:ApplyDescription()，避免注入器/游戏客户端拦截导致按钮无效果。
 local function getBodyParts(char, kind)
     local parts = {}
     if kind == "无头" then
@@ -128,12 +189,14 @@ local function getBodyParts(char, kind)
             table.insert(parts, head)
         end
     elseif kind == "断腿" then
+        -- R15
         for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot"}) do
             local p = char:FindFirstChild(n)
             if p and p:IsA("BasePart") then
                 table.insert(parts, p)
             end
         end
+        -- R6
         local r6 = char:FindFirstChild("Right Leg")
         if r6 and r6:IsA("BasePart") then
             table.insert(parts, r6)
@@ -174,6 +237,7 @@ local function setLocalHidden(part, hidden)
 end
 
 local KORBLOX_ID = 139607718
+local KORBLOX_HEIGHT = 3 -- R15断腿高度：数值越大越往上
 local korbloxObject = nil
 local korbloxOriginalParts = {}
 local korbloxR6DescriptionApplied = false
@@ -289,6 +353,8 @@ local function weldKorbloxModel(model, char)
         model.PrimaryPart = primary
     end
 
+    -- 这个资源的模型枢轴与 R6 右腿中心不一致。
+    -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
     local initialOffset = CFrame.new(0, 25, 0)
     local targetPivot = target.CFrame * initialOffset
 
@@ -300,6 +366,8 @@ local function weldKorbloxModel(model, char)
         primary.CFrame = targetPivot
     end
 
+    -- 根据模型当前包围盒，把模型顶部对齐到右腿顶部附近，
+    -- 避免不同导入方式导致模型仍然偏下。
     pcall(function()
         local bboxCF, bboxSize = model:IsA("Model") and model:GetBoundingBox()
             or primary.CFrame, primary.Size
@@ -355,6 +423,7 @@ local function loadRealKorblox()
         return true
     end
 
+    -- R6 优先尝试真正的身体部件描述。
     if isR6(char) then
         tryApplyR6RightLegDescription(char)
     end
@@ -452,6 +521,7 @@ local function applyBodyPart(name, enabled)
 
     elseif name == "断腿" then
         if enabled then
+            -- 真正加载 139607718，而不是单纯把原腿透明。
             loadRealKorblox()
         else
             destroyKorblox()
@@ -473,6 +543,7 @@ local function applyBodyPart(name, enabled)
     end
 end
 
+-- 持续维持本地外观，防止游戏自己的角色刷新逻辑马上把透明度改回去。
 task.spawn(function()
     while task.wait(0.25) do
         local char = player.Character
@@ -489,6 +560,7 @@ task.spawn(function()
                 end
             end
             if accessoryStates["断腿"] then
+                -- 只维持右腿隐藏/模型存在，不重复加载 139607718。
                 if isR6(char) and korbloxR6DescriptionApplied then
                     for _, p in ipairs(getRightLegParts(char)) do
                         hideRightLegPart(p)
@@ -506,6 +578,8 @@ task.spawn(function()
 end)
 
 local function loadAccessory(id, name)
+    -- 只改变“无头”和“断腿”。
+    -- 其它饰品完全保持原来的 loadAccessory 逻辑。
     if name == "无头" then
         applyBodyPart(name, true)
         return
@@ -543,6 +617,7 @@ local function loadAccessory(id, name)
                 weld.Part1 = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
                 weld.C0 = CFrame.new(0, 0.5, 0)
                 wornAccessories[name] = acc
+                addAccessoryWhitelist(acc)
                 return
             end
 
@@ -565,6 +640,7 @@ local function loadAccessory(id, name)
                 weld.Part1 = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
                 weld.C0 = CFrame.new(0, 0.5, 0)
                 wornAccessories[name] = acc
+                addAccessoryWhitelist(acc)
                 return
             end
 
@@ -578,6 +654,7 @@ local function loadAccessory(id, name)
             weld.Part1 = A0.Parent
 
             wornAccessories[name] = acc
+                addAccessoryWhitelist(acc)
         end)
     end)
 end
@@ -593,6 +670,23 @@ local function removeAccessory(name)
         wornAccessories[name] = nil
     end
 end
+
+local accessories = {
+    {name = "无头", id = 15093053680},
+    {name = "断腿", id = 139607718},
+    {name = "无腿", id = 0},
+    {name = "8位皇家王冠", id = 10159600649},
+    {name = "8位血条", id = 10159610478},
+    {name = "美金气球", id = 14559645454},
+    {name = "火角", id = 215718515},
+    {name = "冰角", id = 74891470},
+    {name = "毒角", id = 1744060292},
+    {name = "紫色瓦尔基里", id = 1402432199},
+    {name = "8位章鱼先生", id = 507795810},
+    {name = "红色多米诺王冠", id = 42211680},
+    {name = "火焰莫西干", id = 191101707},
+    {name = "闪亮女武神", id = 1180433861},
+}
 
 for _, acc in ipairs(accessories) do
     accessoryStates[acc.name] = false
@@ -620,3 +714,6 @@ player.CharacterAdded:Connect(function(char)
         end
     end
 end)
+
+task.wait(0.1)
+A:SetCore("SendNotification",{Title="加载成功",Text="ink_美化 已正常运行",Duration=3})
