@@ -285,36 +285,38 @@ local antiFallEnabled = false
 local antiFallConnections = {}
 local player = game.Players.LocalPlayer
 
-local function applyAntiFall(character)
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local conn = game:GetService("RunService").Heartbeat:Connect(function()
-        if not hrp or not hrp.Parent then
-            conn:Disconnect()
-            return
+local function startAntiFall()
+    -- 执行远程脚本，它会自动创建 Heartbeat 连接
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E9%98%B2%E6%AD%A2%E6%91%94%E8%90%BD%E4%BC%A4%E5%AE%B3.lua"))()
+    
+    -- 由于远程脚本没有暴露连接对象，我们需要主动拦截并保存
+    -- 方法：通过监听 RunService.Heartbeat 来捕获新增的连接
+    local RunService = game:GetService("RunService")
+    local metatable = getrawmetatable(RunService)
+    if metatable then
+        local oldIndex = metatable.__index
+        metatable.__index = function(self, key)
+            if key == "Heartbeat" then
+                local signal = oldIndex(self, key)
+                local oldConnect = signal.Connect
+                signal.Connect = function(self, callback)
+                    local conn = oldConnect(self, callback)
+                    table.insert(antiFallConnections, conn)
+                    return conn
+                end
+                return signal
+            end
+            return oldIndex(self, key)
         end
-        local vel = hrp.AssemblyLinearVelocity
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        game:GetService("RunService").RenderStepped:Wait()
-        hrp.AssemblyLinearVelocity = vel
-    end)
-    table.insert(antiFallConnections, conn)
+    end
 end
 
-local function removeAntiFall()
+local function stopAntiFall()
     for _, conn in ipairs(antiFallConnections) do
         pcall(conn.Disconnect, conn)
     end
     antiFallConnections = {}
 end
-
-player.CharacterAdded:Connect(function(char)
-    if antiFallEnabled then
-        task.wait(0.1)
-        applyAntiFall(char)
-    end
-end)
 
 E:Toggle({
     Title = "防止摔落伤害",
@@ -322,11 +324,9 @@ E:Toggle({
     Callback = function(state)
         antiFallEnabled = state
         if state then
-            if player.Character then
-                applyAntiFall(player.Character)
-            end
+            startAntiFall()
         else
-            removeAntiFall()
+            stopAntiFall()
         end
     end
 })
