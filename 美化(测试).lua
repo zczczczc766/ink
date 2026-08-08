@@ -74,21 +74,15 @@ local function loadAccessory(id, name)
     task.defer(function()
         pcall(function()
             local char = player.Character
-            if not char then
-                return
-            end
+            if not char then return end
             local head = char:FindFirstChild("Head")
-            if not head then
-                return
-            end
+            if not head then return end
             if wornAccessories[name] then
                 wornAccessories[name]:Destroy()
                 wornAccessories[name] = nil
             end
             local acc = game:GetObjects("rbxassetid://"..id)[1]
-            if not acc then
-                return
-            end
+            if not acc then return end
             local handle = acc:FindFirstChild("Handle")
             if not handle then
                 acc:Destroy()
@@ -96,12 +90,36 @@ local function loadAccessory(id, name)
             end
             local A1 = handle:FindFirstChildOfClass("Attachment")
             if not A1 then
-                acc:Destroy()
+                acc.Parent = char
+                handle.Anchored = false
+                handle.Massless = true
+                local weld = Instance.new("Weld", handle)
+                weld.Part0 = handle
+                weld.Part1 = head
+                weld.C0 = CFrame.new(0, 0.5, 0)
+                wornAccessories[name] = acc
                 return
             end
             local A0 = head:FindFirstChild(A1.Name, true)
             if not A0 then
-                acc:Destroy()
+                local bodyParts = {"HumanoidRootPart", "UpperTorso", "Torso", "LowerTorso"}
+                for _, partName in ipairs(bodyParts) do
+                    local part = char:FindFirstChild(partName)
+                    if part then
+                        A0 = part:FindFirstChild(A1.Name, true)
+                        if A0 then break end
+                    end
+                end
+            end
+            if not A0 then
+                acc.Parent = char
+                handle.Anchored = false
+                handle.Massless = true
+                local weld = Instance.new("Weld", handle)
+                weld.Part0 = handle
+                weld.Part1 = head
+                weld.C0 = CFrame.new(0, 0, -0.8)
+                wornAccessories[name] = acc
                 return
             end
             acc.Parent = char
@@ -124,8 +142,12 @@ local function removeAccessory(name)
 end
 
 local accessories = {
+    {name = "无头", id = 15093053680},
+    {name = "超级快乐脸", id = 158380697314856},
+    {name = "断腿", id = 139607718},
     {name = "8位皇家王冠", id = 10159600649},
     {name = "8位血条", id = 10159610478},
+    {name = "美金气球", id = 14559645454},
     {name = "火角", id = 215718515},
     {name = "冰角", id = 74891470},
     {name = "毒角", id = 1744060292},
