@@ -25,7 +25,7 @@ if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI �
 B.Transparency=0.3
 B:SetTheme("Dark")
 
-local C=B:CreateWindow({Icon="moon",Title=gradient("ink_美化1",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_美化",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+local C=B:CreateWindow({Icon="moon",Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_美化",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
@@ -71,63 +71,126 @@ local accessoryStates = {}
 local wornAccessories = {}
 
 local savedBodyDescriptions = {}
+local bodyPartOriginal = {}
 
-local function applyBodyPart(name, enabled)
-    task.spawn(function()
-        local ok, err = pcall(function()
-            local char = player.Character
-            if not char then return end
-
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if not humanoid then return end
-
-            if enabled then
-                local desc = humanoid:GetAppliedDescription()
-                if not desc then return end
-
-                if not savedBodyDescriptions[name] then
-                    savedBodyDescriptions[name] = desc:Clone()
-                end
-
-                if name == "无头" then
-                    desc.Head = 15093053680
-                    desc.Face = 0
-                elseif name == "断腿" then
-                    desc.RightLeg = 139607718
-                else
-                    return
-                end
-
-                humanoid:ApplyDescription(desc)
-
-            else
-                local oldDesc = savedBodyDescriptions[name]
-                if oldDesc then
-                    local desc = humanoid:GetAppliedDescription()
-                    if not desc then return end
-
-                    if name == "无头" then
-                        desc.Head = oldDesc.Head
-                        desc.Face = oldDesc.Face
-                    elseif name == "断腿" then
-                        desc.RightLeg = oldDesc.RightLeg
-                    else
-                        return
-                    end
-
-                    humanoid:ApplyDescription(desc)
-                    savedBodyDescriptions[name] = nil
-                end
-            end
-        end)
-
-        if not ok then
-            warn("[ink_美化] "..tostring(name).." 修改失败:", err)
+-- 只处理“无头”和“断腿”。
+-- 不依赖 Humanoid:ApplyDescription()，避免注入器/游戏客户端拦截导致按钮无效果。
+local function getBodyParts(char, kind)
+    local parts = {}
+    if kind == "无头" then
+        local head = char:FindFirstChild("Head")
+        if head and head:IsA("BasePart") then
+            table.insert(parts, head)
         end
-    end)
+    elseif kind == "断腿" then
+        -- R15
+        for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot"}) do
+            local p = char:FindFirstChild(n)
+            if p and p:IsA("BasePart") then
+                table.insert(parts, p)
+            end
+        end
+        -- R6
+        local r6 = char:FindFirstChild("Right Leg")
+        if r6 and r6:IsA("BasePart") then
+            table.insert(parts, r6)
+        end
+    end
+    return parts
 end
 
+local function setLocalHidden(part, hidden)
+    if not part or not part:IsA("BasePart") then return end
+    if hidden then
+        if bodyPartOriginal[part] == nil then
+            bodyPartOriginal[part] = {
+                Transparency = part.Transparency,
+                LocalTransparencyModifier = part.LocalTransparencyModifier,
+            }
+        end
+        part.LocalTransparencyModifier = 1
+    else
+        local old = bodyPartOriginal[part]
+        if old then
+            part.Transparency = old.Transparency
+            part.LocalTransparencyModifier = old.LocalTransparencyModifier
+            bodyPartOriginal[part] = nil
+        end
+    end
+end
+
+local function applyBodyPart(name, enabled)
+    local char = player.Character
+    if not char then return end
+
+    if enabled then
+        -- 先取消旧状态，避免重复保存/重复处理
+        if name == "无头" then
+            for _, p in ipairs(getBodyParts(char, "无头")) do
+                setLocalHidden(p, true)
+            end
+
+            -- 隐藏脸部贴图/动态脸，确保不会残留一张脸。
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj:IsA("Decal") and (obj.Name == "face" or obj.Parent.Name == "Head") then
+                    if bodyPartOriginal[obj] == nil then
+                        bodyPartOriginal[obj] = {
+                            Transparency = obj.Transparency
+                        }
+                    end
+                    obj.Transparency = 1
+                end
+            end
+
+        elseif name == "断腿" then
+            -- 断腿的核心是只隐藏右腿；左右腿不会一起消失。
+            for _, p in ipairs(getBodyParts(char, "断腿")) do
+                setLocalHidden(p, true)
+            end
+        end
+    else
+        if name == "无头" then
+            for part, old in pairs(bodyPartOriginal) do
+                if typeof(part) == "Instance" and part.Parent then
+                    if part:IsA("BasePart") then
+                        part.Transparency = old.Transparency
+                        part.LocalTransparencyModifier = old.LocalTransparencyModifier
+                    elseif part:IsA("Decal") then
+                        part.Transparency = old.Transparency
+                    end
+                end
+                bodyPartOriginal[part] = nil
+            end
+        elseif name == "断腿" then
+            for part, old in pairs(bodyPartOriginal) do
+                if typeof(part) == "Instance" and part.Parent and part:IsA("BasePart") then
+                    part.Transparency = old.Transparency
+                    part.LocalTransparencyModifier = old.LocalTransparencyModifier
+                    bodyPartOriginal[part] = nil
+                end
+            end
+        end
+    end
+end
+
+-- 持续维持本地外观，防止游戏自己的角色刷新逻辑马上把透明度改回去。
+task.spawn(function()
+    while task.wait(0.25) do
+        local char = player.Character
+        if char then
+            if accessoryStates["无头"] then
+                applyBodyPart("无头", true)
+            end
+            if accessoryStates["断腿"] then
+                applyBodyPart("断腿", true)
+            end
+        end
+    end
+end)
+
 local function loadAccessory(id, name)
+    -- 只改变“无头”和“断腿”。
+    -- 其它饰品完全保持原来的 loadAccessory 逻辑。
     if name == "无头" then
         applyBodyPart(name, true)
         return
