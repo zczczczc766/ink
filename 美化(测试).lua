@@ -1,5 +1,5 @@
 local A=game:GetService("StarterGui")
-A:SetCore("SendNotification",{Title="正在执行 ink_美化",Text="加载中...",Duration=1})
+A:SetCore("SendNotification",{Title="正在执行 ink_美化1",Text="加载中...",Duration=1})
 task.wait(0.6)
 A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
 task.wait(0.3)
