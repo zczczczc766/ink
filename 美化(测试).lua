@@ -70,7 +70,72 @@ local player = game.Players.LocalPlayer
 local accessoryStates = {}
 local wornAccessories = {}
 
+local savedBodyDescriptions = {}
+
+local function applyBodyPart(name, enabled)
+    task.spawn(function()
+        local ok, err = pcall(function()
+            local char = player.Character
+            if not char then return end
+
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if not humanoid then return end
+
+            if enabled then
+                local desc = humanoid:GetAppliedDescription()
+                if not desc then return end
+
+                if not savedBodyDescriptions[name] then
+                    savedBodyDescriptions[name] = desc:Clone()
+                end
+
+                if name == "无头" then
+                    desc.Head = 15093053680
+                    desc.Face = 0
+                elseif name == "断腿" then
+                    desc.RightLeg = 139607718
+                else
+                    return
+                end
+
+                humanoid:ApplyDescription(desc)
+
+            else
+                local oldDesc = savedBodyDescriptions[name]
+                if oldDesc then
+                    local desc = humanoid:GetAppliedDescription()
+                    if not desc then return end
+
+                    if name == "无头" then
+                        desc.Head = oldDesc.Head
+                        desc.Face = oldDesc.Face
+                    elseif name == "断腿" then
+                        desc.RightLeg = oldDesc.RightLeg
+                    else
+                        return
+                    end
+
+                    humanoid:ApplyDescription(desc)
+                    savedBodyDescriptions[name] = nil
+                end
+            end
+        end)
+
+        if not ok then
+            warn("[ink_美化] "..tostring(name).." 修改失败:", err)
+        end
+    end)
+end
+
 local function loadAccessory(id, name)
+    if name == "无头" then
+        applyBodyPart(name, true)
+        return
+    elseif name == "断腿" then
+        applyBodyPart(name, true)
+        return
+    end
+
     task.defer(function()
         pcall(function()
             local char = player.Character
@@ -90,145 +155,6 @@ local function loadAccessory(id, name)
                 return
             end
 
-            -- 只针对“无头”和“断腿”做特殊处理。
-            -- 其它饰品继续使用原来的 Attachment 挂载逻辑。
-            if name == "无头" then
-                local head = char:FindFirstChild("Head")
-                if not head or not head:IsA("BasePart") then
-                    acc:Destroy()
-                    return
-                end
-
-                acc.Parent = char
-                handle.Anchored = false
-                handle.Massless = true
-                handle.CanCollide = false
-                handle.CanTouch = false
-                handle.CanQuery = false
-
-                -- 无头资源没有标准 Attachment 时，直接固定到 Head。
-                local att = handle:FindFirstChildOfClass("Attachment")
-                if att then
-                    handle.CFrame = head.CFrame * CFrame.new(0, 0.5, 0) * att.CFrame:Inverse()
-                else
-                    handle.CFrame = head.CFrame * CFrame.new(0, 0.5, 0)
-                end
-
-                local weld = Instance.new("WeldConstraint")
-                weld.Part0 = handle
-                weld.Part1 = head
-                weld.Parent = handle
-
-                wornAccessories[name] = acc
-                return
-            end
-
-            if name == "断腿" then
-                local leftLeg = char:FindFirstChild("LeftLowerLeg") or char:FindFirstChild("Left Leg")
-                local rightLeg = char:FindFirstChild("RightLowerLeg") or char:FindFirstChild("Right Leg")
-
-                if not leftLeg and not rightLeg then
-                    acc:Destroy()
-                    return
-                end
-
-                acc.Parent = char
-
-                -- 如果资源本身有左右两个部件，分别挂到左右腿。
-                local legParts = {}
-                for _, obj in ipairs(acc:GetDescendants()) do
-                    if obj:IsA("BasePart") and obj ~= handle then
-                        table.insert(legParts, obj)
-                    end
-                end
-
-                -- 标准 Attachment 优先：分别匹配左右腿 Attachment。
-                local leftAttachment, rightAttachment
-                if leftLeg then
-                    for _, obj in ipairs(leftLeg:GetDescendants()) do
-                        if obj:IsA("Attachment") then
-                            leftAttachment = leftAttachment or obj
-                        end
-                    end
-                end
-                if rightLeg then
-                    for _, obj in ipairs(rightLeg:GetDescendants()) do
-                        if obj:IsA("Attachment") then
-                            rightAttachment = rightAttachment or obj
-                        end
-                    end
-                end
-
-                -- 断腿资源通常只有一个 Handle，直接固定到对应腿；
-                -- R15 优先左/右腿，R6 使用 Left Leg / Right Leg。
-                local targets = {}
-                if leftLeg then table.insert(targets, leftLeg) end
-                if rightLeg then table.insert(targets, rightLeg) end
-
-                handle.Anchored = false
-                handle.Massless = true
-                handle.CanCollide = false
-                handle.CanTouch = false
-                handle.CanQuery = false
-
-                local handleAtt = handle:FindFirstChildOfClass("Attachment")
-                local target = targets[1]
-
-                if handleAtt then
-                    local targetAtt = nil
-                    if leftAttachment and leftAttachment.Name == handleAtt.Name then
-                        targetAtt = leftAttachment
-                    elseif rightAttachment and rightAttachment.Name == handleAtt.Name then
-                        targetAtt = rightAttachment
-                    else
-                        -- 找不到同名 Attachment 时，直接以腿部中心定位。
-                        targetAtt = target and target:FindFirstChildOfClass("Attachment")
-                    end
-
-                    if targetAtt then
-                        handle.CFrame = targetAtt.WorldCFrame * handleAtt.CFrame:Inverse()
-                    elseif target then
-                        handle.CFrame = target.CFrame
-                    end
-                elseif target then
-                    handle.CFrame = target.CFrame
-                end
-
-                local weld = Instance.new("WeldConstraint")
-                weld.Part0 = handle
-                weld.Part1 = target
-                weld.Parent = handle
-
-                -- 如果资源包含额外 BasePart，也固定到同一目标，避免散开。
-                for _, part in ipairs(legParts) do
-                    part.Anchored = false
-                    part.Massless = true
-                    part.CanCollide = false
-                    part.CanTouch = false
-                    part.CanQuery = false
-
-                    local partAtt = part:FindFirstChildOfClass("Attachment")
-                    if partAtt and rightAttachment and partAtt.Name == rightAttachment.Name and rightLeg then
-                        part.CFrame = rightAttachment.WorldCFrame * partAtt.CFrame:Inverse()
-                    elseif partAtt and leftAttachment and partAtt.Name == leftAttachment.Name and leftLeg then
-                        part.CFrame = leftAttachment.WorldCFrame * partAtt.CFrame:Inverse()
-                    else
-                        part.CFrame = target.CFrame
-                    end
-
-                    local partWeld = Instance.new("WeldConstraint")
-                    partWeld.Part0 = part
-                    partWeld.Part1 = (partAtt and rightAttachment and partAtt.Name == rightAttachment.Name and rightLeg)
-                        or (partAtt and leftAttachment and partAtt.Name == leftAttachment.Name and leftLeg)
-                        or target
-                    partWeld.Parent = part
-                end
-
-                wornAccessories[name] = acc
-                return
-            end
-
-            -- ===== 其它饰品：保持原来的逻辑，不做修改 =====
             local A1 = handle:FindFirstChildOfClass("Attachment")
             if not A1 then
                 acc.Parent = char
@@ -279,6 +205,11 @@ local function loadAccessory(id, name)
 end
 
 local function removeAccessory(name)
+    if name == "无头" or name == "断腿" then
+        applyBodyPart(name, false)
+        return
+    end
+
     if wornAccessories[name] then
         wornAccessories[name]:Destroy()
         wornAccessories[name] = nil
@@ -319,6 +250,7 @@ for _, acc in ipairs(accessories) do
 end
 
 player.CharacterAdded:Connect(function(char)
+    savedBodyDescriptions = {}
     task.wait(0.8)
     for _, acc in ipairs(accessories) do
         if accessoryStates[acc.name] then
