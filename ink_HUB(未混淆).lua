@@ -254,56 +254,29 @@ E:Toggle({
     end
 })
 
-E:Button({Title="防甩飞",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()end})
-
-local antiFallEnabled = false
-local antiFallConnections = {}
-local player = game.Players.LocalPlayer
-
-local function applyAntiFall(character)
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local conn = game:GetService("RunService").Heartbeat:Connect(function()
-        if not hrp or not hrp.Parent then
-            conn:Disconnect()
-            return
-        end
-        local vel = hrp.AssemblyLinearVelocity
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        game:GetService("RunService").RenderStepped:Wait()
-        hrp.AssemblyLinearVelocity = vel
-    end)
-    table.insert(antiFallConnections, conn)
-end
-
-local function removeAntiFall()
-    for _, conn in ipairs(antiFallConnections) do
-        pcall(conn.Disconnect, conn)
-    end
-    antiFallConnections = {}
-end
-
-local charAddedConn
-charAddedConn = player.CharacterAdded:Connect(function(char)
-    if antiFallEnabled then
-        task.wait(0.1)
-        applyAntiFall(char)
-    end
-end)
-table.insert(antiFallConnections, charAddedConn)
+local antiFlingEnabled = false
+local antiFlingThread = nil
 
 E:Toggle({
-    Title = "防止摔落伤害",
+    Title = "防甩飞",
     Value = false,
     Callback = function(state)
-        antiFallEnabled = state
+        antiFlingEnabled = state
         if state then
-            if player.Character then
-                applyAntiFall(player.Character)
-            end
+            if antiFlingThread then task.cancel(antiFlingThread) end
+            antiFlingThread = task.spawn(function()
+                while antiFlingEnabled do
+                    pcall(function()
+                        loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()
+                    end)
+                    task.wait(0.5)
+                end
+            end)
         else
-            removeAntiFall()
+            if antiFlingThread then
+                task.cancel(antiFlingThread)
+                antiFlingThread = nil
+            end
         end
     end
 })
