@@ -238,7 +238,7 @@ local function weldKorbloxModel(model, char)
 
     -- 这个资源的模型枢轴与 R6 右腿中心不一致。
     -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
-    local initialOffset = CFrame.new(0, 8, 0)
+    local initialOffset = CFrame.new(0, 9.5, 0)
     local targetPivot = target.CFrame * initialOffset
 
     if model:IsA("Model") then
