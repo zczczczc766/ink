@@ -254,30 +254,17 @@ E:Toggle({
     end
 })
 
-local antiFlingEnabled = false
-local antiFlingThread = nil
-
-E:Toggle({
+E:Button({
     Title = "防甩飞",
-    Value = false,
-    Callback = function(state)
-        antiFlingEnabled = state
-        if state then
-            if antiFlingThread then task.cancel(antiFlingThread) end
-            antiFlingThread = task.spawn(function()
-                while antiFlingEnabled do
-                    pcall(function()
-                        loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()
-                    end)
-                    task.wait(0.5)
-                end
-            end)
-        else
-            if antiFlingThread then
-                task.cancel(antiFlingThread)
-                antiFlingThread = nil
-            end
-        end
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Linux6699/DaHubRevival/main/AntiFling.lua"))()
+    end
+})
+
+E:Button({
+    Title = "防止摔落伤害",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E9%98%B2%E6%AD%A2%E6%91%94%E8%90%BD%E4%BC%A4%E5%AE%B3.lua"))()
     end
 })
 
