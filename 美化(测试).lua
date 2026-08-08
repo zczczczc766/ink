@@ -250,6 +250,15 @@ local function loadRealKorblox()
     local char = player.Character
     if not char then return false end
 
+    -- 已经加载过就不要反复 Destroy/Create。
+    -- 反复重建 CharacterMesh 可能触发角色外观刷新，从而把“无头”恢复。
+    if korbloxObject and korbloxObject.Parent == char then
+        for _, p in ipairs(getRightLegParts(char)) do
+            hideRightLegPart(p)
+        end
+        return true
+    end
+
     destroyKorblox()
 
     -- 先隐藏原右腿，避免双腿重叠。
@@ -283,6 +292,14 @@ local function loadRealKorblox()
                 hideRightLegPart(p)
             end
         end
+        -- 加载身体部件可能触发一次角色外观刷新，重新应用无头。
+        if accessoryStates["无头"] then
+            task.defer(function()
+                if player.Character == char then
+                    applyBodyPart("无头", true)
+                end
+            end)
+        end
         return true
     end
 
@@ -293,6 +310,13 @@ local function loadRealKorblox()
 
     if weldKorbloxModel(container, char) then
         korbloxObject = container
+        if accessoryStates["无头"] then
+            task.defer(function()
+                if player.Character == char then
+                    applyBodyPart("无头", true)
+                end
+            end)
+        end
         return true
     end
 
@@ -350,7 +374,14 @@ task.spawn(function()
                 applyBodyPart("无头", true)
             end
             if accessoryStates["断腿"] then
-                applyBodyPart("断腿", true)
+                -- 只维持右腿隐藏/模型存在，不重复加载 139607718。
+                if not korbloxObject or korbloxObject.Parent ~= char then
+                    applyBodyPart("断腿", true)
+                else
+                    for _, p in ipairs(getRightLegParts(char)) do
+                        hideRightLegPart(p)
+                    end
+                end
             end
         end
     end
