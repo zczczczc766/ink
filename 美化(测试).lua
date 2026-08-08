@@ -1,5 +1,5 @@
 local A=game:GetService("StarterGui")
-A:SetCore("SendNotification",{Title="正在执行 ink_美化1",Text="加载中...",Duration=1})
+A:SetCore("SendNotification",{Title="正在执行 ink_美化",Text="加载中...",Duration=1})
 task.wait(0.6)
 A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
 task.wait(0.3)
@@ -122,6 +122,7 @@ end
 local KORBLOX_ID = 139607718
 local korbloxObject = nil
 local korbloxOriginalParts = {}
+local korbloxR6DescriptionApplied = false
 
 local function rememberPart(part)
     if not part or not part:IsA("BasePart") or korbloxOriginalParts[part] then return end
@@ -137,8 +138,8 @@ end
 local function hideRightLegPart(part)
     if not part or not part:IsA("BasePart") then return end
     rememberPart(part)
-    part.Transparency = 1
     part.LocalTransparencyModifier = 1
+    part.Transparency = 1
     part.CanCollide = false
     part.CanTouch = false
     part.CanQuery = false
@@ -159,15 +160,12 @@ end
 
 local function destroyKorblox()
     if korbloxObject then
-        pcall(function()
-            korbloxObject:Destroy()
-        end)
+        pcall(function() korbloxObject:Destroy() end)
         korbloxObject = nil
     end
 
     local char = player.Character
     if char then
-        -- 如果资源是 CharacterMesh，关闭时把它移除。
         for _, obj in ipairs(char:GetChildren()) do
             if obj:IsA("CharacterMesh") and obj.Name == "Korblox Deathspeaker Right Leg" then
                 pcall(function() obj:Destroy() end)
@@ -175,34 +173,57 @@ local function destroyKorblox()
         end
     end
 
+    korbloxR6DescriptionApplied = false
     restoreRightLegParts()
 end
 
 local function getRightLegParts(char)
     local result = {}
-
-    -- R15：Korblox 右腿实际替换的是右腿身体部件，
-    -- 本地模型模式下隐藏右腿的三个部分，避免原腿和 Korblox 重叠。
-    for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot"}) do
+    for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg"}) do
         local p = char:FindFirstChild(n)
         if p and p:IsA("BasePart") then
             table.insert(result, p)
         end
     end
+    return result
+end
 
-    -- R6
-    local r6 = char:FindFirstChild("Right Leg")
-    if r6 and r6:IsA("BasePart") then
-        table.insert(result, r6)
+local function isR6(char)
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.RigType == Enum.HumanoidRigType.R6
+end
+
+local function tryApplyR6RightLegDescription(char)
+    if not isR6(char) or korbloxR6DescriptionApplied then
+        return false
     end
 
-    return result
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+
+    local ok, desc = pcall(function()
+        return hum:GetAppliedDescription()
+    end)
+    if not ok or not desc then return false end
+
+    local changed = pcall(function()
+        desc.RightLeg = KORBLOX_ID
+        hum:ApplyDescription(desc)
+    end)
+
+    if changed then
+        korbloxR6DescriptionApplied = true
+        return true
+    end
+
+    pcall(function() desc:Destroy() end)
+    return false
 end
 
 local function weldKorbloxModel(model, char)
     local target =
-        char:FindFirstChild("RightLowerLeg")
-        or char:FindFirstChild("Right Leg")
+        char:FindFirstChild("Right Leg")
+        or char:FindFirstChild("RightLowerLeg")
         or char:FindFirstChild("RightUpperLeg")
 
     if not target then return false end
@@ -214,32 +235,54 @@ local function weldKorbloxModel(model, char)
         model.PrimaryPart = primary
     end
 
-    -- Korblox模型中心点和腿部骨骼中心不同，需要偏移校准。
-    -- 调整这里的数值可以微调位置。
-    local offset = CFrame.new(0, 1.7, 0)
-
-    local pivot = target.CFrame * offset
+    -- 这个资源的模型枢轴与 R6 右腿中心不一致。
+    -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
+    local initialOffset = CFrame.new(0, 3.2, 0)
+    local targetPivot = target.CFrame * initialOffset
 
     if model:IsA("Model") then
         pcall(function()
-            model:PivotTo(pivot)
+            model:PivotTo(targetPivot)
         end)
     else
-        primary.CFrame = pivot
+        primary.CFrame = targetPivot
     end
+
+    -- 根据模型当前包围盒，把模型顶部对齐到右腿顶部附近，
+    -- 避免不同导入方式导致模型仍然偏下。
+    pcall(function()
+        local bboxCF, bboxSize = model:IsA("Model") and model:GetBoundingBox()
+            or primary.CFrame, primary.Size
+
+        local targetTop = target.Position.Y + target.Size.Y * 0.5
+        local modelTop = bboxCF.Position.Y + bboxSize.Y * 0.5
+        local correction = targetTop - modelTop + 0.05
+
+        local correctedPivot = (model:IsA("Model") and model:GetPivot() or primary.CFrame)
+            * CFrame.new(0, correction, 0)
+
+        if model:IsA("Model") then
+            model:PivotTo(correctedPivot)
+        else
+            primary.CFrame = correctedPivot
+        end
+    end)
 
     local root = model:IsA("Model") and model.PrimaryPart or primary
 
     for _, obj in ipairs(model:GetDescendants()) do
         if obj:IsA("BasePart") then
             obj.Anchored = false
+            obj.Massless = true
             obj.CanCollide = false
             obj.CanTouch = false
             obj.CanQuery = false
-            local weld = Instance.new("WeldConstraint")
-            weld.Part0 = root
-            weld.Part1 = obj
-            weld.Parent = root
+            if obj ~= root then
+                local weld = Instance.new("WeldConstraint")
+                weld.Part0 = root
+                weld.Part1 = obj
+                weld.Parent = root
+            end
         end
     end
 
@@ -255,8 +298,6 @@ local function loadRealKorblox()
     local char = player.Character
     if not char then return false end
 
-    -- 已经加载过就不要反复 Destroy/Create。
-    -- 反复重建 CharacterMesh 可能触发角色外观刷新，从而把“无头”恢复。
     if korbloxObject and korbloxObject.Parent == char then
         for _, p in ipairs(getRightLegParts(char)) do
             hideRightLegPart(p)
@@ -264,9 +305,11 @@ local function loadRealKorblox()
         return true
     end
 
-    destroyKorblox()
+    -- R6 优先尝试真正的身体部件描述。
+    if isR6(char) then
+        tryApplyR6RightLegDescription(char)
+    end
 
-    -- 先隐藏原右腿，避免双腿重叠。
     for _, p in ipairs(getRightLegParts(char)) do
         hideRightLegPart(p)
     end
@@ -276,28 +319,26 @@ local function loadRealKorblox()
     end)
 
     if not ok or not objects or not objects[1] then
-        return false
+        return korbloxR6DescriptionApplied
     end
 
     local asset = objects[1]
-
-    -- 139607718 是 Roblox 的 Right Leg 身体部件，不是普通 Accessory。
-    -- 如果注入环境把它作为 CharacterMesh 返回，直接放进角色即可。
-    local characterMesh = asset:IsA("CharacterMesh") and asset or asset:FindFirstChildWhichIsA("CharacterMesh", true)
+    local characterMesh =
+        asset:IsA("CharacterMesh") and asset
+        or asset:FindFirstChildWhichIsA("CharacterMesh", true)
 
     if characterMesh then
         characterMesh.Name = "Korblox Deathspeaker Right Leg"
-        characterMesh.BodyPart = Enum.BodyPart.RightLeg
+        pcall(function()
+            characterMesh.BodyPart = Enum.BodyPart.RightLeg
+        end)
         characterMesh.Parent = char
         korbloxObject = characterMesh
 
-        -- CharacterMesh 自身负责替换右腿外观。
         for _, p in ipairs(getRightLegParts(char)) do
-            if p ~= characterMesh then
-                hideRightLegPart(p)
-            end
+            hideRightLegPart(p)
         end
-        -- 加载身体部件可能触发一次角色外观刷新，重新应用无头。
+
         if accessoryStates["无头"] then
             task.defer(function()
                 if player.Character == char then
@@ -308,13 +349,13 @@ local function loadRealKorblox()
         return true
     end
 
-    -- 某些注入器会把身体部件返回成 Model/BasePart，使用本地焊接作为兼容路径。
     local container = asset
     container.Name = "Korblox_139607718"
     container.Parent = char
 
     if weldKorbloxModel(container, char) then
         korbloxObject = container
+
         if accessoryStates["无头"] then
             task.defer(function()
                 if player.Character == char then
@@ -326,7 +367,7 @@ local function loadRealKorblox()
     end
 
     pcall(function() container:Destroy() end)
-    return false
+    return korbloxR6DescriptionApplied
 end
 
 local function applyBodyPart(name, enabled)
@@ -380,7 +421,11 @@ task.spawn(function()
             end
             if accessoryStates["断腿"] then
                 -- 只维持右腿隐藏/模型存在，不重复加载 139607718。
-                if not korbloxObject or korbloxObject.Parent ~= char then
+                if isR6(char) and korbloxR6DescriptionApplied then
+                    for _, p in ipairs(getRightLegParts(char)) do
+                        hideRightLegPart(p)
+                    end
+                elseif not korbloxObject or korbloxObject.Parent ~= char then
                     applyBodyPart("断腿", true)
                 else
                     for _, p in ipairs(getRightLegParts(char)) do
