@@ -120,255 +120,193 @@ local function setLocalHidden(part, hidden)
 end
 
 local KORBLOX_ID = 139607718
-local KORBLOX_HEIGHT = 3 -- R15断腿高度：数值越大越往上
 local korbloxObject = nil
+local korbloxOriginalDescription = nil
 local korbloxOriginalParts = {}
-local korbloxR6DescriptionApplied = false
 
-local function rememberPart(part)
-    if not part or not part:IsA("BasePart") or korbloxOriginalParts[part] then return end
-    korbloxOriginalParts[part] = {
-        Transparency = part.Transparency,
-        LocalTransparencyModifier = part.LocalTransparencyModifier,
-        CanCollide = part.CanCollide,
-        CanTouch = part.CanTouch,
-        CanQuery = part.CanQuery,
-    }
+local function restoreKorblox()
+    local char = player.Character
+    if not char then return end
+
+    -- Remove the locally inserted body mesh/model.
+    if korbloxObject and korbloxObject.Parent then
+        pcall(function() korbloxObject:Destroy() end)
+    end
+    korbloxObject = nil
+
+    -- Restore original right-leg local visibility.
+    for part, old in pairs(korbloxOriginalParts) do
+        if part and part.Parent then
+            pcall(function()
+                part.Transparency = old.Transparency
+                part.LocalTransparencyModifier = old.LocalTransparencyModifier
+                part.CanCollide = old.CanCollide
+                part.CanTouch = old.CanTouch
+                part.CanQuery = old.CanQuery
+            end)
+        end
+    end
+    table.clear(korbloxOriginalParts)
+
+    -- If we saved a HumanoidDescription, restore it.
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid and korbloxOriginalDescription then
+        pcall(function()
+            humanoid:ApplyDescription(korbloxOriginalDescription)
+        end)
+    end
+    korbloxOriginalDescription = nil
 end
 
-local function hideRightLegPart(part)
+local function rememberAndHide(part)
     if not part or not part:IsA("BasePart") then return end
-    rememberPart(part)
+    if not korbloxOriginalParts[part] then
+        korbloxOriginalParts[part] = {
+            Transparency = part.Transparency,
+            LocalTransparencyModifier = part.LocalTransparencyModifier,
+            CanCollide = part.CanCollide,
+            CanTouch = part.CanTouch,
+            CanQuery = part.CanQuery,
+        }
+    end
     part.LocalTransparencyModifier = 1
-    part.Transparency = 1
     part.CanCollide = false
     part.CanTouch = false
     part.CanQuery = false
 end
 
-local function restoreRightLegParts()
-    for part, old in pairs(korbloxOriginalParts) do
-        if part and part.Parent then
-            part.Transparency = old.Transparency
-            part.LocalTransparencyModifier = old.LocalTransparencyModifier
-            part.CanCollide = old.CanCollide
-            part.CanTouch = old.CanTouch
-            part.CanQuery = old.CanQuery
-        end
-    end
-    table.clear(korbloxOriginalParts)
-end
-
-local function destroyKorblox()
-    if korbloxObject then
-        pcall(function() korbloxObject:Destroy() end)
-        korbloxObject = nil
-    end
-
+local function tryApplyRealBodyPart()
     local char = player.Character
-    if char then
-        for _, obj in ipairs(char:GetChildren()) do
-            if obj:IsA("CharacterMesh") and obj.Name == "Korblox Deathspeaker Right Leg" then
-                pcall(function() obj:Destroy() end)
-            end
-        end
-    end
+    if not char then return false end
 
-    korbloxR6DescriptionApplied = false
-    restoreRightLegParts()
-end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
 
-local function getRightLegParts(char)
-    local result = {}
-    for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg"}) do
-        local p = char:FindFirstChild(n)
-        if p and p:IsA("BasePart") then
-            table.insert(result, p)
-        end
-    end
-    return result
-end
-
-local function isR6(char)
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    return hum and hum.RigType == Enum.HumanoidRigType.R6
-end
-
-local function tryApplyR6RightLegDescription(char)
-    if not isR6(char) or korbloxR6DescriptionApplied then
-        return false
-    end
-
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-
-    local ok, desc = pcall(function()
-        return hum:GetAppliedDescription()
-    end)
-    if not ok or not desc then return false end
-
-    local changed = pcall(function()
-        desc.RightLeg = KORBLOX_ID
-        hum:ApplyDescription(desc)
+    -- First choice: use the actual body-part description rather than welding a model.
+    local okDesc, desc = pcall(function()
+        return humanoid:GetAppliedDescription()
     end)
 
-    if changed then
-        korbloxR6DescriptionApplied = true
-        return true
-    end
+    if okDesc and desc then
+        if not korbloxOriginalDescription then
+            korbloxOriginalDescription = desc:Clone()
+        end
 
-    pcall(function() desc:Destroy() end)
-    return false
-end
-
-local function weldKorbloxModel(model, char)
-    local target =
-        char:FindFirstChild("Right Leg")
-        or char:FindFirstChild("RightLowerLeg")
-        or char:FindFirstChild("RightUpperLeg")
-
-    if not target then return false end
-
-    local primary = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true)
-    if not primary then return false end
-
-    if model:IsA("Model") then
-        model.PrimaryPart = primary
-    end
-
-    -- 这个资源的模型枢轴与 R6 右腿中心不一致。
-    -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
-    local initialOffset = CFrame.new(0, 80, 0)
-    local targetPivot = target.CFrame * initialOffset
-
-    if model:IsA("Model") then
-        pcall(function()
-            model:PivotTo(targetPivot)
+        -- 139607718 is the Korblox right-leg body asset.
+        local okSet = pcall(function()
+            desc.RightLeg = KORBLOX_ID
         end)
-    else
-        primary.CFrame = targetPivot
-    end
 
-    -- 根据模型当前包围盒，把模型顶部对齐到右腿顶部附近，
-    -- 避免不同导入方式导致模型仍然偏下。
-    pcall(function()
-        local bboxCF, bboxSize = model:IsA("Model") and model:GetBoundingBox()
-            or primary.CFrame, primary.Size
+        if okSet then
+            local okApply = pcall(function()
+                humanoid:ApplyDescription(desc)
+            end)
 
-        local targetTop = target.Position.Y + target.Size.Y * 0.5
-        local modelTop = bboxCF.Position.Y + bboxSize.Y * 0.5
-        local correction = targetTop - modelTop + 0.05
-
-        local correctedPivot = (model:IsA("Model") and model:GetPivot() or primary.CFrame)
-            * CFrame.new(0, correction, 0)
-
-        if model:IsA("Model") then
-            model:PivotTo(correctedPivot)
-        else
-            primary.CFrame = correctedPivot
-        end
-    end)
-
-    local root = model:IsA("Model") and model.PrimaryPart or primary
-
-    for _, obj in ipairs(model:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            obj.Anchored = false
-            obj.Massless = true
-            obj.CanCollide = false
-            obj.CanTouch = false
-            obj.CanQuery = false
-            if obj ~= root then
-                local weld = Instance.new("WeldConstraint")
-                weld.Part0 = root
-                weld.Part1 = obj
-                weld.Parent = root
+            if okApply then
+                -- Keep headless active if it was already enabled.
+                if accessoryStates and accessoryStates["无头"] then
+                    task.defer(function()
+                        if player.Character == char then
+                            applyBodyPart("无头", true)
+                        end
+                    end)
+                end
+                return true
             end
         end
     end
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = target
-    weld.Part1 = root
-    weld.Parent = root
-
-    return true
+    return false
 end
 
 local function loadRealKorblox()
     local char = player.Character
     if not char then return false end
 
-    if korbloxObject and korbloxObject.Parent == char then
-        for _, p in ipairs(getRightLegParts(char)) do
-            hideRightLegPart(p)
-        end
+    -- Do not repeatedly reapply the description.
+    if korbloxObject == char then
         return true
     end
 
-    -- R6 优先尝试真正的身体部件描述。
-    if isR6(char) then
-        tryApplyR6RightLegDescription(char)
+    -- Prefer the real HumanoidDescription body-part replacement.
+    if tryApplyRealBodyPart() then
+        korbloxObject = char
+        return true
     end
 
-    for _, p in ipairs(getRightLegParts(char)) do
-        hideRightLegPart(p)
-    end
-
+    -- Fallback for injectors that cannot ApplyDescription:
+    -- load the asset and use CharacterMesh if the asset exposes one.
     local ok, objects = pcall(function()
         return game:GetObjects("rbxassetid://" .. tostring(KORBLOX_ID))
     end)
-
     if not ok or not objects or not objects[1] then
-        return korbloxR6DescriptionApplied
+        return false
     end
 
     local asset = objects[1]
-    local characterMesh =
-        asset:IsA("CharacterMesh") and asset
-        or asset:FindFirstChildWhichIsA("CharacterMesh", true)
+    local mesh = asset:IsA("CharacterMesh") and asset or asset:FindFirstChildWhichIsA("CharacterMesh", true)
 
-    if characterMesh then
-        characterMesh.Name = "Korblox Deathspeaker Right Leg"
+    if mesh then
+        mesh.Name = "Korblox Deathspeaker Right Leg"
         pcall(function()
-            characterMesh.BodyPart = Enum.BodyPart.RightLeg
+            mesh.BodyPart = Enum.BodyPart.RightLeg
         end)
-        characterMesh.Parent = char
-        korbloxObject = characterMesh
+        mesh.Parent = char
+        korbloxObject = mesh
 
-        for _, p in ipairs(getRightLegParts(char)) do
-            hideRightLegPart(p)
+        -- Hide the original visible right-leg geometry so only the body-part mesh remains.
+        for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg"}) do
+            local p = char:FindFirstChild(n)
+            if p and p:IsA("BasePart") then
+                rememberAndHide(p)
+            end
         end
 
-        if accessoryStates["无头"] then
-            task.defer(function()
-                if player.Character == char then
-                    applyBodyPart("无头", true)
-                end
-            end)
-        end
         return true
     end
 
-    local container = asset
-    container.Name = "Korblox_139607718"
-    container.Parent = char
+    pcall(function() asset:Destroy() end)
+    return false
+end
 
-    if weldKorbloxModel(container, char) then
-        korbloxObject = container
+local function applyBodyPart(name, enabled)
+    local char = player.Character
+    if not char then return end
 
-        if accessoryStates["无头"] then
-            task.defer(function()
-                if player.Character == char then
-                    applyBodyPart("无头", true)
+    if name == "无头" then
+        if enabled then
+            for _, p in ipairs(getBodyParts(char, "无头")) do
+                setLocalHidden(p, true)
+            end
+            for _, obj in ipairs(char:GetDescendants()) do
+                if obj:IsA("Decal") and (obj.Name == "face" or (obj.Parent and obj.Parent.Name == "Head")) then
+                    if bodyPartOriginal[obj] == nil then
+                        bodyPartOriginal[obj] = {Transparency = obj.Transparency}
+                    end
+                    obj.Transparency = 1
                 end
-            end)
+            end
+        else
+            for part, old in pairs(bodyPartOriginal) do
+                if typeof(part) == "Instance" and part.Parent then
+                    if part:IsA("BasePart") then
+                        part.Transparency = old.Transparency
+                        part.LocalTransparencyModifier = old.LocalTransparencyModifier
+                    elseif part:IsA("Decal") then
+                        part.Transparency = old.Transparency
+                    end
+                end
+                bodyPartOriginal[part] = nil
+            end
         end
-        return true
-    end
 
-    pcall(function() container:Destroy() end)
-    return korbloxR6DescriptionApplied
+    elseif name == "断腿" then
+        if enabled then
+            loadRealKorblox()
+        else
+            restoreKorblox()
+        end
+    end
 end
 
 local function applyBodyPart(name, enabled)
