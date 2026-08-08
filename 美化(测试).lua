@@ -74,37 +74,44 @@ local function loadAccessory(id, name)
     task.defer(function()
         pcall(function()
             local char = player.Character
-            if not char or not char:FindFirstChild("Head") then
+            if not char then
                 return
             end
-            -- 移除已存在的同名饰品
+            local head = char:FindFirstChild("Head")
+            if not head then
+                return
+            end
             if wornAccessories[name] then
                 wornAccessories[name]:Destroy()
                 wornAccessories[name] = nil
             end
-            -- 使用 game:GetObjects 加载（兼容性更好）
-            local model = game:GetObjects("rbxassetid://"..id)[1]
-            if not model then
-                warn("饰品加载失败: " .. name)
+            local acc = game:GetObjects("rbxassetid://"..id)[1]
+            if not acc then
                 return
             end
-            local handle = model:FindFirstChild("Handle")
+            local handle = acc:FindFirstChild("Handle")
             if not handle then
-                model:Destroy()
-                warn("饰品没有 Handle: " .. name)
+                acc:Destroy()
                 return
             end
-            local head = char.Head
-            model.Parent = char
+            local A1 = handle:FindFirstChildOfClass("Attachment")
+            if not A1 then
+                acc:Destroy()
+                return
+            end
+            local A0 = head:FindFirstChild(A1.Name, true)
+            if not A0 then
+                acc:Destroy()
+                return
+            end
+            acc.Parent = char
             handle.Anchored = false
             handle.Massless = true
-            -- 直接焊接，不使用 Attachment
-            local weld = Instance.new("Weld", handle)
+            handle.CFrame = A0.WorldCFrame * A1.CFrame:Inverse()
+            local weld = Instance.new("WeldConstraint", handle)
             weld.Part0 = handle
-            weld.Part1 = head
-            -- 默认偏移：头顶上方 0.5 格（可调整）
-            weld.C0 = CFrame.new(0, 0.5, 0)
-            wornAccessories[name] = model
+            weld.Part1 = A0.Parent
+            wornAccessories[name] = acc
         end)
     end)
 end
