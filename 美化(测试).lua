@@ -75,8 +75,6 @@ local function loadAccessory(id, name)
         pcall(function()
             local char = player.Character
             if not char then return end
-            local head = char:FindFirstChild("Head")
-            if not head then return end
             if wornAccessories[name] then
                 wornAccessories[name]:Destroy()
                 wornAccessories[name] = nil
@@ -95,20 +93,19 @@ local function loadAccessory(id, name)
                 handle.Massless = true
                 local weld = Instance.new("Weld", handle)
                 weld.Part0 = handle
-                weld.Part1 = head
+                weld.Part1 = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
                 weld.C0 = CFrame.new(0, 0.5, 0)
                 wornAccessories[name] = acc
                 return
             end
-            local A0 = head:FindFirstChild(A1.Name, true)
-            if not A0 then
-                local bodyParts = {"HumanoidRootPart", "UpperTorso", "Torso", "LowerTorso"}
-                for _, partName in ipairs(bodyParts) do
-                    local part = char:FindFirstChild(partName)
-                    if part then
-                        A0 = part:FindFirstChild(A1.Name, true)
-                        if A0 then break end
-                    end
+            local A0 = nil
+            -- 按顺序搜索：头部 → 躯干 → 腿部
+            local searchParts = {"Head", "HumanoidRootPart", "UpperTorso", "Torso", "LowerTorso", "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg"}
+            for _, partName in ipairs(searchParts) do
+                local part = char:FindFirstChild(partName)
+                if part then
+                    A0 = part:FindFirstChild(A1.Name, true)
+                    if A0 then break end
                 end
             end
             if not A0 then
@@ -117,8 +114,8 @@ local function loadAccessory(id, name)
                 handle.Massless = true
                 local weld = Instance.new("Weld", handle)
                 weld.Part0 = handle
-                weld.Part1 = head
-                weld.C0 = CFrame.new(0, 0, -0.8)
+                weld.Part1 = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+                weld.C0 = CFrame.new(0, 0.5, 0)
                 wornAccessories[name] = acc
                 return
             end
