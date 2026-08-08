@@ -119,37 +119,205 @@ local function setLocalHidden(part, hidden)
     end
 end
 
+local KORBLOX_ID = 139607718
+local korbloxObject = nil
+local korbloxOriginalParts = {}
+
+local function rememberPart(part)
+    if not part or not part:IsA("BasePart") or korbloxOriginalParts[part] then return end
+    korbloxOriginalParts[part] = {
+        Transparency = part.Transparency,
+        LocalTransparencyModifier = part.LocalTransparencyModifier,
+        CanCollide = part.CanCollide,
+        CanTouch = part.CanTouch,
+        CanQuery = part.CanQuery,
+    }
+end
+
+local function hideRightLegPart(part)
+    if not part or not part:IsA("BasePart") then return end
+    rememberPart(part)
+    part.LocalTransparencyModifier = 1
+    part.CanCollide = false
+    part.CanTouch = false
+    part.CanQuery = false
+end
+
+local function restoreRightLegParts()
+    for part, old in pairs(korbloxOriginalParts) do
+        if part and part.Parent then
+            part.Transparency = old.Transparency
+            part.LocalTransparencyModifier = old.LocalTransparencyModifier
+            part.CanCollide = old.CanCollide
+            part.CanTouch = old.CanTouch
+            part.CanQuery = old.CanQuery
+        end
+    end
+    table.clear(korbloxOriginalParts)
+end
+
+local function destroyKorblox()
+    if korbloxObject then
+        pcall(function()
+            korbloxObject:Destroy()
+        end)
+        korbloxObject = nil
+    end
+
+    local char = player.Character
+    if char then
+        -- 如果资源是 CharacterMesh，关闭时把它移除。
+        for _, obj in ipairs(char:GetChildren()) do
+            if obj:IsA("CharacterMesh") and obj.Name == "Korblox Deathspeaker Right Leg" then
+                pcall(function() obj:Destroy() end)
+            end
+        end
+    end
+
+    restoreRightLegParts()
+end
+
+local function getRightLegParts(char)
+    local result = {}
+
+    -- R15：Korblox 右腿实际替换的是右腿身体部件，
+    -- 本地模型模式下隐藏右腿的三个部分，避免原腿和 Korblox 重叠。
+    for _, n in ipairs({"RightUpperLeg", "RightLowerLeg", "RightFoot"}) do
+        local p = char:FindFirstChild(n)
+        if p and p:IsA("BasePart") then
+            table.insert(result, p)
+        end
+    end
+
+    -- R6
+    local r6 = char:FindFirstChild("Right Leg")
+    if r6 and r6:IsA("BasePart") then
+        table.insert(result, r6)
+    end
+
+    return result
+end
+
+local function weldKorbloxModel(model, char)
+    local target =
+        char:FindFirstChild("RightLowerLeg")
+        or char:FindFirstChild("Right Leg")
+        or char:FindFirstChild("RightUpperLeg")
+
+    if not target then return false end
+
+    local primary = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true)
+    if not primary then return false end
+
+    if model:IsA("Model") then
+        model.PrimaryPart = primary
+    end
+
+    -- 尽量使用资源自身的位置；如果是普通模型，则以目标腿为基准。
+    local pivot = target.CFrame
+    if model:IsA("Model") then
+        pcall(function()
+            model:PivotTo(pivot)
+        end)
+    else
+        primary.CFrame = pivot
+    end
+
+    local root = model:IsA("Model") and model.PrimaryPart or primary
+
+    for _, obj in ipairs(model:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Anchored = false
+            obj.CanCollide = false
+            obj.CanTouch = false
+            obj.CanQuery = false
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = root
+            weld.Part1 = obj
+            weld.Parent = root
+        end
+    end
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = target
+    weld.Part1 = root
+    weld.Parent = root
+
+    return true
+end
+
+local function loadRealKorblox()
+    local char = player.Character
+    if not char then return false end
+
+    destroyKorblox()
+
+    -- 先隐藏原右腿，避免双腿重叠。
+    for _, p in ipairs(getRightLegParts(char)) do
+        hideRightLegPart(p)
+    end
+
+    local ok, objects = pcall(function()
+        return game:GetObjects("rbxassetid://" .. tostring(KORBLOX_ID))
+    end)
+
+    if not ok or not objects or not objects[1] then
+        return false
+    end
+
+    local asset = objects[1]
+
+    -- 139607718 是 Roblox 的 Right Leg 身体部件，不是普通 Accessory。
+    -- 如果注入环境把它作为 CharacterMesh 返回，直接放进角色即可。
+    local characterMesh = asset:IsA("CharacterMesh") and asset or asset:FindFirstChildWhichIsA("CharacterMesh", true)
+
+    if characterMesh then
+        characterMesh.Name = "Korblox Deathspeaker Right Leg"
+        characterMesh.BodyPart = Enum.BodyPart.RightLeg
+        characterMesh.Parent = char
+        korbloxObject = characterMesh
+
+        -- CharacterMesh 自身负责替换右腿外观。
+        for _, p in ipairs(getRightLegParts(char)) do
+            if p ~= characterMesh then
+                hideRightLegPart(p)
+            end
+        end
+        return true
+    end
+
+    -- 某些注入器会把身体部件返回成 Model/BasePart，使用本地焊接作为兼容路径。
+    local container = asset
+    container.Name = "Korblox_139607718"
+    container.Parent = char
+
+    if weldKorbloxModel(container, char) then
+        korbloxObject = container
+        return true
+    end
+
+    pcall(function() container:Destroy() end)
+    return false
+end
+
 local function applyBodyPart(name, enabled)
     local char = player.Character
     if not char then return end
 
-    if enabled then
-        -- 先取消旧状态，避免重复保存/重复处理
-        if name == "无头" then
+    if name == "无头" then
+        if enabled then
             for _, p in ipairs(getBodyParts(char, "无头")) do
                 setLocalHidden(p, true)
             end
-
-            -- 隐藏脸部贴图/动态脸，确保不会残留一张脸。
             for _, obj in ipairs(char:GetDescendants()) do
-                if obj:IsA("Decal") and (obj.Name == "face" or obj.Parent.Name == "Head") then
+                if obj:IsA("Decal") and (obj.Name == "face" or (obj.Parent and obj.Parent.Name == "Head")) then
                     if bodyPartOriginal[obj] == nil then
-                        bodyPartOriginal[obj] = {
-                            Transparency = obj.Transparency
-                        }
+                        bodyPartOriginal[obj] = {Transparency = obj.Transparency}
                     end
                     obj.Transparency = 1
                 end
             end
-
-        elseif name == "断腿" then
-            -- 断腿的核心是只隐藏右腿；左右腿不会一起消失。
-            for _, p in ipairs(getBodyParts(char, "断腿")) do
-                setLocalHidden(p, true)
-            end
-        end
-    else
-        if name == "无头" then
+        else
             for part, old in pairs(bodyPartOriginal) do
                 if typeof(part) == "Instance" and part.Parent then
                     if part:IsA("BasePart") then
@@ -161,14 +329,14 @@ local function applyBodyPart(name, enabled)
                 end
                 bodyPartOriginal[part] = nil
             end
-        elseif name == "断腿" then
-            for part, old in pairs(bodyPartOriginal) do
-                if typeof(part) == "Instance" and part.Parent and part:IsA("BasePart") then
-                    part.Transparency = old.Transparency
-                    part.LocalTransparencyModifier = old.LocalTransparencyModifier
-                    bodyPartOriginal[part] = nil
-                end
-            end
+        end
+
+    elseif name == "断腿" then
+        if enabled then
+            -- 真正加载 139607718，而不是单纯把原腿透明。
+            loadRealKorblox()
+        else
+            destroyKorblox()
         end
     end
 end
@@ -281,7 +449,6 @@ end
 
 local accessories = {
     {name = "无头", id = 15093053680},
-    {name = "超级快乐脸", id = 158380697314856},
     {name = "断腿", id = 139607718},
     {name = "8位皇家王冠", id = 10159600649},
     {name = "8位血条", id = 10159610478},
