@@ -268,52 +268,6 @@ E:Button({
     end
 })
 
-local r6AnimEnabled = false
-local r6AnimConnection
-
-local function applyR6Animation()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-
-    local animate = char:FindFirstChild("Animate")
-    if not animate then return end
-
-    local animId = "rbxassetid://149344844441554"
-
-    for _, obj in ipairs(animate:GetDescendants()) do
-        if obj:IsA("Animation") then
-            obj.AnimationId = animId
-        end
-    end
-end
-
-E:Toggle({
-    Title = "改R6",
-    Value = false,
-    Callback = function(v)
-        r6AnimEnabled = v
-        if v then
-            applyR6Animation()
-            if r6AnimConnection then
-                r6AnimConnection:Disconnect()
-            end
-            r6AnimConnection = LocalPlayer.CharacterAdded:Connect(function()
-                task.wait(1)
-                if r6AnimEnabled then
-                    applyR6Animation()
-                end
-            end)
-        else
-            if r6AnimConnection then
-                r6AnimConnection:Disconnect()
-                r6AnimConnection = nil
-            end
-        end
-    end
-})
-
 E:Button({Title = "祖国人",Callback = function()loadstring(game:HttpGet("https://raw.githubusercontent.com/giobolqv1/homelander-by-GioBolqv1-/main/homelander.lua"))()end})
 
 E:Button({Title="无敌少侠飞行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/Script/refs/heads/main/MobileFly.lua"))()end})
