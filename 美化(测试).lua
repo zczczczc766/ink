@@ -137,6 +137,7 @@ end
 local function hideRightLegPart(part)
     if not part or not part:IsA("BasePart") then return end
     rememberPart(part)
+    part.Transparency = 1
     part.LocalTransparencyModifier = 1
     part.CanCollide = false
     part.CanTouch = false
@@ -213,8 +214,12 @@ local function weldKorbloxModel(model, char)
         model.PrimaryPart = primary
     end
 
-    -- 尽量使用资源自身的位置；如果是普通模型，则以目标腿为基准。
-    local pivot = target.CFrame
+    -- Korblox模型中心点和腿部骨骼中心不同，需要偏移校准。
+    -- 调整这里的数值可以微调位置。
+    local offset = CFrame.new(0, 1.7, 0)
+
+    local pivot = target.CFrame * offset
+
     if model:IsA("Model") then
         pcall(function()
             model:PivotTo(pivot)
