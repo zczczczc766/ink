@@ -120,6 +120,7 @@ local function setLocalHidden(part, hidden)
 end
 
 local KORBLOX_ID = 139607718
+local KORBLOX_HEIGHT = 3 -- R15断腿高度：数值越大越往上
 local korbloxObject = nil
 local korbloxOriginalParts = {}
 local korbloxR6DescriptionApplied = false
@@ -237,7 +238,7 @@ local function weldKorbloxModel(model, char)
 
     -- 这个资源的模型枢轴与 R6 右腿中心不一致。
     -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
-    local initialOffset = CFrame.new(0, 30, 0)
+    local initialOffset = CFrame.new(0, 10, 0)
     local targetPivot = target.CFrame * initialOffset
 
     if model:IsA("Model") then
