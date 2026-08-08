@@ -1026,15 +1026,19 @@ MusicTab:Button({
     end
 })
 
-local L=D:Tab({Title="FE",Icon="zap"})
-L:Button({Title="coolgui",Callback=function()loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)()end})
-L:Button({Title="被遗弃人物",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))()end})
-L:Button({Title="R15下蹲",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Azizanzz0/Scripts/refs/heads/main/Crouching.txt"))()end})
-L:Button({Title="爬行",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_vZDX8j5ggfAf58QhdJ59BVEmF6nmZgq4Mcjt2l8wn16CiStIW2P6EkNc605qv9K4.lua.txt"))()end})
-L:Button({Title="免费动作",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/Gazer-Ha/Free-emote/refs/heads/main/Delta%20mad%20stuffs"))()end})
-L:Button({Title="假延迟",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/RENZXW/RENZXW-SCRIPTS/main/fakeLAGRENZXW.txt"))()end})
-L:Button({Title="假VR(仅自然灾害)",Callback=function()loadstring(game:HttpGet("https://pastefy.app/MvKHpycG/raw"))()end})
-L:Button({Title="冲刺",Callback=function()loadstring(game:HttpGet("https://pastefy.app/ZhKVgCK3/raw"))()end})
+local L = D:Tab({Title="FE", Icon="zap"})
+L:Button({Title="coolgui", Callback=function() loadstring(game:GetObjects("rbxassetid://8127297852")[1].Source)() end})
+L:Button({Title="被遗弃人物", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/CyberNinja103/brodwa/refs/heads/main/ForsakationHub"))() end})
+L:Button({Title="R15下蹲", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Azizanzz0/Scripts/refs/heads/main/Crouching.txt"))() end})
+L:Button({Title="爬行", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe/main/obf_vZDX8j5ggfAf58QhdJ59BVEmF6nmZgq4Mcjt2l8wn16CiStIW2P6EkNc605qv9K4.lua.txt"))() end})
+L:Button({Title="免费动作", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Gazer-Ha/Free-emote/refs/heads/main/Delta%20mad%20stuffs"))() end})
+L:Button({Title="假延迟", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/RENZXW/RENZXW-SCRIPTS/main/fakeLAGRENZXW.txt"))() end})
+L:Button({Title="假VR(仅自然灾害)", Callback=function() loadstring(game:HttpGet("https://pastefy.app/MvKHpycG/raw"))() end})
+L:Button({Title="冲刺", Callback=function() loadstring(game:HttpGet("https://pastefy.app/ZhKVgCK3/raw"))() end})
+L:Button({Title="NPC控制", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty13.lua"))() end})
+L:Button({Title="击杀NPC", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/GUI-Offical/FileTest/refs/heads/main/Grab%20R6.txt", true))() end})
+L:Button({Title="更改动画包+动作", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))() end})
+L:Button({Title="更改动画包", Callback=function() loadstring(game:HttpGet("https://api.rubis.app/v2/scrap/PwFrcMysMOIJuWAQ/raw"))() end})
 
 local M=D:Tab({Title="漏洞",Icon="bug"})
 M:Button({Title="AC6音乐播放器",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-FE-Ac6-Music-Vulnerability-25536"))()end})
@@ -1043,14 +1047,15 @@ M:Button({Title="后门执行器2",Callback=function()loadstring(game:HttpGet("h
 M:Button({Title="UnethicalNetworks f3x gui v9",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-UnethicalNetworks-f3x-gui-v9-124640"))()end})
 M:Button({Title="UnethicalNetworks f3x gui v6 v7 v8",Callback=function()loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-UnethicalNetworks-f3x-gui-v6v7v8-121690"))()end})
 
-local P=D:Tab({Title="其它脚本",Icon="code"})
-P:Button({Title="被遗弃角色|皮肤修改器",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E8%A2%AB%E9%81%97%E5%BC%83%E8%A7%92%E8%89%B2or%E7%9A%AE%E8%82%A4%E5%88%87%E6%8D%A2%E5%99%A8.lua"))()end})
-P:Button({Title="夜脚本",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/ylt410/roblox-Script/refs/heads/main/yejiaoben"))()end})
-P:Button({Title="ROB脚本",Callback=function()loadstring(game:HttpGet("https://raw.gitcode.com/ROB5201314/robscript/raw/main/ROB.V3"))()end})
-P:Button({Title="NPC控制",Callback=function()loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty13.lua"))()end})
-
 local N=D:Tab({Title="末日砖块",Icon="target"})
 local O=D:Tab({Title="被遗弃",Icon="ghost"})
+
+O:Button({
+    Title = "加载角色/皮肤修改器",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E8%A2%AB%E9%81%97%E5%BC%83%E8%A7%92%E8%89%B2or%E7%9A%AE%E8%82%A4%E5%88%87%E6%8D%A2%E5%99%A8.lua"))()
+    end
+})
 
 O:Toggle({Title="改视野",Value=false,Callback=function()
     local player=game.Players.LocalPlayer
