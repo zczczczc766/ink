@@ -64,7 +64,7 @@ Z:Button({Title="复制作者QQ", Callback=function() setclipboard("2047955671")
 Z:Button({Title="复制作者QQ群", Callback=function() setclipboard("1101093219") A:SetCore("SendNotification",{Title="已复制", Text="作者QQ群：1101093219", Duration=2}) end})
 Z:Button({Title="复制作者副群", Callback=function() setclipboard("1063828524") A:SetCore("SendNotification",{Title="已复制", Text="作者副群：1063828524", Duration=2}) end})
 
-local CosmeticsTab = D:Tab({Title="美化饰品", Icon="sparkles"})
+local CosmeticsTab = D:Tab({Title="角色美化", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
 local accessoryStates = {}
@@ -130,6 +130,8 @@ local accessories = {
     {name = "红色多米诺王冠", id = 42211680},
     {name = "火焰莫西干", id = 191101707},
     {name = "闪亮女武神", id = 1180433861},
+    {name = "超级快乐脸", id = 14559645454},
+    {name = "紫色瓦尔基里", id = 1402432199},
 }
 
 for _, acc in ipairs(accessories) do
