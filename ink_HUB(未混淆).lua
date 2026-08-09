@@ -1,3 +1,39 @@
+-- ink_HUB 启动保护版
+local function safeNotify(title,text,duration)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification",{
+            Title=title,
+            Text=text,
+            Duration=duration or 3
+        })
+    end)
+end
+
+local function safeHttpGet(url)
+    local ok,res=pcall(function()
+        return game:HttpGet(url)
+    end)
+    if ok then return res end
+    return nil
+end
+
+local tasklib=task or {}
+if not tasklib.wait then
+    tasklib.wait=function(t)
+        wait(t)
+    end
+end
+if not tasklib.spawn then
+    tasklib.spawn=function(f)
+        coroutine.wrap(f)()
+    end
+end
+task=tasklib
+
+safeNotify("正在执行 ink_HUB","启动保护已开启",2)
+
+local ok,err=xpcall(function()
+
 local A=game:GetService("StarterGui")
 A:SetCore("SendNotification",{Title="正在执行 ink_HUB",Text="加载中...",Duration=1})
 task.wait(0.6)
@@ -20,7 +56,13 @@ local function gradient(text,startColor,endColor)
     return result
 end
 
-local B=loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
+local B=nil
+pcall(function()
+    local code=safeHttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua")
+    if code then
+        B=loadstring(code)()
+    end
+end)
 if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI 库加载失败",Duration=3}) return end
 B.Transparency=0.3
 B:SetTheme("Dark")
@@ -3020,3 +3062,8 @@ task.spawn(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E4%BD%9C%E8%80%85%E6%A3%80%E6%B5%8B.lua"))()
     end)
 end)
+
+end,function(e)
+    safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
+end)
+
