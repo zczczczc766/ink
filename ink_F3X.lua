@@ -2772,7 +2772,7 @@ do
     -- 小型竖版窗口
     frame.Size = UDim2.new(0, 400, 0, 520)
     frame.Position = UDim2.new(0, 20, 0, 100)
-    frame.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+    frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     frame.BorderSizePixel = 2
     frame.ClipsDescendants = true
 
