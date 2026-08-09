@@ -20,10 +20,54 @@ local function gradient(text,startColor,endColor)
     return result
 end
 
-local B=loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
-if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI 库加载失败",Duration=3}) return end
-B.Transparency=0.3
-B:SetTheme("Dark")
+local B=nil
+local winduiUrls = {
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
+    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
+    "https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"
+}
+
+local winduiLastError = "未知错误"
+
+for _,url in ipairs(winduiUrls) do
+    local ok, result = pcall(function()
+        local code = game:HttpGet(url)
+        if type(code) ~= "string" or #code < 100 then
+            error("UI库返回内容为空")
+        end
+
+        local loader = loadstring(code)
+        if type(loader) ~= "function" then
+            error("loadstring失败")
+        end
+
+        return loader()
+    end)
+
+    if ok and result then
+        B = result
+        break
+    else
+        winduiLastError = tostring(result)
+    end
+
+    task.wait(0.25)
+end
+
+if not B then
+    pcall(function()
+        A:SetCore("SendNotification",{
+            Title="WindUI加载失败",
+            Text="请检查Delta网络/HttpGet支持",
+            Duration=5
+        })
+    end)
+    warn("[ink_美化] WindUI加载失败:", winduiLastError)
+    return
+end
+
+pcall(function() B.Transparency=0.3 end)
+pcall(function() B:SetTheme("Dark") end)
 
 local C=B:CreateWindow({Icon="moon",Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_美化",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_美化",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
@@ -142,8 +186,9 @@ local function updateAccessoryVisibility()
             if isWhitelistAccessory(obj) then
                 setAccessoryHidden(obj, false)
             elseif allAccessoriesHidden then
+                -- “去掉所有饰品”不处理头发；头发由“去掉头发”单独控制
                 if isHairAccessory(obj) then
-                    setAccessoryHidden(obj, false)
+                    setAccessoryHidden(obj, hairHidden)
                 else
                     setAccessoryHidden(obj, true)
                 end
