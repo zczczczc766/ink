@@ -1,3 +1,38 @@
+local function safeNotify(title,text,duration)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification",{
+            Title=title,
+            Text=text,
+            Duration=duration or 3
+        })
+    end)
+end
+
+local function safeHttpGet(url)
+    local ok,res=pcall(function()
+        return game:HttpGet(url)
+    end)
+    if ok then return res end
+    return nil
+end
+
+local tasklib=task or {}
+if not tasklib.wait then
+    tasklib.wait=function(t)
+        wait(t)
+    end
+end
+if not tasklib.spawn then
+    tasklib.spawn=function(f)
+        coroutine.wrap(f)()
+    end
+end
+task=tasklib
+
+safeNotify("正在执行 ink_HUB","启动保护已开启",2)
+
+local ok,err=xpcall(function()
+
 local A=game:GetService("StarterGui")
 A:SetCore("SendNotification",{Title="正在执行 ink_HUB",Text="加载中...",Duration=1})
 task.wait(0.6)
@@ -20,10 +55,46 @@ local function gradient(text,startColor,endColor)
     return result
 end
 
-local B=loadstring(game:HttpGet("https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"))()
-if not B then A:SetCore("SendNotification",{Title="加载失败",Text="WindUI 库加载失败",Duration=3}) return end
-B.Transparency=0.3
-B:SetTheme("Dark")
+local B=nil
+local winduiUrls = {
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
+    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
+    "https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"
+}
+
+local winduiLastError = "未知错误"
+
+for _,url in ipairs(winduiUrls) do
+    local ok, result = pcall(function()
+        local code = game:HttpGet(url)
+        if type(code) ~= "string" or #code < 100 then
+            error("UI库返回内容为空")
+        end
+        local loader = loadstring(code)
+        if type(loader) ~= "function" then
+            error("loadstring失败")
+        end
+        return loader()
+    end)
+    if ok and result then
+        B = result
+        break
+    else
+        winduiLastError = tostring(result)
+    end
+    task.wait(0.25)
+end
+
+if not B then
+    pcall(function()
+        A:SetCore("SendNotification",{Title="WindUI加载失败",Text="请检查Delta网络/HttpGet支持",Duration=5})
+    end)
+    warn("[ink_HUB] WindUI加载失败:", winduiLastError)
+    return
+end
+
+pcall(function() B.Transparency=0.3 end)
+pcall(function() B:SetTheme("Dark") end)
 
 local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
@@ -2653,3 +2724,8 @@ task.spawn(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E4%BD%9C%E8%80%85%E6%A3%80%E6%B5%8B.lua"))()
     end)
 end)
+
+end,function(e)
+    safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
+end)
+
