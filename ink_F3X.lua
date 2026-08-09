@@ -2772,7 +2772,7 @@ do
     -- 小型竖版窗口
     frame.Size = UDim2.new(0, 400, 0, 520)
     frame.Position = UDim2.new(0, 20, 0, 100)
-    frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    frame.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
     frame.BorderSizePixel = 2
     frame.ClipsDescendants = true
 
@@ -2780,8 +2780,8 @@ do
     title.Size = UDim2.new(0, 380, 0, 46)
     title.Position = UDim2.new(0, 10, 0, 8)
     title.TextSize = 25
-    title.BackgroundColor3 = Color3.fromRGB(11, 27, 8)
-    title.TextColor3 = Color3.fromRGB(180, 255, 190)
+    title.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+    title.TextColor3 = Color3.fromRGB(0, 0, 0)
     title.ZIndex = 5
 
     -- 功能滚动区域
