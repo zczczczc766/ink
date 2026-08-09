@@ -68,12 +68,10 @@ local CosmeticsTab = D:Tab({Title="角色美化", Icon="sparkles"})
 
 local player = game.Players.LocalPlayer
 
--- 角色美化顶部功能：去掉头发 / 去掉所有饰品
 local hairHidden = false
 local allAccessoriesHidden = false
 local accessoryOriginal = {}
 
--- 脚本添加饰品白名单（不会被“去掉所有饰品”隐藏）
 local accessoryWhitelist = {}
 
 local function addAccessoryWhitelist(accessory)
@@ -126,7 +124,6 @@ local function isHairAccessory(accessory)
         return true
     end
 
-    -- 某些游戏/饰品没有正确设置 AccessoryType 时，用 HairAttachment 补充判断。
     local handle = accessory:FindFirstChild("Handle")
     if handle and handle:FindFirstChild("HairAttachment") then
         return true
@@ -143,10 +140,8 @@ local function updateAccessoryVisibility()
     for _, obj in ipairs(char:GetChildren()) do
         if obj:IsA("Accessory") then
             if isWhitelistAccessory(obj) then
-                -- 脚本添加的饰品永远保留
                 setAccessoryHidden(obj, false)
             elseif allAccessoriesHidden then
-                -- 去掉所有饰品，但保留头发
                 if isHairAccessory(obj) then
                     setAccessoryHidden(obj, false)
                 else
@@ -185,8 +180,6 @@ local wornAccessories = {}
 local savedBodyDescriptions = {}
 local bodyPartOriginal = {}
 
--- 只处理“无头”和“断腿”。
--- 不依赖 Humanoid:ApplyDescription()，避免注入器/游戏客户端拦截导致按钮无效果。
 local function getBodyParts(char, kind)
     local parts = {}
     if kind == "无头" then
@@ -202,7 +195,6 @@ local function getBodyParts(char, kind)
                 table.insert(parts, p)
             end
         end
-        -- R6
         local r6 = char:FindFirstChild("Right Leg")
         if r6 and r6:IsA("BasePart") then
             table.insert(parts, r6)
@@ -243,7 +235,7 @@ local function setLocalHidden(part, hidden)
 end
 
 local KORBLOX_ID = 139607718
-local KORBLOX_HEIGHT = 3 -- R15断腿高度：数值越大越往上
+local KORBLOX_HEIGHT = 3
 local korbloxObject = nil
 local korbloxOriginalParts = {}
 local korbloxR6DescriptionApplied = false
@@ -359,8 +351,6 @@ local function weldKorbloxModel(model, char)
         model.PrimaryPart = primary
     end
 
-    -- 这个资源的模型枢轴与 R6 右腿中心不一致。
-    -- 用更大的上移量，并根据模型实际包围盒再做一次顶部对齐。
     local initialOffset = CFrame.new(0, 25, 0)
     local targetPivot = target.CFrame * initialOffset
 
@@ -372,8 +362,6 @@ local function weldKorbloxModel(model, char)
         primary.CFrame = targetPivot
     end
 
-    -- 根据模型当前包围盒，把模型顶部对齐到右腿顶部附近，
-    -- 避免不同导入方式导致模型仍然偏下。
     pcall(function()
         local bboxCF, bboxSize = model:IsA("Model") and model:GetBoundingBox()
             or primary.CFrame, primary.Size
@@ -429,7 +417,6 @@ local function loadRealKorblox()
         return true
     end
 
-    -- R6 优先尝试真正的身体部件描述。
     if isR6(char) then
         tryApplyR6RightLegDescription(char)
     end
@@ -527,7 +514,6 @@ local function applyBodyPart(name, enabled)
 
     elseif name == "断腿" then
         if enabled then
-            -- 真正加载 139607718，而不是单纯把原腿透明。
             loadRealKorblox()
         else
             destroyKorblox()
@@ -549,7 +535,6 @@ local function applyBodyPart(name, enabled)
     end
 end
 
--- 持续维持本地外观，防止游戏自己的角色刷新逻辑马上把透明度改回去。
 task.spawn(function()
     while task.wait(0.25) do
         local char = player.Character
@@ -566,7 +551,6 @@ task.spawn(function()
                 end
             end
             if accessoryStates["断腿"] then
-                -- 只维持右腿隐藏/模型存在，不重复加载 139607718。
                 if isR6(char) and korbloxR6DescriptionApplied then
                     for _, p in ipairs(getRightLegParts(char)) do
                         hideRightLegPart(p)
@@ -584,8 +568,6 @@ task.spawn(function()
 end)
 
 local function loadAccessory(id, name)
-    -- 只改变“无头”和“断腿”。
-    -- 其它饰品完全保持原来的 loadAccessory 逻辑。
     if name == "无头" then
         applyBodyPart(name, true)
         return
