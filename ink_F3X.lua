@@ -2749,4 +2749,135 @@ RequestCommand:InvokeServer(";SM ALRIGHT CHANGING MUSIC")
 RequestCommand:InvokeServer(";MUSIC 99695831392938  ;VOLUME INF")
 
 end)
+
+--[[
+    UI 重排：小型竖版 + 可拖动 + 两列按钮 + 上下滚动
+    只调整界面，不改动原按钮点击功能。
+]]
+do
+    local UIS = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+
+    local frame = LMG2L["Frame_2"]
+    local title = LMG2L["TextBox_6"]
+    local scroll = LMG2L["ScrollingFrame_5"]
+    local oldImage = LMG2L["ImageLabel_4"]
+
+    -- 删除原来的背景图片，避免遮挡/占空间
+    if oldImage then
+        oldImage:Destroy()
+    end
+
+    -- 小型竖版窗口
+    frame.Size = UDim2.new(0, 400, 0, 520)
+    frame.Position = UDim2.new(0, 20, 0, 100)
+    frame.BackgroundColor3 = Color3.fromRGB(16, 35, 32)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+
+    -- 标题
+    title.Size = UDim2.new(0, 380, 0, 46)
+    title.Position = UDim2.new(0, 10, 0, 8)
+    title.TextSize = 25
+    title.BackgroundColor3 = Color3.fromRGB(11, 27, 8)
+    title.TextColor3 = Color3.fromRGB(180, 255, 190)
+    title.ZIndex = 5
+
+    -- 功能滚动区域
+    scroll.Size = UDim2.new(0, 380, 0, 452)
+    scroll.Position = UDim2.new(0, 10, 0, 60)
+    scroll.BackgroundColor3 = Color3.fromRGB(28, 29, 28)
+    scroll.BorderSizePixel = 0
+    scroll.ScrollBarThickness = 6
+    scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    scroll.ScrollingEnabled = true
+    scroll.ClipsDescendants = true
+
+    -- 两列排列
+    local grid = scroll:FindFirstChild("Rob45Grid")
+    if grid then grid:Destroy() end
+    grid = Instance.new("UIGridLayout")
+    grid.Name = "Rob45Grid"
+    grid.Parent = scroll
+    grid.CellSize = UDim2.new(0, 180, 0, 48)
+    grid.CellPadding = UDim2.new(0, 8, 0, 8)
+    grid.FillDirection = Enum.FillDirection.Horizontal
+    grid.FillDirectionMaxCells = 2
+    grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    grid.VerticalAlignment = Enum.VerticalAlignment.Top
+    grid.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local buttons = {}
+    for _, child in ipairs(scroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            table.insert(buttons, child)
+        end
+    end
+
+    -- 按原来的上下顺序排列，每排两个
+    table.sort(buttons, function(a, b)
+        local ay = a.Position.Y.Offset
+        local by = b.Position.Y.Offset
+        return ay < by
+    end)
+
+    for i, button in ipairs(buttons) do
+        button.LayoutOrder = i
+        button.Size = UDim2.new(0, 180, 0, 48)
+        button.Position = UDim2.new(0, 0, 0, 0)
+        button.TextSize = 20
+        button.AutoButtonColor = true
+    end
+
+    -- 内容不足时保留一点底部空间
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+    -- 只允许通过标题拖动窗口，避免和滚动手势冲突
+    local dragging = false
+    local dragStart
+    local startPos
+    local dragInput
+
+    local function updateDrag(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateDrag(input)
+        end
+    end)
+end
+
 return LMG2L["ScreenGui_1"], require;
