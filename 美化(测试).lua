@@ -186,8 +186,12 @@ local function updateAccessoryVisibility()
             if isWhitelistAccessory(obj) then
                 setAccessoryHidden(obj, false)
             elseif allAccessoriesHidden then
-                -- “去掉所有饰品”包含头发；脚本自己加载的白名单饰品仍然保留
-                setAccessoryHidden(obj, true)
+                -- “去掉所有饰品”不处理头发；头发由“去掉头发”单独控制
+                if isHairAccessory(obj) then
+                    setAccessoryHidden(obj, hairHidden)
+                else
+                    setAccessoryHidden(obj, true)
+                end
             elseif hairHidden and isHairAccessory(obj) then
                 setAccessoryHidden(obj, true)
             else
