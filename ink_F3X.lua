@@ -21,8 +21,8 @@ LMG2L["ScreenGui_1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
 LMG2L["Frame_2"] = Instance.new("Frame", LMG2L["ScreenGui_1"]);
 LMG2L["Frame_2"]["BorderSizePixel"] = 0;
 LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(16, 35, 32);
-LMG2L["Frame_2"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["Frame_2"]["Size"] = UDim2.new(0, 474, 0, 294);
+LMG2L["Frame_2"]["AutomaticSize"] = Enum.AutomaticSize.None;
+LMG2L["Frame_2"]["Size"] = UDim2.new(0, 560, 0, 650);
 LMG2L["Frame_2"]["Position"] = UDim2.new(0, 26, 0, 118);
 
 
@@ -37,27 +37,34 @@ LMG2L["ImageLabel_4"]["BorderSizePixel"] = 0;
 LMG2L["ImageLabel_4"]["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
 -- LMG2L["ImageLabel_4"]["ImageContent"] = ;
 LMG2L["ImageLabel_4"]["Image"] = [[rbxassetid://98398077305252]];
-LMG2L["ImageLabel_4"]["Size"] = UDim2.new(0, 452, 0, 286);
-LMG2L["ImageLabel_4"]["Position"] = UDim2.new(0, 12, 0, 4);
+LMG2L["ImageLabel_4"]["Size"] = UDim2.new(0, 540, 0, 630);
+LMG2L["ImageLabel_4"]["Position"] = UDim2.new(0, 10, 0, 10);
 
 
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.ScrollingFrame
 LMG2L["ScrollingFrame_5"] = Instance.new("ScrollingFrame", LMG2L["Frame_2"]);
 LMG2L["ScrollingFrame_5"]["BorderSizePixel"] = 0;
 LMG2L["ScrollingFrame_5"]["BackgroundColor3"] = Color3.fromRGB(28, 29, 28);
-LMG2L["ScrollingFrame_5"]["Size"] = UDim2.new(0, 4, 0, 252);
-LMG2L["ScrollingFrame_5"]["Position"] = UDim2.new(0, 468, 0, 24);
+LMG2L["ScrollingFrame_5"]["Size"] = UDim2.new(0, 540, 0, 565);
+LMG2L["ScrollingFrame_5"]["Position"] = UDim2.new(0, 10, 0, 72);
+LMG2L["ScrollingFrame_5"]["CanvasSize"] = UDim2.new(0, 0, 0, 1200);
+LMG2L["ScrollingFrame_5"]["AutomaticCanvasSize"] = Enum.AutomaticSize.Y;
+LMG2L["ScrollingFrame_5"]["ScrollingDirection"] = Enum.ScrollingDirection.Y;
+LMG2L["ScrollingFrame_5"]["ScrollBarThickness"] = 8;
+LMG2L["ScrollingFrame_5"]["ClipsDescendants"] = true;
 
 
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextBox
 LMG2L["TextBox_6"] = Instance.new("TextBox", LMG2L["Frame_2"]);
 LMG2L["TextBox_6"]["BorderSizePixel"] = 0;
-LMG2L["TextBox_6"]["TextSize"] = 42;
+LMG2L["TextBox_6"]["TextSize"] = 36;
 LMG2L["TextBox_6"]["BackgroundColor3"] = Color3.fromRGB(11, 27, 8);
 LMG2L["TextBox_6"]["FontFace"] = Font.new([[rbxasset://fonts/families/Arial.json]], Enum.FontWeight.Bold, Enum.FontStyle.Normal);
-LMG2L["TextBox_6"]["Size"] = UDim2.new(0, 440, 0, 46);
-LMG2L["TextBox_6"]["Position"] = UDim2.new(0, 16, 0, -46);
+LMG2L["TextBox_6"]["Size"] = UDim2.new(0, 520, 0, 54);
+LMG2L["TextBox_6"]["Position"] = UDim2.new(0, 20, 0, 10);
 LMG2L["TextBox_6"]["Text"] = [[Rob45 f3x gui]];
+LMG2L["TextBox_6"]["ClearTextOnFocus"] = false;
+LMG2L["TextBox_6"]["TextEditable"] = false;
 
 
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextBox.UICorner
@@ -66,17 +73,17 @@ LMG2L["UICorner_7"] = Instance.new("UICorner", LMG2L["TextBox_6"]);
 
 
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_8"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_8"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_8"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_8"]["TextSize"] = 28;
 LMG2L["TextButton_8"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_8"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_8"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_8"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_8"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_8"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_8"]["Text"] = [[skybox]];
 LMG2L["TextButton_8"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_8"]["Position"] = UDim2.new(0, 26, 0, 6);
+LMG2L["TextButton_8"]["Position"] = UDim2.new(0, 10, 0, 8);
 LMG2L["TextButton_8"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 local char = player.Character
@@ -374,16 +381,16 @@ Sky("98398077305252")
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_9"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_9"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_9"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_9"]["TextSize"] = 28;
 LMG2L["TextButton_9"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_9"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_9"]["Size"] = UDim2.new(0, 84, 0, 54);
+LMG2L["TextButton_9"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_9"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_9"]["Text"] = [[decal]];
 LMG2L["TextButton_9"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_9"]["Position"] = UDim2.new(0, 110, 0, 6);
+LMG2L["TextButton_9"]["Position"] = UDim2.new(0, 10, 0, 72);
 LMG2L["TextButton_9"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 	local char = player.Character
@@ -659,16 +666,16 @@ local player = game.Players.LocalPlayer
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_a"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_a"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_a"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_a"]["TextSize"] = 28;
 LMG2L["TextButton_a"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_a"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_a"]["Size"] = UDim2.new(0, 84, 0, 54);
+LMG2L["TextButton_a"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_a"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_a"]["Text"] = [[particles]];
 LMG2L["TextButton_a"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_a"]["Position"] = UDim2.new(0, 198, 0, 4);
+LMG2L["TextButton_a"]["Position"] = UDim2.new(0, 10, 0, 136);
 LMG2L["TextButton_a"].MouseButton1Click:Connect(function()
 local Player = game.Players.LocalPlayer
 local NewAssetID = "rbxassetid://98398077305252"
@@ -743,16 +750,16 @@ end)
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_b"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_b"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_b"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_b"]["TextSize"] = 28;
 LMG2L["TextButton_b"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_b"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_b"]["Size"] = UDim2.new(0, 84, 0, 54);
+LMG2L["TextButton_b"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_b"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_b"]["Text"] = [[theme]];
 LMG2L["TextButton_b"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_b"]["Position"] = UDim2.new(0, 286, 0, 6);
+LMG2L["TextButton_b"]["Position"] = UDim2.new(0, 10, 0, 200);
 LMG2L["TextButton_b"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
@@ -763,16 +770,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_c"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_c"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_c"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_c"]["TextSize"] = 28;
 LMG2L["TextButton_c"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_c"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_c"]["Size"] = UDim2.new(0, 84, 0, 54);
+LMG2L["TextButton_c"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_c"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_c"]["Text"] = [[Kill all]];
 LMG2L["TextButton_c"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_c"]["Position"] = UDim2.new(0, 374, 0, 6);
+LMG2L["TextButton_c"]["Position"] = UDim2.new(0, 10, 0, 264);
 LMG2L["TextButton_c"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 	local char = player.Character
@@ -990,17 +997,17 @@ local player = game.Players.LocalPlayer
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_d"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_d"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_d"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_d"]["TextSize"] = 28;
 LMG2L["TextButton_d"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_d"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_d"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_d"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_d"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_d"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_d"]["Text"] = [[hint message]];
 LMG2L["TextButton_d"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_d"]["Position"] = UDim2.new(0, 26, 0, 64);
+LMG2L["TextButton_d"]["Position"] = UDim2.new(0, 10, 0, 328);
 LMG2L["TextButton_d"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
@@ -1010,17 +1017,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_e"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_e"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_e"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_e"]["TextSize"] = 28;
 LMG2L["TextButton_e"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_e"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_e"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_e"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_e"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_e"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_e"]["Text"] = [[fuck part]];
 LMG2L["TextButton_e"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_e"]["Position"] = UDim2.new(0, 110, 0, 62);
+LMG2L["TextButton_e"]["Position"] = UDim2.new(0, 10, 0, 392);
 LMG2L["TextButton_e"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 		local char = player.Character
@@ -1253,17 +1260,17 @@ local player = game.Players.LocalPlayer
 		
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_f"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_f"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_f"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_f"]["TextSize"] = 28;
 LMG2L["TextButton_f"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_f"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_f"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_f"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_f"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_f"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_f"]["Text"] = [[troll rain]];
 LMG2L["TextButton_f"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_f"]["Position"] = UDim2.new(0, 200, 0, 64);
+LMG2L["TextButton_f"]["Position"] = UDim2.new(0, 10, 0, 456);
 LMG2L["TextButton_f"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 	local char = player.Character or player.CharacterAdded:Wait()
@@ -1463,17 +1470,17 @@ local player = game.Players.LocalPlayer
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_10"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_10"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_10"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_10"]["TextSize"] = 28;
 LMG2L["TextButton_10"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_10"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_10"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_10"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_10"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_10"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_10"]["Text"] = [[disco]];
 LMG2L["TextButton_10"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_10"]["Position"] = UDim2.new(0, 284, 0, 60);
+LMG2L["TextButton_10"]["Position"] = UDim2.new(0, 10, 0, 520);
 LMG2L["TextButton_10"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
@@ -1483,17 +1490,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_11"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_11"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_11"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_11"]["TextSize"] = 28;
 LMG2L["TextButton_11"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_11"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_11"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_11"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_11"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_11"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_11"]["Text"] = [[chat all]];
 LMG2L["TextButton_11"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_11"]["Position"] = UDim2.new(0, 370, 0, 60);
+LMG2L["TextButton_11"]["Position"] = UDim2.new(0, 10, 0, 584);
 LMG2L["TextButton_11"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
@@ -1502,17 +1509,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_12"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_12"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_12"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_12"]["TextSize"] = 28;
 LMG2L["TextButton_12"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_12"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_12"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_12"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_12"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_12"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_12"]["Text"] = [[mesh all]];
 LMG2L["TextButton_12"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_12"]["Position"] = UDim2.new(0, 24, 0, 118);
+LMG2L["TextButton_12"]["Position"] = UDim2.new(0, 10, 0, 648);
 LMG2L["TextButton_12"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 		local char = player.Character
@@ -1591,17 +1598,17 @@ local player = game.Players.LocalPlayer
 		
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_13"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_13"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_13"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_13"]["TextSize"] = 28;
 LMG2L["TextButton_13"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_13"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_13"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_13"]["Size"] = UDim2.new(0, 80, 0, 54);
+
+LMG2L["TextButton_13"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_13"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_13"]["Text"] = [[face all]];
 LMG2L["TextButton_13"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_13"]["Position"] = UDim2.new(0, 110, 0, 118);
+LMG2L["TextButton_13"]["Position"] = UDim2.new(0, 10, 0, 712);
 LMG2L["TextButton_13"].MouseButton1Click:Connect(function()
 local success, errorMessage = pcall(function()
 		local player = game.Players.LocalPlayer
@@ -1815,17 +1822,17 @@ local success, errorMessage = pcall(function()
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_14"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_14"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_14"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_14"]["TextSize"] = 28;
 LMG2L["TextButton_14"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_14"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_14"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_14"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_14"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_14"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_14"]["Text"] = [[Unanchor]];
 LMG2L["TextButton_14"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_14"]["Position"] = UDim2.new(0, 200, 0, 118);
+LMG2L["TextButton_14"]["Position"] = UDim2.new(0, 10, 0, 776);
 LMG2L["TextButton_14"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 	local char = player.Character
@@ -2043,17 +2050,17 @@ local player = game.Players.LocalPlayer
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_15"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_15"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_15"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_15"]["TextSize"] = 28;
 LMG2L["TextButton_15"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_15"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_15"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_15"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_15"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_15"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_15"]["Text"] = [[baseplatel]];
 LMG2L["TextButton_15"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_15"]["Position"] = UDim2.new(0, 286, 0, 120);
+LMG2L["TextButton_15"]["Position"] = UDim2.new(0, 10, 0, 840);
 LMG2L["TextButton_15"].MouseButton1Click:Connect(function()
 local player = game.Players.LocalPlayer
 	local char = player.Character
@@ -2337,17 +2344,17 @@ local player = game.Players.LocalPlayer
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_16"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_16"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_16"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_16"]["TextSize"] = 28;
 LMG2L["TextButton_16"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_16"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_16"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_16"]["Size"] = UDim2.new(0, 84, 0, 54);
+
+LMG2L["TextButton_16"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_16"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_16"]["Text"] = [[notice all]];
 LMG2L["TextButton_16"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_16"]["Position"] = UDim2.new(0, 374, 0, 120);
+LMG2L["TextButton_16"]["Position"] = UDim2.new(0, 10, 0, 904);
 LMG2L["TextButton_16"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
@@ -2356,17 +2363,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
-LMG2L["TextButton_17"] = Instance.new("TextButton", LMG2L["Frame_2"]);
+LMG2L["TextButton_17"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
 LMG2L["TextButton_17"]["BorderSizePixel"] = 0;
 LMG2L["TextButton_17"]["TextSize"] = 28;
 LMG2L["TextButton_17"]["BackgroundColor3"] = Color3.fromRGB(151, 64, 255);
 LMG2L["TextButton_17"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_17"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_17"]["Size"] = UDim2.new(0, 362, 0, 54);
+
+LMG2L["TextButton_17"]["Size"] = UDim2.new(0, 510, 0, 54);
 LMG2L["TextButton_17"]["BorderColor3"] = Color3.fromRGB(44, 193, 154);
 LMG2L["TextButton_17"]["Text"] = [[realm]];
 LMG2L["TextButton_17"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_17"]["Position"] = UDim2.new(0, 56, 0, 216);
+LMG2L["TextButton_17"]["Position"] = UDim2.new(0, 10, 0, 968);
 LMG2L["TextButton_17"].MouseButton1Click:Connect(function()
 --[[
 	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
@@ -2742,92 +2749,4 @@ RequestCommand:InvokeServer(";SM ALRIGHT CHANGING MUSIC")
 RequestCommand:InvokeServer(";MUSIC 99695831392938  ;VOLUME INF")
 
 end)
--- Players.godwhy532.PlayerGui.ScreenGui.Frame.ImageLabel
-LMG2L["ImageLabel_18"] = Instance.new("ImageLabel", LMG2L["Frame_2"]);
-LMG2L["ImageLabel_18"]["BorderSizePixel"] = 0;
-LMG2L["ImageLabel_18"]["BackgroundColor3"] = Color3.fromRGB(255, 86, 44);
--- LMG2L["ImageLabel_18"]["ImageContent"] = ;
-LMG2L["ImageLabel_18"]["Image"] = [[rbxassetid://98398077305252]];
-LMG2L["ImageLabel_18"]["Size"] = UDim2.new(0, 156, 0, 306);
-LMG2L["ImageLabel_18"]["BorderColor3"] = Color3.fromRGB(130, 201, 254);
-LMG2L["ImageLabel_18"]["Position"] = UDim2.new(0, 466, 0, -2);
-
-
--- Players.godwhy532.PlayerGui.ScreenGui.Frame.ImageLabel.TextLabel
-LMG2L["TextLabel_19"] = Instance.new("TextLabel", LMG2L["ImageLabel_18"]);
-LMG2L["TextLabel_19"]["BorderSizePixel"] = 0;
-LMG2L["TextLabel_19"]["TextSize"] = 42;
-LMG2L["TextLabel_19"]["BackgroundColor3"] = Color3.fromRGB(129, 147, 153);
-LMG2L["TextLabel_19"]["FontFace"] = Font.new([[rbxasset://fonts/families/Guru.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
-LMG2L["TextLabel_19"]["Size"] = UDim2.new(0, 618, 0, 126);
-LMG2L["TextLabel_19"]["Text"] = [[Gui made by Rob45 thank you use]];
-LMG2L["TextLabel_19"]["Position"] = UDim2.new(0, -466, 0, 280);
-
-
--- Players.godwhy532.PlayerGui.ScreenGui.Frame.ImageLabel.UICorner
-LMG2L["UICorner_1a"] = Instance.new("UICorner", LMG2L["ImageLabel_18"]);
-
-
-
--- Players.godwhy532.PlayerGui.ScreenGui.Frame.ImageLabel.TextButton
-LMG2L["TextButton_1b"] = Instance.new("TextButton", LMG2L["ImageLabel_18"]);
-LMG2L["TextButton_1b"]["BorderSizePixel"] = 0;
-LMG2L["TextButton_1b"]["TextStrokeColor3"] = Color3.fromRGB(62, 207, 91);
-LMG2L["TextButton_1b"]["TextSize"] = 28;
-LMG2L["TextButton_1b"]["TextColor3"] = Color3.fromRGB(28, 54, 15);
-LMG2L["TextButton_1b"]["BackgroundColor3"] = Color3.fromRGB(255, 246, 58);
-LMG2L["TextButton_1b"]["FontFace"] = Font.new([[rbxasset://fonts/families/BuilderSans.json]], Enum.FontWeight.ExtraBold, Enum.FontStyle.Normal);
-LMG2L["TextButton_1b"]["AutomaticSize"] = Enum.AutomaticSize.XY;
-LMG2L["TextButton_1b"]["Size"] = UDim2.new(0, 162, 0, 92);
-LMG2L["TextButton_1b"]["BorderColor3"] = Color3.fromRGB(192, 193, 179);
-LMG2L["TextButton_1b"]["Text"] = [[F3X]];
-LMG2L["TextButton_1b"]["Rotation"] = 10;
-LMG2L["TextButton_1b"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
-LMG2L["TextButton_1b"]["Position"] = UDim2.new(0, -4, 0, -94);
-LMG2L["TextButton_1b"].MouseButton1Click:Connect(function()
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
-
-	RequestCommand:InvokeServer(";btools me")
-
-end)
-
--- UI改造：竖版长方形 + 上下滑动
-local mainFrame = LMG2L["Frame_2"]
-mainFrame.Size = UDim2.new(0, 220, 0, 520)
-mainFrame.Position = UDim2.new(0, 20, 0, 80)
-mainFrame.AutomaticSize = Enum.AutomaticSize.None
-
-local scroll = LMG2L["ScrollingFrame_5"]
-scroll.Size = UDim2.new(1, -20, 1, -70)
-scroll.Position = UDim2.new(0, 10, 0, 60)
-scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 6
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local list = Instance.new("UIListLayout")
-list.Parent = scroll
-list.SortOrder = Enum.SortOrder.LayoutOrder
-list.Padding = UDim.new(0, 8)
-
-for _,v in ipairs(mainFrame:GetChildren()) do
-	if v:IsA("TextButton") then
-		v.Parent = scroll
-		v.Size = UDim2.new(1, -10, 0, 45)
-		v.Position = UDim2.new(0,0,0,0)
-		v.Rotation = 0
-	end
-end
-
-if LMG2L["ImageLabel_4"] then
-	LMG2L["ImageLabel_4"].Size = UDim2.new(1, -20, 1, -20)
-	LMG2L["ImageLabel_4"].Position = UDim2.new(0, 10, 0, 10)
-end
-
-if LMG2L["TextBox_6"] then
-	LMG2L["TextBox_6"].Size = UDim2.new(1, -20, 0, 45)
-	LMG2L["TextBox_6"].Position = UDim2.new(0, 10, 0, 5)
-end
-
 return LMG2L["ScreenGui_1"], require;
