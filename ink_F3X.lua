@@ -2682,16 +2682,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	end
 
 	local function sky()
-		local position = CFrame.new(0, 5, 0)
-		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
-
-		makemesh(sky)
-		syncmeshid(sky, "132893898645050")
-		syncmeshtexture(sky, "132893898645050")
-		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
-		lock(sky, true)
-		name(sky, "riposku")
-		setcollision(sky, false)
+		Sky("98398077305252")
 	end
 
 
