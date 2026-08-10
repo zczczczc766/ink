@@ -2410,13 +2410,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	end
 
 	local function sky()
-		local position = CFrame.new(0, 5, 0)
+		local player = game.Players.LocalPlayer
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:WaitForChild("HumanoidRootPart")
+		local position = hrp.CFrame * CFrame.new(0, 20, 0)
 		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
 
 		makemesh(sky)
 		syncmeshid(sky, "132893898645050")
 		syncmeshtexture(sky, "132893898645050")
-		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
+		syncmeshsize(sky, Vector3.new(600, 600, 600))
 		lock(sky, true)
 		name(sky, "riposku")
 		setcollision(sky, false)
