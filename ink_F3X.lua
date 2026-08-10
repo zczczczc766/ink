@@ -330,51 +330,50 @@ function AddDecal(part,asset,side)
 end
 
 function Sky(id)
-    local e = char.HumanoidRootPart.CFrame.x
-    local f = char.HumanoidRootPart.CFrame.y
-    local g = char.HumanoidRootPart.CFrame.z
-    local spawnPos = CFrame.new(math.floor(e), math.floor(f), math.floor(g)) + Vector3.new(0, 6, 0)
-    
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
+    local pos = hrp.Position
+    local spawnPos = CFrame.new(math.floor(pos.X), math.floor(pos.Y) + 6, math.floor(pos.Z))
+
     CreatePart(spawnPos, workspace)
-    task.wait(0.2) 
+    task.wait(0.35)
 
     local skyPart
-    for i, v in workspace:GetDescendants() do
-        if v:IsA("BasePart") and (v.Position - spawnPos.p).Magnitude < 1 then
-            skyPart = v
-            SetName(v, "RandomSpinSky")
-            AddMesh(v)
-            SetMesh(v, "132893898645050")
-            SetTexture(v, id)
-            MeshResize(v, Vector3.new(2500, 2500, 2500))
-            SetLocked(v, true)
-            SetAnchor(true, v)
-            SetCollision(v, false)
-            break
+    local closestDistance = 3
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            local distance = (v.Position - spawnPos.Position).Magnitude
+            if distance < closestDistance then
+                skyPart = v
+                closestDistance = distance
+            end
         end
     end
 
-    if skyPart then
-        local t = 0
-        local baseSpeed = 14
-        local randomness = 14
-        
-        game:GetService("RunService").Heartbeat:Connect(function(dt)
-            t = t + dt
-            
-            local rotX = math.sin(t * 1.5) * randomness
-            local rotY = t * baseSpeed 
-            local rotZ = math.cos(t * 2.1) * randomness
-            
-            local newCf = spawnPos * CFrame.Angles(
-                math.rad(rotX), 
-                math.rad(rotY), 
-                math.rad(rotZ)
-            )
-            
-            MovePart(skyPart, newCf)
-        end)
-    end
+    if not skyPart then return end
+
+    SetName(skyPart, "RandomSpinSky")
+    AddMesh(skyPart)
+    SetMesh(skyPart, "132893898645050")
+    SetTexture(skyPart, id)
+    MeshResize(skyPart, Vector3.new(2500, 2500, 2500))
+    SetLocked(skyPart, true)
+    SetAnchor(true, skyPart)
+    SetCollision(skyPart, false)
+
+    local runService = game:GetService("RunService")
+    local t = 0
+    local baseSpeed = 14
+    local randomness = 14
+
+    runService.Heartbeat:Connect(function(dt)
+        if not skyPart or not skyPart.Parent then return end
+        t += dt
+        local rotX = math.sin(t * 1.5) * randomness
+        local rotY = t * baseSpeed
+        local rotZ = math.cos(t * 2.1) * randomness
+        local newCf = spawnPos * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+        MovePart(skyPart, newCf)
+    end)
 end
 
 Sky("98398077305252")
@@ -2721,7 +2720,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	RequestCommand:InvokeServer(";r6 all")
 	RequestCommand:InvokeServer(";time 14")
 	wait(0.7)
-	RequestCommand:InvokeServer(";music 76578817848504 ;volume inf  ;savemap ;char all Theinkremains")
+	RequestCommand:InvokeServer(";music 76578817848504 ;volume inf  ;savemap ;char all 10380595563")
 RequestCommand:InvokeServer(";alert all hacked? L?")
 RequestCommand:InvokeServer(";m now you gonna cry about it? muhahaha hacked server")
 RequestCommand:InvokeServer(";h rip game rip server you got hacked")
