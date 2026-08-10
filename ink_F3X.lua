@@ -2682,24 +2682,23 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 	end
 
-	local function sky()
-		local position = CFrame.new(0, 5, 0)
-		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
-
-		makemesh(sky)
-		syncmeshid(sky, "132893898645050")
-		syncmeshtexture(sky, "132893898645050")
-		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
-		lock(sky, true)
-		name(sky, "riposku")
-		setcollision(sky, false)
-	end
-
-
-
-
-
-	local function unanchorall()
+\tlocal function sky()
+\t\t-- 使用服务器 Lighting Sky，不再创建旋转天空模型
+\t\tlocal Lighting = game:GetService("Lighting")
+\n\t\tlocal sky = Lighting:FindFirstChildOfClass("Sky")
+\t\tif not sky then
+\t\t\tsky = Instance.new("Sky")
+\t\t\tsky.Parent = Lighting
+\t\tend
+\n\t\tlocal id = "rbxassetid://132893898645050"
+\t\tsky.SkyboxBk = id
+\t\tsky.SkyboxDn = id
+\t\tsky.SkyboxFt = id
+\t\tsky.SkyboxLf = id
+\t\tsky.SkyboxRt = id
+\t\tsky.SkyboxUp = id
+\tend
+\n\n\n\n\n\n\tlocal function unanchorall()
 		for _, v in ipairs(workspace:GetDescendants()) do
 			if v:IsA("BasePart") or v:IsA("UnionOperation") then
 				spawn(function()
