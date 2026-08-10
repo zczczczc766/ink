@@ -329,23 +329,44 @@ function AddDecal(part,asset,side)
     _(args)
 end
 
-function Sky(id)
-    local hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
-    local pos = hrp.Position
-    local spawnPos = CFrame.new(math.floor(pos.X), math.floor(pos.Y) + 6, math.floor(pos.Z))
+	function Sky(id)
+		local hrp = char:WaitForChild("HumanoidRootPart")
+		local cf = hrp.CFrame
+		CreatePart(CFrame.new(cf.Position + Vector3.new(0, 6, 0)))
+		for _, v in workspace:GetDescendants() do
+			if v:IsA("BasePart") and v.CFrame.Position == cf.Position + Vector3.new(0, 6, 0) then
+				SetAnchor(true, v)
+				AddMesh(v)
+				SetMesh(v, "14832966960")
+				SetTexture(v, id)
+				MeshResize(v, Vector3.new(0, 0, 0))
+			end
+		end
+	end
+    end
 
-    CreatePart(spawnPos, workspace)
-    task.wait(0.35)
-
-    local skyPart
-    local closestDistance = 3
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") then
-            local distance = (v.Position - spawnPos.Position).Magnitude
-            if distance < closestDistance then
-                skyPart = v
-                closestDistance = distance
-            end
+    if skyPart then
+        local t = 0
+        local baseSpeed = 14
+        local randomness = 14
+        
+        game:GetService("RunService").Heartbeat:Connect(function(dt)
+            t = t + dt
+            
+            local rotX = math.sin(t * 1.5) * randomness
+            local rotY = t * baseSpeed 
+            local rotZ = math.cos(t * 2.1) * randomness
+            
+            local newCf = spawnPos * CFrame.Angles(
+                math.rad(rotX), 
+                math.rad(rotY), 
+                math.rad(rotZ)
+            )
+            
+            MovePart(skyPart, newCf)
+        end)
+    end
+end
         end
     end
 
@@ -1465,7 +1486,7 @@ local player = game.Players.LocalPlayer
 
 	coroutine.wrap(createRainToads)()
 
-	Sky("132893898645050") -- Here they change the skybox id
+	Sky("98398077305252")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -2312,7 +2333,7 @@ local player = game.Players.LocalPlayer
 					["Part"] = part,
 					["Face"] = Enum.NormalId.Top,
 					["TextureType"] = "Texture",
-					["Texture"] = "rbxassetid://103208025717125",
+					["Texture"] = "rbxassetid://98398077305252",
 					["StudsPerTileV"] = 20,
 					["StudsPerTileU"] = 20
 				}
@@ -2682,7 +2703,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	end
 
 	local function sky()
-		Sky("98398077305252")
+		local position = CFrame.new(0, 5, 0)
+		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
+
+		makemesh(sky)
+		syncmeshid(sky, "132893898645050")
+		syncmeshtexture(sky, "132893898645050")
+		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
+		lock(sky, true)
+		name(sky, "riposku")
+		setcollision(sky, false)
 	end
 
 
