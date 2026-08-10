@@ -85,300 +85,27 @@ LMG2L["TextButton_8"]["Text"] = [[skybox]];
 LMG2L["TextButton_8"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
 LMG2L["TextButton_8"]["Position"] = UDim2.new(0, 10, 0, 8);
 LMG2L["TextButton_8"].MouseButton1Click:Connect(function()
-local player = game.Players.LocalPlayer
-local char = player.Character
-local tool
-for i,v in player:GetDescendants() do
-    if v.Name == "SyncAPI" then
-        tool = v.Parent
-    end
-end
-for i,v in game.ReplicatedStorage:GetDescendants() do
-    if v.Name == "SyncAPI" then
-        tool = v.Parent
-    end
-end
-remote = tool.SyncAPI.ServerEndpoint
-function _(args)
-    remote:InvokeServer(unpack(args))
-end
-function SetCollision(part,boolean)
-    local args = {
-        [1] = "SyncCollision",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["CanCollide"] = boolean
-            }
-        }
-    }
-    _(args)
-end
-function SetAnchor(boolean,part)
-    local args = {
-        [1] = "SyncAnchor",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Anchored"] = boolean
-            }
-        }
-    }
-    _(args)
-end
-function CreatePart(cf,parent)
-    local args = {
-        [1] = "CreatePart",
-        [2] = "Normal",
-        [3] = cf,
-        [4] = parent
-    }
-    _(args)
-end
-function DestroyPart(part)
-    local args = {
-        [1] = "Remove",
-        [2] = {
-            [1] = part
-        }
-    }
-    _(args)
-end
-function MovePart(part,cf)
-    local args = {
-        [1] = "SyncMove",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["CFrame"] = cf
-            }
-        }
-    }
-    _(args)
-end
-function Resize(part,size,cf)
-    local args = {
-        [1] = "SyncResize",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["CFrame"] = cf,
-                ["Size"] = size
-            }
-        }
-    }
-    _(args)
-end
-function AddMesh(part)
-    local args = {
-        [1] = "CreateMeshes",
-        [2] = {
-            [1] = {
-                ["Part"] = part
-            }
-        }
-    }
-    _(args)
-end
-
-function SetMesh(part,meshid)
-    local args = {
-        [1] = "SyncMesh",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["MeshId"] = "rbxassetid://"..meshid
-            }
-        }
-    }
-    _(args)
-end
-function SetTexture(part, texid)
-    local args = {
-        [1] = "SyncMesh",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["TextureId"] = "rbxassetid://"..texid
-            }
-        }
-    }
-    _(args)
-end
-function SetName(part, stringg)
-    local args = {
-        [1] = "SetName",
-        [2] = {
-            [1] = part
-        },
-        [3] = stringg
-    }
-
-    _(args)
-end
-function MeshResize(part,size)
-    local args = {
-        [1] = "SyncMesh",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Scale"] = size
-            }
-        }
-    }
-    _(args)
-end
-function Weld(part1, part2,lead)
-    local args = {
-        [1] = "CreateWelds",
-        [2] = {
-            [1] = part1,
-            [2] = part2
-        },
-        [3] = lead
-    }
-    _(args)
-
-end
-function SetLocked(part,boolean)
-    local args = {
-        [1] = "SetLocked",
-        [2] = {
-            [1] = part
-        },
-        [3] = boolean
-    }
-    _(args)
-end
-function SetTrans(part,int)
-    local args = {
-        [1] = "SyncMaterial",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Transparency"] = int
-            }
-        }
-    }
-    _(args)
-end
-function CreateSpotlight(part)
-    local args = {
-        [1] = "CreateLights",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["LightType"] = "SpotLight"
-            }
-        }
-    }
-    _(args)
-end
-function SyncLighting(part,brightness)
-    local args = {
-        [1] = "SyncLighting",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["LightType"] = "SpotLight",
-                ["Brightness"] = brightness
-            }
-        }
-    }
-    _(args)
-end
-function Color(part,color)
-    local args = {
-        [1] = "SyncColor",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Color"] = color,
-                ["UnionColoring"] = false
-            }
-        }
-    }
-    _(args)
-end
-function SpawnDecal(part,side)
-    local args = {
-        [1] = "CreateTextures",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Face"] = side,
-                ["TextureType"] = "Decal"
-            }
-        }
-    }
-
-    _(args)
-end
-function AddDecal(part,asset,side)
-    local args = {
-        [1] = "SyncTexture",
-        [2] = {
-            [1] = {
-                ["Part"] = part,
-                ["Face"] = side,
-                ["TextureType"] = "Decal",
-                ["Texture"] = "rbxassetid://".. asset
-            }
-        }
-    }
-    _(args)
-end
-
-function Sky(id)
-    local e = char.HumanoidRootPart.CFrame.x
-    local f = char.HumanoidRootPart.CFrame.y
-    local g = char.HumanoidRootPart.CFrame.z
-    local spawnPos = CFrame.new(math.floor(e), math.floor(f), math.floor(g)) + Vector3.new(0, 6, 0)
-    
-    CreatePart(spawnPos, workspace)
-    task.wait(0.2) 
-
-    local skyPart
-    for i, v in workspace:GetDescendants() do
-        if v:IsA("BasePart") and (v.Position - spawnPos.p).Magnitude < 1 then
-            skyPart = v
-            SetName(v, "RandomSpinSky")
-            AddMesh(v)
-            SetMesh(v, "132893898645050")
-            SetTexture(v, id)
-            MeshResize(v, Vector3.new(2500, 2500, 2500))
-            SetLocked(v, true)
-            SetAnchor(true, v)
-            SetCollision(v, false)
-            break
-        end
+    -- 使用 HD Admin 管理员命令直接修改服务器天空，不创建旋转天空模型
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local hdClient = ReplicatedStorage:FindFirstChild("HDAdminHDClient")
+    if not hdClient then
+        warn("HD Admin 未加载，无法使用服务器天空功能")
+        return
     end
 
-    if skyPart then
-        local t = 0
-        local baseSpeed = 14
-        local randomness = 14
-        
-        game:GetService("RunService").Heartbeat:Connect(function(dt)
-            t = t + dt
-            
-            local rotX = math.sin(t * 1.5) * randomness
-            local rotY = t * baseSpeed 
-            local rotZ = math.cos(t * 2.1) * randomness
-            
-            local newCf = spawnPos * CFrame.Angles(
-                math.rad(rotX), 
-                math.rad(rotY), 
-                math.rad(rotZ)
-            )
-            
-            MovePart(skyPart, newCf)
-        end)
+    local signals = hdClient:FindFirstChild("Signals")
+    local requestCommand = signals and (signals:FindFirstChild("RequestCommand") or signals:FindFirstChild("RequestCommandSilent"))
+    if not requestCommand then
+        warn("HD Admin 命令接口未找到")
+        return
     end
-end
 
-Sky("132893898645050")
-
+    local ok, err = pcall(function()
+        requestCommand:InvokeServer(";skybox 132893898645050")
+    end)
+    if not ok then
+        warn("服务器天空命令执行失败: " .. tostring(err))
+    end
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
 LMG2L["TextButton_9"] = Instance.new("TextButton", LMG2L["ScrollingFrame_5"]);
@@ -2682,23 +2409,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 	end
 
-\tlocal function sky()
-\t\t-- 使用服务器 Lighting Sky，不再创建旋转天空模型
-\t\tlocal Lighting = game:GetService("Lighting")
-\n\t\tlocal sky = Lighting:FindFirstChildOfClass("Sky")
-\t\tif not sky then
-\t\t\tsky = Instance.new("Sky")
-\t\t\tsky.Parent = Lighting
-\t\tend
-\n\t\tlocal id = "rbxassetid://132893898645050"
-\t\tsky.SkyboxBk = id
-\t\tsky.SkyboxDn = id
-\t\tsky.SkyboxFt = id
-\t\tsky.SkyboxLf = id
-\t\tsky.SkyboxRt = id
-\t\tsky.SkyboxUp = id
-\tend
-\n\n\n\n\n\n\tlocal function unanchorall()
+	local function sky()
+		local position = CFrame.new(0, 5, 0)
+		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
+
+		makemesh(sky)
+		syncmeshid(sky, "132893898645050")
+		syncmeshtexture(sky, "132893898645050")
+		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
+		lock(sky, true)
+		name(sky, "riposku")
+		setcollision(sky, false)
+	end
+
+
+
+
+
+	local function unanchorall()
 		for _, v in ipairs(workspace:GetDescendants()) do
 			if v:IsA("BasePart") or v:IsA("UnionOperation") then
 				spawn(function()
