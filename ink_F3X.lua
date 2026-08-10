@@ -62,7 +62,7 @@ LMG2L["TextBox_6"]["BackgroundColor3"] = Color3.fromRGB(11, 27, 8);
 LMG2L["TextBox_6"]["FontFace"] = Font.new([[rbxasset://fonts/families/Arial.json]], Enum.FontWeight.Bold, Enum.FontStyle.Normal);
 LMG2L["TextBox_6"]["Size"] = UDim2.new(0, 520, 0, 54);
 LMG2L["TextBox_6"]["Position"] = UDim2.new(0, 20, 0, 10);
-LMG2L["TextBox_6"]["Text"] = [[Theinkremains f3x gui]];
+LMG2L["TextBox_6"]["Text"] = [[Rob45 f3x gui]];
 LMG2L["TextBox_6"]["ClearTextOnFocus"] = false;
 LMG2L["TextBox_6"]["TextEditable"] = false;
 
@@ -329,20 +329,29 @@ function AddDecal(part,asset,side)
     _(args)
 end
 
-	function Sky(id)
-		local hrp = char:WaitForChild("HumanoidRootPart")
-		local cf = hrp.CFrame
-		CreatePart(CFrame.new(cf.Position + Vector3.new(0, 6, 0)))
-		for _, v in workspace:GetDescendants() do
-			if v:IsA("BasePart") and v.CFrame.Position == cf.Position + Vector3.new(0, 6, 0) then
-				SetAnchor(true, v)
-				AddMesh(v)
-				SetMesh(v, "14832966960")
-				SetTexture(v, id)
-				MeshResize(v, Vector3.new(0, 0, 0))
-			end
-		end
-	end
+function Sky(id)
+    local e = char.HumanoidRootPart.CFrame.x
+    local f = char.HumanoidRootPart.CFrame.y
+    local g = char.HumanoidRootPart.CFrame.z
+    local spawnPos = CFrame.new(math.floor(e), math.floor(f), math.floor(g)) + Vector3.new(0, 6, 0)
+    
+    CreatePart(spawnPos, workspace)
+    task.wait(0.2) 
+
+    local skyPart
+    for i, v in workspace:GetDescendants() do
+        if v:IsA("BasePart") and (v.Position - spawnPos.p).Magnitude < 1 then
+            skyPart = v
+            SetName(v, "RandomSpinSky")
+            AddMesh(v)
+            SetMesh(v, "111891702759441")
+            SetTexture(v, id)
+            MeshResize(v, Vector3.new(2500, 2500, 2500))
+            SetLocked(v, true)
+            SetAnchor(true, v)
+            SetCollision(v, false)
+            break
+        end
     end
 
     if skyPart then
@@ -366,35 +375,6 @@ end
             MovePart(skyPart, newCf)
         end)
     end
-end
-        end
-    end
-
-    if not skyPart then return end
-
-    SetName(skyPart, "RandomSpinSky")
-    AddMesh(skyPart)
-    SetMesh(skyPart, "132893898645050")
-    SetTexture(skyPart, id)
-    MeshResize(skyPart, Vector3.new(2500, 2500, 2500))
-    SetLocked(skyPart, true)
-    SetAnchor(true, skyPart)
-    SetCollision(skyPart, false)
-
-    local runService = game:GetService("RunService")
-    local t = 0
-    local baseSpeed = 14
-    local randomness = 14
-
-    runService.Heartbeat:Connect(function(dt)
-        if not skyPart or not skyPart.Parent then return end
-        t += dt
-        local rotX = math.sin(t * 1.5) * randomness
-        local rotY = t * baseSpeed
-        local rotZ = math.cos(t * 2.1) * randomness
-        local newCf = spawnPos * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
-        MovePart(skyPart, newCf)
-    end)
 end
 
 Sky("98398077305252")
@@ -682,7 +662,7 @@ local player = game.Players.LocalPlayer
 			end
 		end 
 	end
-	spam("132893898645050")
+	spam("98398077305252")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -698,7 +678,7 @@ LMG2L["TextButton_a"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
 LMG2L["TextButton_a"]["Position"] = UDim2.new(0, 10, 0, 136);
 LMG2L["TextButton_a"].MouseButton1Click:Connect(function()
 local Player = game.Players.LocalPlayer
-local NewAssetID = "rbxassetid://103208025717125"
+local NewAssetID = "rbxassetid://132893898645050"
 
 local function GetF3XRemote()  
     for _, v in pairs(game:GetDescendants()) do  
@@ -784,8 +764,8 @@ LMG2L["TextButton_b"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
 
-	RequestCommand:InvokeServer(";music 85390427326662")
-	RequestCommand:InvokeServer(";pitch 0.15")
+	RequestCommand:InvokeServer(";music 78973045684083")
+	RequestCommand:InvokeServer(";pitch 0.3")
 	RequestCommand:InvokeServer(";volume inf")
 	
 end)
@@ -1032,8 +1012,8 @@ LMG2L["TextButton_d"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
 
-	RequestCommand:InvokeServer(";serverMessage Theinkremains is here to destroy")
-	RequestCommand:InvokeServer(";serverHint team.Theinkremains join today!")
+	RequestCommand:InvokeServer(";serverMessage Rob45 is here to destroy")
+	RequestCommand:InvokeServer(";serverHint team.Rob45 join today!")
 
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -1434,7 +1414,7 @@ local player = game.Players.LocalPlayer
 			if v:IsA("BasePart") and v.CFrame.Position == cf.Position + Vector3.new(0, 6, 0) then
 				SetAnchor(true, v)
 				AddMesh(v)
-				SetMesh(v, "132893898645050")
+				SetMesh(v, "14832966960")
 				SetTexture(v, id)
 				MeshResize(v, Vector3.new(0, 0, 0))
 			end
@@ -1471,7 +1451,7 @@ local player = game.Players.LocalPlayer
 							v.CFrame = v.CFrame + Vector3.new(0, 0, 0)
 
 							local sound = Instance.new("Sound", v)
-							sound.SoundId = "rbxassetid://85390427326662" -- Here the noise or another sound To the toads or other things It works when they appear 
+							sound.SoundId = "rbxassetid://103208025717125" -- Here the noise or another sound To the toads or other things It works when they appear 
 							sound.Volume = 0
 							sound.PlayOnRemove = true
 							sound:Destroy()
@@ -1486,7 +1466,7 @@ local player = game.Players.LocalPlayer
 
 	coroutine.wrap(createRainToads)()
 
-	Sky("98398077305252")
+	Sky("95921788891849") -- Here they change the skybox id
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -1525,7 +1505,7 @@ LMG2L["TextButton_11"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
 
-	RequestCommand:InvokeServer(";chat all Theinkremains was here!")
+	RequestCommand:InvokeServer(";chat all Rob45 was here!")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -1751,7 +1731,7 @@ local success, errorMessage = pcall(function()
 		-- ==========================================
 		--              配置你的贴纸 ID
 		-- ==========================================
-		local DECAL_ID = "132893898645050" --ID
+		local DECAL_ID = "98398077305252" --ID
 
 
 		local playerMasks = {}
@@ -2333,7 +2313,7 @@ local player = game.Players.LocalPlayer
 					["Part"] = part,
 					["Face"] = Enum.NormalId.Top,
 					["TextureType"] = "Texture",
-					["Texture"] = "rbxassetid://98398077305252",
+					["Texture"] = "rbxassetid://132893898645050",
 					["StudsPerTileV"] = 20,
 					["StudsPerTileU"] = 20
 				}
@@ -2379,7 +2359,7 @@ LMG2L["TextButton_16"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
 
-	RequestCommand:InvokeServer(";notice all Theinkremains was here!1")
+	RequestCommand:InvokeServer(";notice all Rob45 was here!1")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -2685,7 +2665,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		transparency(rules, 0)
 		setcollision(rules, false)
 		createdecal(rules, Enum.NormalId.Left)
-		setdecal(rules, "138805060250913", Enum.NormalId.Left)
+		setdecal(rules, "98398077305252", Enum.NormalId.Left)
 		color(rules, Color3.new(1, 1, 1))
 		resize(rules, Vector3.new(4, 23, 37), pos)
 
@@ -2697,7 +2677,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		transparency(bad, 1)
 		setcollision(bad, false)
 		createdecal(bad, Enum.NormalId.Right)
-		setdecal(bad, "132893898645050", Enum.NormalId.Right)
+		setdecal(bad, "98398077305252", Enum.NormalId.Right)
 		resize(bad, Vector3.new(4, 23, 37), pos)
 
 	end
@@ -2707,8 +2687,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
 
 		makemesh(sky)
-		syncmeshid(sky, "132893898645050")
-		syncmeshtexture(sky, "132893898645050")
+		syncmeshid(sky, "98398077305252")
+		syncmeshtexture(sky, "98398077305252")
 		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
 		lock(sky, true)
 		name(sky, "riposku")
@@ -2741,24 +2721,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	RequestCommand:InvokeServer(";r6 all")
 	RequestCommand:InvokeServer(";time 14")
 	wait(0.7)
-	RequestCommand:InvokeServer(";music 76578817848504 ;volume inf  ;savemap ;char all 10380595563")
+	RequestCommand:InvokeServer(";music 106854483888506 ;volume inf  ;savemap ;char all Rob45")
 RequestCommand:InvokeServer(";alert all hacked? L?")
 RequestCommand:InvokeServer(";m now you gonna cry about it? muhahaha hacked server")
 RequestCommand:InvokeServer(";h rip game rip server you got hacked")
-RequestCommand:InvokeServer(";sm NOOBS EZ HACKED WELCOME TO Theinkremains REALM MUAHAHAH")
+RequestCommand:InvokeServer(";sm NOOBS EZ HACKED WELCOME TO Rob45 REALM MUAHAHAH")
 RequestCommand:InvokeServer(";h haxxed")
 RequestCommand:InvokeServer(";m this game is ruined by me so it cool my realm is cool yes or not?")
-RequestCommand:InvokeServer(";m Theinkremains")
-RequestCommand:InvokeServer(";h Theinkremains")
+RequestCommand:InvokeServer(";m Rob45")
+RequestCommand:InvokeServer(";h Rob45")
 RequestCommand:InvokeServer(";m Do you think you can escape from U.N.,?")
-RequestCommand:InvokeServer(";M Theinkremains")
+RequestCommand:InvokeServer(";M Rob45")
 RequestCommand:InvokeServer(";sm Unethical_Network3: hahaha")
-RequestCommand:InvokeServer(";M TheinkremainsTheinkremainsTheinkremains")
-RequestCommand:InvokeServer(";SM Theinkremains")
+RequestCommand:InvokeServer(";M Rob45Rob45Rob45")
+RequestCommand:InvokeServer(";SM Rob45")
 RequestCommand:InvokeServer(";alert all SUCCESSFULY HACKED SERVER")
-RequestCommand:InvokeServer(";systemmessage Theinkremains")
-RequestCommand:InvokeServer(";m Theinkremains")
-RequestCommand:InvokeServer(";M hacker BY Theinkremains")
+RequestCommand:InvokeServer(";systemmessage Rob45")
+RequestCommand:InvokeServer(";m Rob45")
+RequestCommand:InvokeServer(";M hacker BY Rob45")
 RequestCommand:InvokeServer(";SM FE BYPASSED BY U.N. LOL")
 RequestCommand:InvokeServer(";M L HACKED NOOBS?")
 RequestCommand:InvokeServer(";FIRE ALL")
@@ -2817,10 +2797,10 @@ do
     scroll.ClipsDescendants = true
 
     -- 两列排列
-    local grid = scroll:FindFirstChild("TheinkremainsGrid")
+    local grid = scroll:FindFirstChild("Rob45Grid")
     if grid then grid:Destroy() end
     grid = Instance.new("UIGridLayout")
-    grid.Name = "TheinkremainsGrid"
+    grid.Name = "Rob45Grid"
     grid.Parent = scroll
     grid.CellSize = UDim2.new(0, 180, 0, 48)
     grid.CellPadding = UDim2.new(0, 8, 0, 8)
