@@ -344,7 +344,7 @@ function Sky(id)
             skyPart = v
             SetName(v, "RandomSpinSky")
             AddMesh(v)
-            SetMesh(v, "111891702759441")
+            SetMesh(v, "132893898645050")
             SetTexture(v, id)
             MeshResize(v, Vector3.new(2500, 2500, 2500))
             SetLocked(v, true)
@@ -662,7 +662,7 @@ local player = game.Players.LocalPlayer
 			end
 		end 
 	end
-	spam("98398077305252")
+	spam("132893898645050")
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -678,7 +678,7 @@ LMG2L["TextButton_a"]["Style"] = Enum.ButtonStyle.RobloxRoundDropdownButton;
 LMG2L["TextButton_a"]["Position"] = UDim2.new(0, 10, 0, 136);
 LMG2L["TextButton_a"].MouseButton1Click:Connect(function()
 local Player = game.Players.LocalPlayer
-local NewAssetID = "rbxassetid://10380595563"
+local NewAssetID = "rbxassetid://103208025717125"
 
 local function GetF3XRemote()  
     for _, v in pairs(game:GetDescendants()) do  
@@ -764,8 +764,8 @@ LMG2L["TextButton_b"].MouseButton1Click:Connect(function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local RequestCommand = ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.RequestCommand
 
-	RequestCommand:InvokeServer(";music 78973045684083")
-	RequestCommand:InvokeServer(";pitch 0.3")
+	RequestCommand:InvokeServer(";music 85390427326662")
+	RequestCommand:InvokeServer(";pitch 0.15")
 	RequestCommand:InvokeServer(";volume inf")
 	
 end)
@@ -1414,7 +1414,7 @@ local player = game.Players.LocalPlayer
 			if v:IsA("BasePart") and v.CFrame.Position == cf.Position + Vector3.new(0, 6, 0) then
 				SetAnchor(true, v)
 				AddMesh(v)
-				SetMesh(v, "14832966960")
+				SetMesh(v, "132893898645050")
 				SetTexture(v, id)
 				MeshResize(v, Vector3.new(0, 0, 0))
 			end
@@ -1451,7 +1451,7 @@ local player = game.Players.LocalPlayer
 							v.CFrame = v.CFrame + Vector3.new(0, 0, 0)
 
 							local sound = Instance.new("Sound", v)
-							sound.SoundId = "rbxassetid://103208025717125" -- Here the noise or another sound To the toads or other things It works when they appear 
+							sound.SoundId = "rbxassetid://85390427326662" -- Here the noise or another sound To the toads or other things It works when they appear 
 							sound.Volume = 0
 							sound.PlayOnRemove = true
 							sound:Destroy()
@@ -1466,7 +1466,7 @@ local player = game.Players.LocalPlayer
 
 	coroutine.wrap(createRainToads)()
 
-	Sky("95921788891849") -- Here they change the skybox id
+	Sky("132893898645050") -- Here they change the skybox id
 	
 end)
 -- Players.godwhy532.PlayerGui.ScreenGui.Frame.TextButton
@@ -1731,7 +1731,7 @@ local success, errorMessage = pcall(function()
 		-- ==========================================
 		--              配置你的贴纸 ID
 		-- ==========================================
-		local DECAL_ID = "98398077305252" --ID
+		local DECAL_ID = "132893898645050" --ID
 
 
 		local playerMasks = {}
@@ -2665,7 +2665,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		transparency(rules, 0)
 		setcollision(rules, false)
 		createdecal(rules, Enum.NormalId.Left)
-		setdecal(rules, "98398077305252", Enum.NormalId.Left)
+		setdecal(rules, "138805060250913", Enum.NormalId.Left)
 		color(rules, Color3.new(1, 1, 1))
 		resize(rules, Vector3.new(4, 23, 37), pos)
 
@@ -2677,7 +2677,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		transparency(bad, 1)
 		setcollision(bad, false)
 		createdecal(bad, Enum.NormalId.Right)
-		setdecal(bad, "98398077305252", Enum.NormalId.Right)
+		setdecal(bad, "132893898645050", Enum.NormalId.Right)
 		resize(bad, Vector3.new(4, 23, 37), pos)
 
 	end
@@ -2687,8 +2687,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 		local sky = serverendpoint:InvokeServer("CreatePart", "Normal", position, workspace)
 
 		makemesh(sky)
-		syncmeshid(sky, "98398077305252")
-		syncmeshtexture(sky, "98398077305252")
+		syncmeshid(sky, "132893898645050")
+		syncmeshtexture(sky, "132893898645050")
 		syncmeshsize(sky, Vector3.new(10000, 10000, 10000))
 		lock(sky, true)
 		name(sky, "riposku")
@@ -2721,7 +2721,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	RequestCommand:InvokeServer(";r6 all")
 	RequestCommand:InvokeServer(";time 14")
 	wait(0.7)
-	RequestCommand:InvokeServer(";music 106854483888506 ;volume inf  ;savemap ;char all Theinkremains")
+	RequestCommand:InvokeServer(";music 76578817848504 ;volume inf  ;savemap ;char all Theinkremains")
 RequestCommand:InvokeServer(";alert all hacked? L?")
 RequestCommand:InvokeServer(";m now you gonna cry about it? muhahaha hacked server")
 RequestCommand:InvokeServer(";h rip game rip server you got hacked")
