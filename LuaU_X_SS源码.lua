@@ -1,5 +1,3 @@
---XvPxOL开源/分享禁止外传
---交流群1032142349
 local kickPlaceId = 74918992335762
 local player = game:GetService("Players").LocalPlayer
 
