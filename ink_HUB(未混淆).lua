@@ -98,350 +98,164 @@ local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,
 C:EditOpenButton({Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
-local D=C:Section({Title="功能菜单",Opened=true})
-
--- ==================== UI 美化增强 ====================
-local UIBeauty = {
-    Accent = Color3.fromRGB(170,170,170),
-    BorderEnabled = true,
-    BorderThickness = 2,
-    BorderSpeed = 40,
-    WindowTransparency = 0.30,
-    Scale = 1,
-    StatusEnabled = true,
-    FPS = true,
-    Background = "rbxassetid://99065227044934",
-    SmoothBorder = true,
-}
-
-local beautyStroke = nil
-local beautyGradient = nil
-local beautyScale = nil
-local beautyStatus = nil
-local beautyFpsLabel = nil
-local beautyTopLine = nil
-local beautyBottomLine = nil
-local beautyConn = nil
-
-pcall(function()
-    if windowFrame and windowFrame:IsA("GuiObject") then
-        -- 圆角
-        local corner = windowFrame:FindFirstChild("InkUICorner")
-        if not corner then
-            corner = Instance.new("UICorner")
-            corner.Name = "InkUICorner"
-            corner.CornerRadius = UDim.new(0,12)
-            corner.Parent = windowFrame
+if windowFrame then
+    local stroke=Instance.new("UIStroke")
+    stroke.Name="RainbowStroke"
+    stroke.Thickness=2
+    stroke.Color=Color3.new(1,1,1)
+    stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+    local grad=Instance.new("UIGradient")
+    grad.Name="RainbowGradient"
+    grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.3,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(0.7,Color3.fromRGB(120,120,120)),ColorSequenceKeypoint.new(1,Color3.fromRGB(90,90,90))})
+    grad.Enabled=true
+    grad.Offset=Vector2.new(0,0)
+    grad.Parent=stroke
+    stroke.Parent=windowFrame
+    task.spawn(function()
+        local rotationSpeed=40
+        while stroke and stroke.Parent do
+            task.wait(0.01)
+            grad.Rotation=(grad.Rotation+rotationSpeed*0.1)%360
         end
-
-        -- 柔和的内边框
-        beautyStroke = windowFrame:FindFirstChild("InkBeautyStroke")
-        if not beautyStroke then
-            beautyStroke = Instance.new("UIStroke")
-            beautyStroke.Name = "InkBeautyStroke"
-            beautyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            beautyStroke.Thickness = UIBeauty.BorderThickness
-            beautyStroke.Transparency = 0.08
-            beautyStroke.Parent = windowFrame
-        end
-
-        beautyGradient = beautyStroke:FindFirstChild("InkBeautyGradient")
-        if not beautyGradient then
-            beautyGradient = Instance.new("UIGradient")
-            beautyGradient.Name = "InkBeautyGradient"
-            beautyGradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(230,230,230)),
-                ColorSequenceKeypoint.new(0.35, Color3.fromRGB(150,150,150)),
-                ColorSequenceKeypoint.new(0.7, Color3.fromRGB(90,90,90)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(210,210,210))
-            })
-            beautyGradient.Parent = beautyStroke
-        end
-
-        -- 顶部/底部装饰线
-        beautyTopLine = Instance.new("Frame")
-        beautyTopLine.Name = "InkTopAccent"
-        beautyTopLine.AnchorPoint = Vector2.new(0.5,0)
-        beautyTopLine.Position = UDim2.new(0.5,0,0,2)
-        beautyTopLine.Size = UDim2.new(0.72,0,0,2)
-        beautyTopLine.BorderSizePixel = 0
-        beautyTopLine.BackgroundColor3 = UIBeauty.Accent
-        beautyTopLine.BackgroundTransparency = 0.15
-        beautyTopLine.Parent = windowFrame
-        local topGrad = Instance.new("UIGradient")
-        topGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(80,80,80)),
-            ColorSequenceKeypoint.new(0.5, UIBeauty.Accent),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(80,80,80))
-        })
-        topGrad.Parent = beautyTopLine
-
-        beautyBottomLine = beautyTopLine:Clone()
-        beautyBottomLine.Name = "InkBottomAccent"
-        beautyBottomLine.Position = UDim2.new(0.5,0,1,-4)
-        beautyBottomLine.Parent = windowFrame
-
-        -- 右下角状态/性能信息
-        beautyStatus = Instance.new("TextLabel")
-        beautyStatus.Name = "InkStatus"
-        beautyStatus.AnchorPoint = Vector2.new(1,1)
-        beautyStatus.Position = UDim2.new(1,-10,1,-8)
-        beautyStatus.Size = UDim2.fromOffset(180,18)
-        beautyStatus.BackgroundTransparency = 1
-        beautyStatus.Text = "● ink_HUB  •  已就绪"
-        beautyStatus.TextColor3 = UIBeauty.Accent
-        beautyStatus.TextTransparency = 0.15
-        beautyStatus.TextSize = 12
-        beautyStatus.Font = Enum.Font.GothamMedium
-        beautyStatus.TextXAlignment = Enum.TextXAlignment.Right
-        beautyStatus.Visible = UIBeauty.StatusEnabled
-        beautyStatus.Parent = windowFrame
-
-        beautyFpsLabel = Instance.new("TextLabel")
-        beautyFpsLabel.Name = "InkFPS"
-        beautyFpsLabel.AnchorPoint = Vector2.new(0,0.5)
-        beautyFpsLabel.Position = UDim2.new(0,10,0.38,0)
-        beautyFpsLabel.Size = UDim2.fromOffset(180,18)
-        beautyFpsLabel.BackgroundTransparency = 1
-        beautyFpsLabel.Text = "FPS --  |  PING --"
-        beautyFpsLabel.TextColor3 = Color3.fromRGB(180,180,180)
-        beautyFpsLabel.TextTransparency = 0.15
-        beautyFpsLabel.TextSize = 11
-        beautyFpsLabel.Font = Enum.Font.Gotham
-        beautyFpsLabel.TextXAlignment = Enum.TextXAlignment.Right
-        beautyFpsLabel.Visible = UIBeauty.FPS
-        beautyFpsLabel.Parent = windowFrame
-
-        beautyScale = windowFrame:FindFirstChild("InkUIScale")
-        if not beautyScale then
-            beautyScale = Instance.new("UIScale")
-            beautyScale.Name = "InkUIScale"
-            beautyScale.Scale = 1
-            beautyScale.Parent = windowFrame
-        end
-    end
-end)
-
-local function setBeautyAccent(c)
-    UIBeauty.Accent = c
-    pcall(function()
-        if beautyStroke then
-            beautyStroke.Color = c
-            if beautyGradient then
-                local h,s,v=c:ToHSV()
-                local c1=Color3.fromHSV(h,s,math.clamp(v+0.25,0,1))
-                local c2=Color3.fromHSV(h,s,math.clamp(v-0.20,0,1))
-                beautyGradient.Color=ColorSequence.new({
-                    ColorSequenceKeypoint.new(0,c1),
-                    ColorSequenceKeypoint.new(0.35,c),
-                    ColorSequenceKeypoint.new(0.65,c2),
-                    ColorSequenceKeypoint.new(1,c1)
-                })
-                beautyGradient.Enabled=true
-            end
-        end
-        if beautyTopLine then
-            beautyTopLine.BackgroundColor3 = c
-            local g = beautyTopLine:FindFirstChildOfClass("UIGradient")
-            if g then
-                g.Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(70,70,70)),
-                    ColorSequenceKeypoint.new(0.5, c),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(70,70,70))
-                })
-            end
-        end
-        if beautyBottomLine then
-            beautyBottomLine.BackgroundColor3 = c
-            local g = beautyBottomLine:FindFirstChildOfClass("UIGradient")
-            if g then
-                g.Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(70,70,70)),
-                    ColorSequenceKeypoint.new(0.5, c),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(70,70,70))
-                })
-            end
-        end
-        if beautyStatus then beautyStatus.TextColor3 = c end
     end)
 end
 
-beautyConn = game:GetService("RunService").RenderStepped:Connect(function(dt)
-    if beautyGradient and beautyGradient.Parent and UIBeauty.BorderEnabled and UIBeauty.SmoothBorder then
-        beautyGradient.Rotation = (beautyGradient.Rotation + UIBeauty.BorderSpeed * dt) % 360
+local D=C:Section({Title="功能菜单",Opened=true})
+
+-- ==================== 简洁UI增强：FPS + 用户信息 ====================
+-- FPS/Ping 独立于 HUB 窗口，关闭 HUB 后仍然显示
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+local fpsOverlay
+pcall(function()
+    local old = CoreGui:FindFirstChild("ink_HUB_FPSOverlay")
+    if old then old:Destroy() end
+    fpsOverlay = Instance.new("ScreenGui")
+    fpsOverlay.Name = "ink_HUB_FPSOverlay"
+    fpsOverlay.ResetOnSpawn = false
+    fpsOverlay.IgnoreGuiInset = true
+    fpsOverlay.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    fpsOverlay.DisplayOrder = 999999
+    fpsOverlay.Parent = CoreGui
+
+    local fpsLabel = Instance.new("TextLabel")
+    fpsLabel.Name = "FPSPing"
+    fpsLabel.AnchorPoint = Vector2.new(0,0.5)
+    -- 最左侧，屏幕中心偏上一点
+    fpsLabel.Position = UDim2.new(0,8,0.42,0)
+    fpsLabel.Size = UDim2.fromOffset(150,22)
+    fpsLabel.BackgroundTransparency = 1
+    fpsLabel.Text = "FPS --  |  Ping --"
+    fpsLabel.TextColor3 = Color3.fromRGB(220,220,220)
+    fpsLabel.TextSize = 13
+    fpsLabel.Font = Enum.Font.GothamMedium
+    fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+    fpsLabel.TextStrokeTransparency = 0.65
+    fpsLabel.ZIndex = 999999
+    fpsLabel.Parent = fpsOverlay
+
+    local last = os.clock()
+    local frames = 0
+    local shownFPS = 0
+    local function getPing()
+        local ping = "--"
+        pcall(function()
+            local stats = game:GetService("Stats")
+            local network = stats:FindFirstChild("Network")
+            local server = network and network:FindFirstChild("ServerStatsItem")
+            local item = server and server:FindFirstChild("Data Ping")
+            if item then ping = tostring(math.floor(item:GetValue())).."ms" end
+        end)
+        return ping
     end
+    RunService.RenderStepped:Connect(function()
+        frames += 1
+        local now = os.clock()
+        if now-last >= 0.5 then
+            shownFPS = math.floor(frames/(now-last)+0.5)
+            frames = 0
+            last = now
+            if fpsLabel and fpsLabel.Parent then
+                fpsLabel.Text = "FPS "..tostring(math.clamp(shownFPS,0,999)).."  |  Ping "..getPing()
+            end
+        end
+    end)
 end)
 
-local UIBeautyTab = D:Tab({Title="UI美化",Icon="palette"})
-UIBeautyTab:Section({Title="外观设置",Opened=true})
-UIBeautyTab:Toggle({Title="显示FPS/Ping",Value=true,Callback=function(v)
-    UIBeauty.FPS=v
-    pcall(function() if beautyFpsLabel then beautyFpsLabel.Visible=v end end)
-end})
-UIBeautyTab:Colorpicker({Title="边框颜色",Default=UIBeauty.Accent,Callback=function(v) setBeautyAccent(v) end})
-UIBeautyTab:Colorpicker({Title="自定义字颜色",Default=Color3.fromRGB(170,170,170),Callback=function(v)
-    UIBeauty.TextColor=v
-    local function applyTextColor(root)
-        pcall(function()
-            for _,obj in ipairs(root:GetDescendants()) do
-                if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then obj.TextColor3=v end
-            end
-        end)
-    end
-    if C then applyTextColor(C) end
-    pcall(function() if beautyFpsLabel then beautyFpsLabel.TextColor3=v end end)
-end})
-UIBeautyTab:Input({Title="自定义背景图片ID",Placeholder="输入图片ID",Callback=function(v)
-    local id=tostring(v or ""):gsub("rbxassetid://",""):match("%d+")
-    if not id or not windowFrame then return end
-    UIBeauty.Background="rbxassetid://"..id
-    pcall(function()
-        local bg=windowFrame:FindFirstChild("InkCustomBackground")
-        if not bg then
-            bg=Instance.new("ImageLabel")
-            bg.Name="InkCustomBackground"
-            bg.AnchorPoint=Vector2.new(0,0)
-            bg.Position=UDim2.fromScale(0,0)
-            bg.Size=UDim2.fromScale(1,1)
-            bg.BackgroundTransparency=1
-            bg.BorderSizePixel=0
-            bg.ScaleType=Enum.ScaleType.Crop
-            bg.ZIndex=-100
-            bg.Parent=windowFrame
-        end
-        bg.Image=UIBeauty.Background
-        bg.ImageTransparency=0.18
-        bg.Visible=true
-    end)
-end})
-UIBeautyTab:Section({Title="用户信息",Opened=true})
+-- 用户信息：宽度严格限制在侧边栏选择区域内，层级高于功能选择按钮
 local userInfoFrame=nil
 pcall(function()
     if windowFrame and windowFrame:IsA("GuiObject") then
-        local sidebarWidth=160
-        local userWidth=sidebarWidth-20
+        local old=windowFrame:FindFirstChild("InkUserInfo")
+        if old then old:Destroy() end
         userInfoFrame=Instance.new("Frame")
         userInfoFrame.Name="InkUserInfo"
-        userInfoFrame.AnchorPoint=Vector2.new(0,1)
-        userInfoFrame.Position=UDim2.new(0,10,1,-10)
-        userInfoFrame.Size=UDim2.fromOffset(userWidth,52)
-        userInfoFrame.BackgroundTransparency=0
+        userInfoFrame.Position=UDim2.new(0,0,1,-54)
+        userInfoFrame.Size=UDim2.new(0,160,0,50)
         userInfoFrame.BackgroundColor3=Color3.fromRGB(18,18,18)
+        userInfoFrame.BackgroundTransparency=0.03
         userInfoFrame.BorderSizePixel=0
-        userInfoFrame.ZIndex=20
+        userInfoFrame.ZIndex=100
         userInfoFrame.Parent=windowFrame
-        local uc=Instance.new("UICorner")
-        uc.CornerRadius=UDim.new(0,8)
-        uc.Parent=userInfoFrame
+
+        local corner=Instance.new("UICorner")
+        corner.CornerRadius=UDim.new(0,7)
+        corner.Parent=userInfoFrame
+
+        local stroke=Instance.new("UIStroke")
+        stroke.Thickness=1
+        stroke.Transparency=0.35
+        stroke.Color=Color3.fromRGB(100,100,100)
+        stroke.Parent=userInfoFrame
+
         local avatar=Instance.new("ImageLabel")
-        avatar.Name="InkUserAvatar"
-        avatar.Size=UDim2.fromOffset(40,40)
-        avatar.Position=UDim2.fromOffset(5,5)
+        avatar.Name="Avatar"
+        avatar.Position=UDim2.fromOffset(6,6)
+        avatar.Size=UDim2.fromOffset(38,38)
         avatar.BackgroundTransparency=1
-        avatar.ZIndex=21
+        avatar.ZIndex=101
         avatar.Parent=userInfoFrame
-        local ac=Instance.new("UICorner")
-        ac.CornerRadius=UDim.new(1,0)
-        ac.Parent=avatar
+        local avatarCorner=Instance.new("UICorner")
+        avatarCorner.CornerRadius=UDim.new(1,0)
+        avatarCorner.Parent=avatar
+
         pcall(function()
-            local pl=game:GetService("Players").LocalPlayer
-            avatar.Image=game:GetService("Players"):GetUserThumbnailAsync(pl.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)
+            avatar.Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)
         end)
+
         local name=Instance.new("TextLabel")
-        name.Name="InkUserName"
-        name.Size=UDim2.new(1,-52,1,0)
-        name.Position=UDim2.fromOffset(48,0)
+        name.Name="Name"
+        name.Position=UDim2.fromOffset(50,5)
+        name.Size=UDim2.new(1,-56,0,20)
         name.BackgroundTransparency=1
-        local pl=game:GetService("Players").LocalPlayer
-        name.Text=pl.DisplayName.."\n@"..pl.Name
-        name.TextColor3=UIBeauty.TextColor or Color3.fromRGB(235,235,235)
-        name.TextSize=11
+        name.Text=LocalPlayer.DisplayName
+        name.TextColor3=Color3.fromRGB(240,240,240)
+        name.TextSize=12
         name.Font=Enum.Font.GothamMedium
         name.TextXAlignment=Enum.TextXAlignment.Left
-        name.TextYAlignment=Enum.TextYAlignment.Center
         name.TextTruncate=Enum.TextTruncate.AtEnd
-        name.ZIndex=21
+        name.ZIndex=101
         name.Parent=userInfoFrame
+
+        local username=Instance.new("TextLabel")
+        username.Name="Username"
+        username.Position=UDim2.fromOffset(50,25)
+        username.Size=UDim2.new(1,-56,0,18)
+        username.BackgroundTransparency=1
+        username.Text="@"..LocalPlayer.Name
+        username.TextColor3=Color3.fromRGB(150,150,150)
+        username.TextSize=10
+        username.Font=Enum.Font.Gotham
+        username.TextXAlignment=Enum.TextXAlignment.Left
+        username.TextTruncate=Enum.TextTruncate.AtEnd
+        username.ZIndex=101
+        username.Parent=userInfoFrame
     end
 end)
-UIBeautyTab:Toggle({Title="显示用户信息",Value=true,Callback=function(v)
-    pcall(function() if userInfoFrame then userInfoFrame.Visible=v end end)
-end})
-
--- FPS/Ping 独立于 HUB 窗口，始终显示在屏幕最左侧、中心偏上
-pcall(function()
-    local Players=game:GetService("Players")
-    local CoreGui=game:GetService("CoreGui")
-    local pg=Players.LocalPlayer:WaitForChild("PlayerGui")
-    local old=CoreGui:FindFirstChild("InkPerformanceHUD") or pg:FindFirstChild("InkPerformanceHUD")
-    if old then old:Destroy() end
-    if beautyFpsLabel and beautyFpsLabel.Parent then pcall(function() beautyFpsLabel:Destroy() end) end
-    local sg=Instance.new("ScreenGui")
-    sg.Name="InkPerformanceHUD"
-    sg.ResetOnSpawn=false
-    sg.IgnoreGuiInset=true
-    sg.DisplayOrder=999999
-    local parentOk=pcall(function() sg.Parent=CoreGui end)
-    if not parentOk or not sg.Parent then sg.Parent=pg end
-    local perf=Instance.new("TextLabel")
-    perf.Name="Performance"
-    perf.AnchorPoint=Vector2.new(0,0.5)
-    perf.Position=UDim2.new(0,6,0.43,0)
-    perf.Size=UDim2.fromOffset(150,24)
-    perf.BackgroundTransparency=1
-    perf.Text="FPS --  |  Ping --"
-    perf.TextColor3=UIBeauty.TextColor or Color3.fromRGB(170,170,170)
-    perf.TextSize=12
-    perf.Font=Enum.Font.GothamMedium
-    perf.TextXAlignment=Enum.TextXAlignment.Left
-    perf.Parent=sg
-    beautyFpsLabel=perf
-    UIBeauty.FPS=true
-    task.spawn(function()
-        while perf and perf.Parent do
-            local dt=game:GetService("RunService").RenderStepped:Wait()
-            if UIBeauty.FPS then
-                local fps=math.floor(1/math.max(dt,0.0001))
-                local ping="--"
-                pcall(function()
-                    local stats=game:GetService("Stats")
-                    local network=stats:FindFirstChild("Network")
-                    local serverStats=network and network:FindFirstChild("ServerStatsItem")
-                    local item=serverStats and serverStats:FindFirstChild("Data Ping")
-                    if item then ping=tostring(math.floor(item:GetValue())).."ms" end
-                end)
-                perf.Text="FPS "..tostring(math.clamp(fps,0,999)).."  |  Ping "..ping
-                perf.Visible=true
-            else
-                perf.Visible=false
-            end
-        end
-    end)
-end)
-
--- 强制保持动态边框：颜色修改后重新生成渐变，并持续旋转
-UIBeauty.SmoothBorder=true
-pcall(function()
-    if beautyGradient then
-        beautyGradient.Enabled=true
-        beautyGradient.Rotation=0
-    end
-end)
-
--- 后续创建的文字也自动使用自定义字颜色
-UIBeauty.TextColor=UIBeauty.TextColor or Color3.fromRGB(170,170,170)
-pcall(function()
-    if C then
-        C.DescendantAdded:Connect(function(obj)
-            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-                obj.TextColor3=UIBeauty.TextColor
-            end
-        end)
-    end
-end)
-
--- ==================== UI 美化增强结束 ====================
-
+-- ==================== 简洁UI增强结束 ====================
 
 local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
