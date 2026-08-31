@@ -132,6 +132,7 @@ local UIBeauty = {
     Scale = 1,
     StatusEnabled = true,
     FPS = true,
+    Background = "rbxassetid://99065227044934",
     SmoothBorder = true,
 }
 
@@ -209,7 +210,7 @@ pcall(function()
         beautyStatus.Position = UDim2.new(1,-10,1,-8)
         beautyStatus.Size = UDim2.fromOffset(180,18)
         beautyStatus.BackgroundTransparency = 1
-        beautyStatus.Text = "● ink_HUB  •  READY"
+        beautyStatus.Text = "● ink_HUB  •  已就绪"
         beautyStatus.TextColor3 = UIBeauty.Accent
         beautyStatus.TextTransparency = 0.15
         beautyStatus.TextSize = 12
@@ -220,8 +221,8 @@ pcall(function()
 
         beautyFpsLabel = Instance.new("TextLabel")
         beautyFpsLabel.Name = "InkFPS"
-        beautyFpsLabel.AnchorPoint = Vector2.new(1,0)
-        beautyFpsLabel.Position = UDim2.new(1,-10,0,8)
+        beautyFpsLabel.AnchorPoint = Vector2.new(0,0.5)
+        beautyFpsLabel.Position = UDim2.new(0,10,0.38,0)
         beautyFpsLabel.Size = UDim2.fromOffset(180,18)
         beautyFpsLabel.BackgroundTransparency = 1
         beautyFpsLabel.Text = "FPS --  |  PING --"
@@ -292,65 +293,87 @@ beautyConn = game:GetService("RunService").RenderStepped:Connect(function(dt)
 end)
 
 local UIBeautyTab = D:Tab({Title="UI美化",Icon="palette"})
-UIBeautyTab:Section({Title="界面外观",Opened=true})
-UIBeautyTab:Colorpicker({Title="主题强调色",Default=UIBeauty.Accent,Callback=function(v) setBeautyAccent(v) end})
-UIBeautyTab:Toggle({Title="动态边框",Value=true,Callback=function(v)
-    UIBeauty.BorderEnabled=v
-    pcall(function() if beautyStroke then beautyStroke.Transparency=v and 0.08 or 1 end end)
-end})
-UIBeautyTab:Toggle({Title="平滑边框动画",Value=true,Callback=function(v) UIBeauty.SmoothBorder=v end})
-UIBeautyTab:Slider({Title="边框粗细",Value={Min=1,Max=5,Default=2},Step=1,Callback=function(v)
-    UIBeauty.BorderThickness=v
-    pcall(function() if beautyStroke then beautyStroke.Thickness=v end end)
-end})
-UIBeautyTab:Slider({Title="边框速度",Value={Min=5,Max=120,Default=40},Step=5,Callback=function(v) UIBeauty.BorderSpeed=v end})
-UIBeautyTab:Slider({Title="窗口透明度",Value={Min=0,Max=80,Default=30},Step=1,Callback=function(v)
-    UIBeauty.WindowTransparency=v/100
-    pcall(function() if windowFrame and windowFrame:IsA("GuiObject") then windowFrame.BackgroundTransparency=v/100 end end)
-end})
-UIBeautyTab:Slider({Title="UI大小",Value={Min=80,Max=120,Default=100},Step=1,Callback=function(v)
-    UIBeauty.Scale=v/100
-    pcall(function() if beautyScale then beautyScale.Scale=UIBeauty.Scale end end)
-end})
-UIBeautyTab:Toggle({Title="显示状态文字",Value=true,Callback=function(v)
-    UIBeauty.StatusEnabled=v
-    pcall(function() if beautyStatus then beautyStatus.Visible=v end end)
-end})
-UIBeautyTab:Toggle({Title="显示FPS/延迟",Value=true,Callback=function(v)
+UIBeautyTab:Section({Title="界面设置",Opened=true})
+UIBeautyTab:Toggle({Title="显示FPS/Ping",Value=true,Callback=function(v)
     UIBeauty.FPS=v
     pcall(function() if beautyFpsLabel then beautyFpsLabel.Visible=v end end)
 end})
-UIBeautyTab:Section({Title="快速预设"})
-UIBeautyTab:Dropdown({Title="界面风格",Values={"银灰","纯黑","冰蓝","紫灰"},Value="银灰",Callback=function(v)
-    local presets={
-        ["银灰"]=Color3.fromRGB(170,170,170),
-        ["纯黑"]=Color3.fromRGB(80,80,80),
-        ["冰蓝"]=Color3.fromRGB(120,190,255),
-        ["紫灰"]=Color3.fromRGB(175,140,210)
-    }
-    if presets[v] then setBeautyAccent(presets[v]) end
-end})
-UIBeautyTab:Button({Title="恢复默认美化",Callback=function()
-    UIBeauty.Accent=Color3.fromRGB(170,170,170)
-    UIBeauty.BorderEnabled=true
-    UIBeauty.SmoothBorder=true
-    UIBeauty.BorderThickness=2
-    UIBeauty.BorderSpeed=40
-    UIBeauty.WindowTransparency=0.30
-    UIBeauty.Scale=1
-    UIBeauty.StatusEnabled=true
-    UIBeauty.FPS=true
-    setBeautyAccent(UIBeauty.Accent)
+UIBeautyTab:Colorpicker({Title="边框颜色",Default=UIBeauty.Accent,Callback=function(v) setBeautyAccent(v) end})
+UIBeautyTab:Colorpicker({Title="UI背景颜色",Default=Color3.fromRGB(35,35,35),Callback=function(v)
     pcall(function()
-        if beautyStroke then beautyStroke.Thickness=2; beautyStroke.Transparency=0.08 end
-        if beautyScale then beautyScale.Scale=1 end
-        if beautyStatus then beautyStatus.Visible=true end
-        if beautyFpsLabel then beautyFpsLabel.Visible=true end
-        if windowFrame and windowFrame:IsA("GuiObject") then windowFrame.BackgroundTransparency=0.30 end
+        if windowFrame and windowFrame:IsA("GuiObject") then windowFrame.BackgroundColor3=v end
     end)
-    safeNotify("UI美化","已恢复默认样式",2)
 end})
-
+UIBeautyTab:Input({Title="UI背景图片ID",Placeholder="输入图片ID（可选）",Callback=function(v)
+    if v and tostring(v) ~= "" then
+        local id=tostring(v):gsub("rbxassetid://","")
+        UIBeauty.Background="rbxassetid://"..id
+        pcall(function()
+            if windowFrame and windowFrame:IsA("GuiObject") then
+                local bg=windowFrame:FindFirstChild("InkBackground")
+                if not bg then
+                    bg=Instance.new("ImageLabel")
+                    bg.Name="InkBackground"
+                    bg.Size=UDim2.fromScale(1,1)
+                    bg.BackgroundTransparency=1
+                    bg.ScaleType=Enum.ScaleType.Crop
+                    bg.ZIndex=0
+                    bg.Parent=windowFrame
+                end
+                bg.Image=UIBeauty.Background
+                bg.ImageTransparency=0.25
+            end
+        end)
+    end
+end})
+UIBeautyTab:Section({Title="用户信息",Opened=true})
+local userInfoFrame=nil
+pcall(function()
+    if windowFrame and windowFrame:IsA("GuiObject") then
+        userInfoFrame=Instance.new("Frame")
+        userInfoFrame.Name="InkUserInfo"
+        userInfoFrame.AnchorPoint=Vector2.new(0,1)
+        userInfoFrame.Position=UDim2.new(0,10,1,-10)
+        userInfoFrame.Size=UDim2.fromOffset(210,48)
+        userInfoFrame.BackgroundTransparency=0.25
+        userInfoFrame.BackgroundColor3=Color3.fromRGB(20,20,20)
+        userInfoFrame.BorderSizePixel=0
+        userInfoFrame.ZIndex=5
+        userInfoFrame.Parent=windowFrame
+        local uc=Instance.new("UICorner")
+        uc.CornerRadius=UDim.new(0,8)
+        uc.Parent=userInfoFrame
+        local avatar=Instance.new("ImageLabel")
+        avatar.Size=UDim2.fromOffset(38,38)
+        avatar.Position=UDim2.fromOffset(5,5)
+        avatar.BackgroundTransparency=1
+        avatar.ZIndex=6
+        avatar.Parent=userInfoFrame
+        local ac=Instance.new("UICorner")
+        ac.CornerRadius=UDim.new(1,0)
+        ac.Parent=avatar
+        pcall(function()
+            local pl=game:GetService("Players").LocalPlayer
+            avatar.Image=game:GetService("Players"):GetUserThumbnailAsync(pl.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)
+        end)
+        local name=Instance.new("TextLabel")
+        name.Size=UDim2.new(1,-52,1,0)
+        name.Position=UDim2.fromOffset(48,0)
+        name.BackgroundTransparency=1
+        local pl=game:GetService("Players").LocalPlayer
+        name.Text=pl.DisplayName.."  @"..pl.Name
+        name.TextColor3=Color3.fromRGB(235,235,235)
+        name.TextSize=12
+        name.Font=Enum.Font.GothamMedium
+        name.TextXAlignment=Enum.TextXAlignment.Left
+        name.TextTruncate=Enum.TextTruncate.AtEnd
+        name.ZIndex=6
+        name.Parent=userInfoFrame
+    end
+end)
+UIBeautyTab:Toggle({Title="显示用户信息",Value=true,Callback=function(v)
+    pcall(function() if userInfoFrame then userInfoFrame.Visible=v end end)
+end})
 -- ==================== UI 美化增强结束 ====================
 
 
