@@ -122,67 +122,6 @@ end
 
 local D=C:Section({Title="功能菜单",Opened=true})
 
--- ==================== 简洁UI增强：FPS + Ping ====================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
-
--- 独立 FPS / Ping：永远不依赖 HUB 是否打开
-local fpsEnabled = true
-local fpsGui, fpsLabel, fpsConn
-local function createFPS()
-    pcall(function()
-        local old = CoreGui:FindFirstChild("ink_HUB_FPSOverlay")
-        if old then old:Destroy() end
-        fpsGui = Instance.new("ScreenGui")
-        fpsGui.Name = "ink_HUB_FPSOverlay"
-        fpsGui.ResetOnSpawn = false
-        fpsGui.IgnoreGuiInset = true
-        fpsGui.DisplayOrder = 2147483647
-        fpsGui.Parent = CoreGui
-        fpsLabel = Instance.new("TextLabel")
-        fpsLabel.Name = "FPSPing"
-        fpsLabel.AnchorPoint = Vector2.new(0,0.5)
-        fpsLabel.Position = UDim2.new(0,6,0.42,0)
-        fpsLabel.Size = UDim2.fromOffset(155,22)
-        fpsLabel.BackgroundTransparency = 1
-        fpsLabel.Text = "FPS --  |  Ping --"
-        fpsLabel.TextColor3 = Color3.fromRGB(225,225,225)
-        fpsLabel.TextSize = 13
-        fpsLabel.Font = Enum.Font.GothamMedium
-        fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-        fpsLabel.TextStrokeTransparency = 0.55
-        fpsLabel.ZIndex = 2147483647
-        fpsLabel.Parent = fpsGui
-    end)
-    local last, frames = os.clock(), 0
-    if fpsConn then pcall(function() fpsConn:Disconnect() end) end
-    fpsConn = RunService.RenderStepped:Connect(function()
-        frames += 1
-        local now = os.clock()
-        if now-last >= 0.5 then
-            local fps = math.floor(frames/(now-last)+0.5)
-            frames, last = 0, now
-            local ping = "--"
-            pcall(function()
-                local stats = game:GetService("Stats")
-                local network = stats:FindFirstChild("Network")
-                local server = network and network:FindFirstChild("ServerStatsItem")
-                local item = server and server:FindFirstChild("Data Ping")
-                if item then ping = tostring(math.floor(item:GetValue()+0.5)).."ms" end
-            end)
-            if fpsLabel and fpsLabel.Parent then fpsLabel.Text = "FPS "..math.clamp(fps,0,999).."  |  Ping "..ping end
-        end
-    end)
-end
-createFPS()
-
-local function setFPSVisible(v)
-    fpsEnabled = v
-    if fpsGui then fpsGui.Enabled = v end
-end
--- ==================== 简洁UI增强结束 ====================
 
 
 local Z = D:Tab({Title="公告", Icon="bell"})
@@ -695,145 +634,7 @@ for _, p in pairs(Players:GetPlayers()) do
     end
 end
 
--- ==================== NPC 透视 ====================
-local npcEspEnabled = false
-local npcEspObjects = {}
-local npcEspConnections = {}
-
-local function isPlayerCharacter(model)
-    if not model or not model:IsA("Model") then return false end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character == model then
-            return true
-        end
-    end
-    return false
-end
-
-local function getNPCPart(model)
-    return model:FindFirstChild("HumanoidRootPart")
-        or model:FindFirstChild("UpperTorso")
-        or model:FindFirstChild("Torso")
-end
-
-local function isNPCModel(model)
-    if not model or not model:IsA("Model") then return false end
-    if isPlayerCharacter(model) then return false end
-    local humanoid = model:FindFirstChildOfClass("Humanoid")
-    local root = getNPCPart(model)
-    return humanoid ~= nil and root ~= nil and humanoid.Health > 0
-end
-
-local function removeNPCESP(model)
-    local data = npcEspObjects[model]
-    if data then
-        if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
-        if data.Name then pcall(function() data.Name:Remove() end) end
-        npcEspObjects[model] = nil
-    end
-end
-
-local function createNPCESP(model)
-    if not npcEspEnabled or not isNPCModel(model) or npcEspObjects[model] then return end
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ink_HUB_NPC_ESP"
-    highlight.Adornee = model
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.FillColor = espconfig.outlinefillcolor
-    highlight.FillTransparency = espconfig.outlinefilltransparency
-    highlight.OutlineColor = espconfig.outlinecolor
-    highlight.OutlineTransparency = espconfig.outlinetransparency
-    highlight.Parent = model
-
-    local nameText = Drawing.new("Text")
-    nameText.Size = espconfig.espsize
-    nameText.Center = true
-    nameText.Outline = true
-    nameText.Color = espconfig.espcolor
-    nameText.Font = 2
-    nameText.Visible = false
-
-    npcEspObjects[model] = {Highlight = highlight, Name = nameText}
-end
-
-local function scanNPC(model)
-    if model:IsA("Model") then
-        createNPCESP(model)
-    end
-end
-
-local function clearNPCESP()
-    for model in pairs(npcEspObjects) do
-        removeNPCESP(model)
-    end
-end
-
-local function updateNPCESP()
-    for model, data in pairs(npcEspObjects) do
-        if not model or not model.Parent or not isNPCModel(model) then
-            removeNPCESP(model)
-        else
-            local root = getNPCPart(model)
-            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                local distance = (Camera.CFrame.Position - root.Position).Magnitude
-                data.Name.Position = Vector2.new(pos.X, pos.Y - 20)
-                data.Name.Text = model.Name .. " | " .. math.floor(distance) .. " 米"
-                data.Name.Size = espconfig.espsize
-                data.Name.Color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
-                data.Name.Visible = true
-            else
-                data.Name.Visible = false
-            end
-
-            data.Highlight.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
-            data.Highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-            data.Highlight.FillTransparency = espconfig.outlinefilltransparency
-            data.Highlight.OutlineTransparency = espconfig.outlinetransparency
-        end
-    end
-end
-
-workspace.DescendantAdded:Connect(function(obj)
-    if npcEspEnabled and obj:IsA("Model") then
-        task.defer(function()
-            if npcEspEnabled then scanNPC(obj) end
-        end)
-    end
-end)
-
-workspace.DescendantRemoving:Connect(function(obj)
-    if npcEspObjects[obj] then
-        removeNPCESP(obj)
-    end
-end)
-
-RunService:BindToRenderStep("NPCESPUpdate", Enum.RenderPriority.Camera.Value + 2, function()
-    if npcEspEnabled then
-        updateNPCESP()
-    end
-end)
-
 local espGroup = P:Section({ Title = "基础透视", Opened = true })
-
-espGroup:Toggle({
-    Title = "透视NPC",
-    Value = false,
-    Callback = function(v)
-        npcEspEnabled = v
-        if v then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("Model") then
-                    scanNPC(obj)
-                end
-            end
-        else
-            clearNPCESP()
-        end
-    end
-})
-
 espGroup:Toggle({
     Title = "透视",
     Value = false,
@@ -850,6 +651,91 @@ espGroup:Toggle({
         end
     end
 })
+
+local npcEspEnabled = false
+local npcHighlights = {}
+local npcAddedConn = nil
+local npcRemovingConn = nil
+
+local function isNPCModel(obj)
+    if not obj or not obj:IsA("Model") then return false end
+    if Players:GetPlayerFromCharacter(obj) then return false end
+    local hum = obj:FindFirstChildOfClass("Humanoid")
+    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head")
+    return hum ~= nil and root ~= nil
+end
+
+local function addNPCESP(obj)
+    if not npcEspEnabled or not isNPCModel(obj) or npcHighlights[obj] then return end
+    local h = Instance.new("Highlight")
+    h.Name = "ink_HUB_NPC_ESP"
+    h.Adornee = obj
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.FillTransparency = 0.75
+    h.OutlineTransparency = 0
+    h.FillColor = Color3.fromRGB(255, 170, 0)
+    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+    h.Parent = obj
+    npcHighlights[obj] = h
+end
+
+local function removeNPCESP(obj)
+    local h = npcHighlights[obj]
+    if h then
+        pcall(function() h:Destroy() end)
+        npcHighlights[obj] = nil
+    end
+end
+
+local function clearNPCESP()
+    for obj, h in pairs(npcHighlights) do
+        if h then pcall(function() h:Destroy() end) end
+        npcHighlights[obj] = nil
+    end
+end
+
+local function setNPCESP(state)
+    npcEspEnabled = state
+    if npcAddedConn then npcAddedConn:Disconnect(); npcAddedConn = nil end
+    if npcRemovingConn then npcRemovingConn:Disconnect(); npcRemovingConn = nil end
+
+    clearNPCESP()
+    if not state then return end
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isNPCModel(obj) then
+            addNPCESP(obj)
+        end
+    end
+
+    npcAddedConn = workspace.DescendantAdded:Connect(function(obj)
+        if not npcEspEnabled then return end
+        task.defer(function()
+            if obj and obj.Parent then
+                if isNPCModel(obj) then
+                    addNPCESP(obj)
+                elseif obj:IsA("Humanoid") and obj.Parent and obj.Parent:IsA("Model") then
+                    addNPCESP(obj.Parent)
+                end
+            end
+        end)
+    end)
+
+    npcRemovingConn = workspace.DescendantRemoving:Connect(function(obj)
+        if npcHighlights[obj] then
+            npcHighlights[obj] = nil
+        end
+    end)
+end
+
+espGroup:Toggle({
+    Title = "透视NPC",
+    Value = false,
+    Callback = function(v)
+        setNPCESP(v)
+    end
+})
+
 espGroup:Colorpicker({
     Title = "透视颜色",
     Default = Color3.fromRGB(255,255,255),
@@ -2921,6 +2807,12 @@ UIControlTab:Toggle({
     Title = "FPS / Ping",
     Value = true,
     Callback = function(v) setFPSVisible(v) end
+})
+
+UIControlTab:Toggle({
+    Title = "用户信息",
+    Value = true,
+    Callback = function(v) setUserInfoVisible(v) end
 })
 
 local backgroundOptions = {
