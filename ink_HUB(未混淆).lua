@@ -122,6 +122,237 @@ if windowFrame then
     end)
 end
 
+-- ==================== UI 美化增强 ====================
+local UIBeauty = {
+    Accent = Color3.fromRGB(170,170,170),
+    BorderEnabled = true,
+    BorderThickness = 2,
+    BorderSpeed = 40,
+    WindowTransparency = 0.30,
+    Scale = 1,
+    StatusEnabled = true,
+    FPS = true,
+    SmoothBorder = true,
+}
+
+local beautyStroke = nil
+local beautyGradient = nil
+local beautyScale = nil
+local beautyStatus = nil
+local beautyFpsLabel = nil
+local beautyTopLine = nil
+local beautyBottomLine = nil
+local beautyConn = nil
+
+pcall(function()
+    if windowFrame and windowFrame:IsA("GuiObject") then
+        -- 圆角
+        local corner = windowFrame:FindFirstChild("InkUICorner")
+        if not corner then
+            corner = Instance.new("UICorner")
+            corner.Name = "InkUICorner"
+            corner.CornerRadius = UDim.new(0,12)
+            corner.Parent = windowFrame
+        end
+
+        -- 柔和的内边框
+        beautyStroke = windowFrame:FindFirstChild("InkBeautyStroke")
+        if not beautyStroke then
+            beautyStroke = Instance.new("UIStroke")
+            beautyStroke.Name = "InkBeautyStroke"
+            beautyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            beautyStroke.Thickness = UIBeauty.BorderThickness
+            beautyStroke.Transparency = 0.08
+            beautyStroke.Parent = windowFrame
+        end
+
+        beautyGradient = beautyStroke:FindFirstChild("InkBeautyGradient")
+        if not beautyGradient then
+            beautyGradient = Instance.new("UIGradient")
+            beautyGradient.Name = "InkBeautyGradient"
+            beautyGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(230,230,230)),
+                ColorSequenceKeypoint.new(0.35, Color3.fromRGB(150,150,150)),
+                ColorSequenceKeypoint.new(0.7, Color3.fromRGB(90,90,90)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(210,210,210))
+            })
+            beautyGradient.Parent = beautyStroke
+        end
+
+        -- 顶部/底部装饰线
+        beautyTopLine = Instance.new("Frame")
+        beautyTopLine.Name = "InkTopAccent"
+        beautyTopLine.AnchorPoint = Vector2.new(0.5,0)
+        beautyTopLine.Position = UDim2.new(0.5,0,0,2)
+        beautyTopLine.Size = UDim2.new(0.72,0,0,2)
+        beautyTopLine.BorderSizePixel = 0
+        beautyTopLine.BackgroundColor3 = UIBeauty.Accent
+        beautyTopLine.BackgroundTransparency = 0.15
+        beautyTopLine.Parent = windowFrame
+        local topGrad = Instance.new("UIGradient")
+        topGrad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(80,80,80)),
+            ColorSequenceKeypoint.new(0.5, UIBeauty.Accent),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(80,80,80))
+        })
+        topGrad.Parent = beautyTopLine
+
+        beautyBottomLine = beautyTopLine:Clone()
+        beautyBottomLine.Name = "InkBottomAccent"
+        beautyBottomLine.Position = UDim2.new(0.5,0,1,-4)
+        beautyBottomLine.Parent = windowFrame
+
+        -- 右下角状态/性能信息
+        beautyStatus = Instance.new("TextLabel")
+        beautyStatus.Name = "InkStatus"
+        beautyStatus.AnchorPoint = Vector2.new(1,1)
+        beautyStatus.Position = UDim2.new(1,-10,1,-8)
+        beautyStatus.Size = UDim2.fromOffset(180,18)
+        beautyStatus.BackgroundTransparency = 1
+        beautyStatus.Text = "● ink_HUB  •  READY"
+        beautyStatus.TextColor3 = UIBeauty.Accent
+        beautyStatus.TextTransparency = 0.15
+        beautyStatus.TextSize = 12
+        beautyStatus.Font = Enum.Font.GothamMedium
+        beautyStatus.TextXAlignment = Enum.TextXAlignment.Right
+        beautyStatus.Visible = UIBeauty.StatusEnabled
+        beautyStatus.Parent = windowFrame
+
+        beautyFpsLabel = Instance.new("TextLabel")
+        beautyFpsLabel.Name = "InkFPS"
+        beautyFpsLabel.AnchorPoint = Vector2.new(1,0)
+        beautyFpsLabel.Position = UDim2.new(1,-10,0,8)
+        beautyFpsLabel.Size = UDim2.fromOffset(180,18)
+        beautyFpsLabel.BackgroundTransparency = 1
+        beautyFpsLabel.Text = "FPS --  |  PING --"
+        beautyFpsLabel.TextColor3 = Color3.fromRGB(180,180,180)
+        beautyFpsLabel.TextTransparency = 0.15
+        beautyFpsLabel.TextSize = 11
+        beautyFpsLabel.Font = Enum.Font.Gotham
+        beautyFpsLabel.TextXAlignment = Enum.TextXAlignment.Right
+        beautyFpsLabel.Visible = UIBeauty.FPS
+        beautyFpsLabel.Parent = windowFrame
+
+        beautyScale = windowFrame:FindFirstChild("InkUIScale")
+        if not beautyScale then
+            beautyScale = Instance.new("UIScale")
+            beautyScale.Name = "InkUIScale"
+            beautyScale.Scale = 1
+            beautyScale.Parent = windowFrame
+        end
+    end
+end)
+
+local function setBeautyAccent(c)
+    UIBeauty.Accent = c
+    pcall(function()
+        if beautyStroke then beautyStroke.Color = c end
+        if beautyTopLine then
+            beautyTopLine.BackgroundColor3 = c
+            local g = beautyTopLine:FindFirstChildOfClass("UIGradient")
+            if g then
+                g.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(70,70,70)),
+                    ColorSequenceKeypoint.new(0.5, c),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(70,70,70))
+                })
+            end
+        end
+        if beautyBottomLine then
+            beautyBottomLine.BackgroundColor3 = c
+            local g = beautyBottomLine:FindFirstChildOfClass("UIGradient")
+            if g then
+                g.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(70,70,70)),
+                    ColorSequenceKeypoint.new(0.5, c),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(70,70,70))
+                })
+            end
+        end
+        if beautyStatus then beautyStatus.TextColor3 = c end
+    end)
+end
+
+beautyConn = game:GetService("RunService").RenderStepped:Connect(function(dt)
+    if beautyGradient and beautyGradient.Parent and UIBeauty.BorderEnabled and UIBeauty.SmoothBorder then
+        beautyGradient.Rotation = (beautyGradient.Rotation + UIBeauty.BorderSpeed * dt) % 360
+    end
+    if beautyFpsLabel and beautyFpsLabel.Parent and UIBeauty.FPS then
+        local fps = math.floor(1 / math.max(dt,0.0001))
+        local ping = "--"
+        pcall(function()
+            local stats = game:GetService("Stats")
+            local network = stats:FindFirstChild("Network")
+            local serverStats = network and network:FindFirstChild("ServerStatsItem")
+            local item = serverStats and serverStats:FindFirstChild("Data Ping")
+            if item then ping = tostring(math.floor(item:GetValue())) .. "ms" end
+        end)
+        beautyFpsLabel.Text = "FPS " .. tostring(math.clamp(fps,0,999)) .. "  |  PING " .. ping
+    end
+end)
+
+local UIBeautyTab = D:Tab({Title="UI美化",Icon="palette"})
+UIBeautyTab:Section({Title="界面外观",Opened=true})
+UIBeautyTab:Colorpicker({Title="主题强调色",Default=UIBeauty.Accent,Callback=function(v) setBeautyAccent(v) end})
+UIBeautyTab:Toggle({Title="动态边框",Value=true,Callback=function(v)
+    UIBeauty.BorderEnabled=v
+    pcall(function() if beautyStroke then beautyStroke.Transparency=v and 0.08 or 1 end end)
+end})
+UIBeautyTab:Toggle({Title="平滑边框动画",Value=true,Callback=function(v) UIBeauty.SmoothBorder=v end})
+UIBeautyTab:Slider({Title="边框粗细",Value={Min=1,Max=5,Default=2},Step=1,Callback=function(v)
+    UIBeauty.BorderThickness=v
+    pcall(function() if beautyStroke then beautyStroke.Thickness=v end end)
+end})
+UIBeautyTab:Slider({Title="边框速度",Value={Min=5,Max=120,Default=40},Step=5,Callback=function(v) UIBeauty.BorderSpeed=v end})
+UIBeautyTab:Slider({Title="窗口透明度",Value={Min=0,Max=80,Default=30},Step=1,Callback=function(v)
+    UIBeauty.WindowTransparency=v/100
+    pcall(function() if windowFrame and windowFrame:IsA("GuiObject") then windowFrame.BackgroundTransparency=v/100 end end)
+end})
+UIBeautyTab:Slider({Title="UI大小",Value={Min=80,Max=120,Default=100},Step=1,Callback=function(v)
+    UIBeauty.Scale=v/100
+    pcall(function() if beautyScale then beautyScale.Scale=UIBeauty.Scale end end)
+end})
+UIBeautyTab:Toggle({Title="显示状态文字",Value=true,Callback=function(v)
+    UIBeauty.StatusEnabled=v
+    pcall(function() if beautyStatus then beautyStatus.Visible=v end end)
+end})
+UIBeautyTab:Toggle({Title="显示FPS/延迟",Value=true,Callback=function(v)
+    UIBeauty.FPS=v
+    pcall(function() if beautyFpsLabel then beautyFpsLabel.Visible=v end end)
+end})
+UIBeautyTab:Section({Title="快速预设"})
+UIBeautyTab:Dropdown({Title="界面风格",Values={"银灰","纯黑","冰蓝","紫灰"},Value="银灰",Callback=function(v)
+    local presets={
+        ["银灰"]=Color3.fromRGB(170,170,170),
+        ["纯黑"]=Color3.fromRGB(80,80,80),
+        ["冰蓝"]=Color3.fromRGB(120,190,255),
+        ["紫灰"]=Color3.fromRGB(175,140,210)
+    }
+    if presets[v] then setBeautyAccent(presets[v]) end
+end})
+UIBeautyTab:Button({Title="恢复默认美化",Callback=function()
+    UIBeauty.Accent=Color3.fromRGB(170,170,170)
+    UIBeauty.BorderEnabled=true
+    UIBeauty.SmoothBorder=true
+    UIBeauty.BorderThickness=2
+    UIBeauty.BorderSpeed=40
+    UIBeauty.WindowTransparency=0.30
+    UIBeauty.Scale=1
+    UIBeauty.StatusEnabled=true
+    UIBeauty.FPS=true
+    setBeautyAccent(UIBeauty.Accent)
+    pcall(function()
+        if beautyStroke then beautyStroke.Thickness=2; beautyStroke.Transparency=0.08 end
+        if beautyScale then beautyScale.Scale=1 end
+        if beautyStatus then beautyStatus.Visible=true end
+        if beautyFpsLabel then beautyFpsLabel.Visible=true end
+        if windowFrame and windowFrame:IsA("GuiObject") then windowFrame.BackgroundTransparency=0.30 end
+    end)
+    safeNotify("UI美化","已恢复默认样式",2)
+end})
+
+-- ==================== UI 美化增强结束 ====================
+
 local D=C:Section({Title="功能菜单",Opened=true})
 
 local Z = D:Tab({Title="公告", Icon="bell"})
