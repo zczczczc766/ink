@@ -122,7 +122,7 @@ end
 
 local D=C:Section({Title="功能菜单",Opened=true})
 
--- ==================== 简洁UI增强：FPS + 用户信息 ====================
+-- ==================== 简洁UI增强：FPS + Ping ====================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
@@ -178,43 +178,9 @@ local function createFPS()
 end
 createFPS()
 
-local userInfoEnabled = true
-local userInfoFrame
-local function createUserInfo()
-    pcall(function()
-        if userInfoFrame then userInfoFrame:Destroy() end
-        if not (windowFrame and windowFrame:IsA("GuiObject")) then return end
-        userInfoFrame = Instance.new("Frame")
-        userInfoFrame.Name = "InkUserInfo"
-        -- 固定在侧栏顶部，不再覆盖最后几个功能选择
-        userInfoFrame.Position = UDim2.new(0,2,0,42)
-        userInfoFrame.Size = UDim2.new(0,156,0,52)
-        userInfoFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-        userInfoFrame.BackgroundTransparency = 0
-        userInfoFrame.BorderSizePixel = 0
-        userInfoFrame.ZIndex = 10000
-        userInfoFrame.Parent = windowFrame
-        local corner=Instance.new("UICorner"); corner.CornerRadius=UDim.new(0,7); corner.Parent=userInfoFrame
-        local stroke=Instance.new("UIStroke"); stroke.Thickness=1; stroke.Transparency=.25; stroke.Color=Color3.fromRGB(90,90,90); stroke.Parent=userInfoFrame
-        local avatar=Instance.new("ImageLabel")
-        avatar.Position=UDim2.fromOffset(6,7); avatar.Size=UDim2.fromOffset(38,38); avatar.BackgroundTransparency=1; avatar.ZIndex=10001; avatar.Parent=userInfoFrame
-        local ac=Instance.new("UICorner"); ac.CornerRadius=UDim.new(1,0); ac.Parent=avatar
-        pcall(function() avatar.Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
-        local name=Instance.new("TextLabel")
-        name.Position=UDim2.fromOffset(50,6); name.Size=UDim2.new(1,-55,0,20); name.BackgroundTransparency=1; name.Text=LocalPlayer.DisplayName; name.TextColor3=Color3.fromRGB(240,240,240); name.TextSize=12; name.Font=Enum.Font.GothamMedium; name.TextXAlignment=Enum.TextXAlignment.Left; name.TextTruncate=Enum.TextTruncate.AtEnd; name.ZIndex=10001; name.Parent=userInfoFrame
-        local username=Instance.new("TextLabel")
-        username.Position=UDim2.fromOffset(50,27); username.Size=UDim2.new(1,-55,0,17); username.BackgroundTransparency=1; username.Text="@"..LocalPlayer.Name; username.TextColor3=Color3.fromRGB(155,155,155); username.TextSize=10; username.Font=Enum.Font.Gotham; username.TextXAlignment=Enum.TextXAlignment.Left; username.TextTruncate=Enum.TextTruncate.AtEnd; username.ZIndex=10001; username.Parent=userInfoFrame
-    end)
-end
-createUserInfo()
-
 local function setFPSVisible(v)
     fpsEnabled = v
     if fpsGui then fpsGui.Enabled = v end
-end
-local function setUserInfoVisible(v)
-    userInfoEnabled = v
-    if userInfoFrame then userInfoFrame.Visible = v end
 end
 -- ==================== 简洁UI增强结束 ====================
 
@@ -729,7 +695,145 @@ for _, p in pairs(Players:GetPlayers()) do
     end
 end
 
+-- ==================== NPC 透视 ====================
+local npcEspEnabled = false
+local npcEspObjects = {}
+local npcEspConnections = {}
+
+local function isPlayerCharacter(model)
+    if not model or not model:IsA("Model") then return false end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character == model then
+            return true
+        end
+    end
+    return false
+end
+
+local function getNPCPart(model)
+    return model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("UpperTorso")
+        or model:FindFirstChild("Torso")
+end
+
+local function isNPCModel(model)
+    if not model or not model:IsA("Model") then return false end
+    if isPlayerCharacter(model) then return false end
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    local root = getNPCPart(model)
+    return humanoid ~= nil and root ~= nil and humanoid.Health > 0
+end
+
+local function removeNPCESP(model)
+    local data = npcEspObjects[model]
+    if data then
+        if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
+        if data.Name then pcall(function() data.Name:Remove() end) end
+        npcEspObjects[model] = nil
+    end
+end
+
+local function createNPCESP(model)
+    if not npcEspEnabled or not isNPCModel(model) or npcEspObjects[model] then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ink_HUB_NPC_ESP"
+    highlight.Adornee = model
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor = espconfig.outlinefillcolor
+    highlight.FillTransparency = espconfig.outlinefilltransparency
+    highlight.OutlineColor = espconfig.outlinecolor
+    highlight.OutlineTransparency = espconfig.outlinetransparency
+    highlight.Parent = model
+
+    local nameText = Drawing.new("Text")
+    nameText.Size = espconfig.espsize
+    nameText.Center = true
+    nameText.Outline = true
+    nameText.Color = espconfig.espcolor
+    nameText.Font = 2
+    nameText.Visible = false
+
+    npcEspObjects[model] = {Highlight = highlight, Name = nameText}
+end
+
+local function scanNPC(model)
+    if model:IsA("Model") then
+        createNPCESP(model)
+    end
+end
+
+local function clearNPCESP()
+    for model in pairs(npcEspObjects) do
+        removeNPCESP(model)
+    end
+end
+
+local function updateNPCESP()
+    for model, data in pairs(npcEspObjects) do
+        if not model or not model.Parent or not isNPCModel(model) then
+            removeNPCESP(model)
+        else
+            local root = getNPCPart(model)
+            local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                local distance = (Camera.CFrame.Position - root.Position).Magnitude
+                data.Name.Position = Vector2.new(pos.X, pos.Y - 20)
+                data.Name.Text = model.Name .. " | " .. math.floor(distance) .. " 米"
+                data.Name.Size = espconfig.espsize
+                data.Name.Color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
+                data.Name.Visible = true
+            else
+                data.Name.Visible = false
+            end
+
+            data.Highlight.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+            data.Highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
+            data.Highlight.FillTransparency = espconfig.outlinefilltransparency
+            data.Highlight.OutlineTransparency = espconfig.outlinetransparency
+        end
+    end
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+    if npcEspEnabled and obj:IsA("Model") then
+        task.defer(function()
+            if npcEspEnabled then scanNPC(obj) end
+        end)
+    end
+end)
+
+workspace.DescendantRemoving:Connect(function(obj)
+    if npcEspObjects[obj] then
+        removeNPCESP(obj)
+    end
+end)
+
+RunService:BindToRenderStep("NPCESPUpdate", Enum.RenderPriority.Camera.Value + 2, function()
+    if npcEspEnabled then
+        updateNPCESP()
+    end
+end)
+
 local espGroup = P:Section({ Title = "基础透视", Opened = true })
+
+espGroup:Toggle({
+    Title = "透视NPC",
+    Value = false,
+    Callback = function(v)
+        npcEspEnabled = v
+        if v then
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") then
+                    scanNPC(obj)
+                end
+            end
+        else
+            clearNPCESP()
+        end
+    end
+})
+
 espGroup:Toggle({
     Title = "透视",
     Value = false,
@@ -2819,12 +2923,6 @@ UIControlTab:Toggle({
     Callback = function(v) setFPSVisible(v) end
 })
 
-UIControlTab:Toggle({
-    Title = "用户信息",
-    Value = true,
-    Callback = function(v) setUserInfoVisible(v) end
-})
-
 local backgroundOptions = {
     ["默认"] = "99065227044934",
     ["初音"] = "135289868193369",
@@ -2861,3 +2959,4 @@ end)
 
 end,function(e)
     safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
+end)
