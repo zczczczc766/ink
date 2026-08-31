@@ -2811,6 +2811,45 @@ N:Toggle({Title="火箭筒",Value=false,Callback=function(s)
     end
 end})
 
+local UIControlTab = D:Tab({Title="UI设置", Icon="settings"})
+
+UIControlTab:Toggle({
+    Title = "FPS / Ping",
+    Value = true,
+    Callback = function(v) setFPSVisible(v) end
+})
+
+UIControlTab:Toggle({
+    Title = "用户信息",
+    Value = true,
+    Callback = function(v) setUserInfoVisible(v) end
+})
+
+local backgroundOptions = {
+    ["默认"] = "99065227044934",
+    ["初音"] = "135289868193369",
+    ["L"]   = "114024446200743",
+    ["迪西"] = "82011497541147"
+}
+
+local function setBackground(option)
+    local id = backgroundOptions[option]
+    if id and windowFrame then
+        pcall(function()
+            windowFrame.BackgroundImage = "rbxassetid://" .. id
+        end)
+    end
+end
+
+UIControlTab:Dropdown({
+    Title = "UI背景",
+    Values = {"默认", "初音", "L", "迪西"},
+    Value = "默认",
+    Callback = function(v)
+        setBackground(v)
+    end
+})
+
 task.wait(0.1)
 A:SetCore("SendNotification",{Title="加载成功",Text="ink_HUB 已正常运行",Duration=3})
 
@@ -2822,21 +2861,3 @@ end)
 
 end,function(e)
     safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
-
--- ==================== 最底部 UI 控制 ====================
--- 只保留 FPS/Ping 与用户信息两个开关
-local UIControlTab = D:Tab({Title="调UI", Icon="settings"})
-UIControlTab:Toggle({
-    Title="FPS / Ping",
-    Value=true,
-    Callback=function(v) setFPSVisible(v) end
-})
-UIControlTab:Toggle({
-    Title="用户信息",
-    Value=true,
-    Callback=function(v) setUserInfoVisible(v) end
-})
--- ==================== 最底部 UI 控制结束 ====================
-
-end)
-
