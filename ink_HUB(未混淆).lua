@@ -123,139 +123,101 @@ end
 local D=C:Section({Title="功能菜单",Opened=true})
 
 -- ==================== 简洁UI增强：FPS + 用户信息 ====================
--- FPS/Ping 独立于 HUB 窗口，关闭 HUB 后仍然显示
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
-local fpsOverlay
-pcall(function()
-    local old = CoreGui:FindFirstChild("ink_HUB_FPSOverlay")
-    if old then old:Destroy() end
-    fpsOverlay = Instance.new("ScreenGui")
-    fpsOverlay.Name = "ink_HUB_FPSOverlay"
-    fpsOverlay.ResetOnSpawn = false
-    fpsOverlay.IgnoreGuiInset = true
-    fpsOverlay.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    fpsOverlay.DisplayOrder = 999999
-    fpsOverlay.Parent = CoreGui
-
-    local fpsLabel = Instance.new("TextLabel")
-    fpsLabel.Name = "FPSPing"
-    fpsLabel.AnchorPoint = Vector2.new(0,0.5)
-    -- 最左侧，屏幕中心偏上一点
-    fpsLabel.Position = UDim2.new(0,8,0.42,0)
-    fpsLabel.Size = UDim2.fromOffset(150,22)
-    fpsLabel.BackgroundTransparency = 1
-    fpsLabel.Text = "FPS --  |  Ping --"
-    fpsLabel.TextColor3 = Color3.fromRGB(220,220,220)
-    fpsLabel.TextSize = 13
-    fpsLabel.Font = Enum.Font.GothamMedium
-    fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    fpsLabel.TextStrokeTransparency = 0.65
-    fpsLabel.ZIndex = 999999
-    fpsLabel.Parent = fpsOverlay
-
-    local last = os.clock()
-    local frames = 0
-    local shownFPS = 0
-    local function getPing()
-        local ping = "--"
-        pcall(function()
-            local stats = game:GetService("Stats")
-            local network = stats:FindFirstChild("Network")
-            local server = network and network:FindFirstChild("ServerStatsItem")
-            local item = server and server:FindFirstChild("Data Ping")
-            if item then ping = tostring(math.floor(item:GetValue())).."ms" end
-        end)
-        return ping
-    end
-    RunService.RenderStepped:Connect(function()
+-- 独立 FPS / Ping：永远不依赖 HUB 是否打开
+local fpsEnabled = true
+local fpsGui, fpsLabel, fpsConn
+local function createFPS()
+    pcall(function()
+        local old = CoreGui:FindFirstChild("ink_HUB_FPSOverlay")
+        if old then old:Destroy() end
+        fpsGui = Instance.new("ScreenGui")
+        fpsGui.Name = "ink_HUB_FPSOverlay"
+        fpsGui.ResetOnSpawn = false
+        fpsGui.IgnoreGuiInset = true
+        fpsGui.DisplayOrder = 2147483647
+        fpsGui.Parent = CoreGui
+        fpsLabel = Instance.new("TextLabel")
+        fpsLabel.Name = "FPSPing"
+        fpsLabel.AnchorPoint = Vector2.new(0,0.5)
+        fpsLabel.Position = UDim2.new(0,6,0.42,0)
+        fpsLabel.Size = UDim2.fromOffset(155,22)
+        fpsLabel.BackgroundTransparency = 1
+        fpsLabel.Text = "FPS --  |  Ping --"
+        fpsLabel.TextColor3 = Color3.fromRGB(225,225,225)
+        fpsLabel.TextSize = 13
+        fpsLabel.Font = Enum.Font.GothamMedium
+        fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+        fpsLabel.TextStrokeTransparency = 0.55
+        fpsLabel.ZIndex = 2147483647
+        fpsLabel.Parent = fpsGui
+    end)
+    local last, frames = os.clock(), 0
+    if fpsConn then pcall(function() fpsConn:Disconnect() end) end
+    fpsConn = RunService.RenderStepped:Connect(function()
         frames += 1
         local now = os.clock()
         if now-last >= 0.5 then
-            shownFPS = math.floor(frames/(now-last)+0.5)
-            frames = 0
-            last = now
-            if fpsLabel and fpsLabel.Parent then
-                fpsLabel.Text = "FPS "..tostring(math.clamp(shownFPS,0,999)).."  |  Ping "..getPing()
-            end
+            local fps = math.floor(frames/(now-last)+0.5)
+            frames, last = 0, now
+            local ping = "--"
+            pcall(function()
+                local stats = game:GetService("Stats")
+                local network = stats:FindFirstChild("Network")
+                local server = network and network:FindFirstChild("ServerStatsItem")
+                local item = server and server:FindFirstChild("Data Ping")
+                if item then ping = tostring(math.floor(item:GetValue()+0.5)).."ms" end
+            end)
+            if fpsLabel and fpsLabel.Parent then fpsLabel.Text = "FPS "..math.clamp(fps,0,999).."  |  Ping "..ping end
         end
     end)
-end)
+end
+createFPS()
 
--- 用户信息：宽度严格限制在侧边栏选择区域内，层级高于功能选择按钮
-local userInfoFrame=nil
-pcall(function()
-    if windowFrame and windowFrame:IsA("GuiObject") then
-        local old=windowFrame:FindFirstChild("InkUserInfo")
-        if old then old:Destroy() end
-        userInfoFrame=Instance.new("Frame")
-        userInfoFrame.Name="InkUserInfo"
-        userInfoFrame.Position=UDim2.new(0,0,1,-54)
-        userInfoFrame.Size=UDim2.new(0,160,0,50)
-        userInfoFrame.BackgroundColor3=Color3.fromRGB(18,18,18)
-        userInfoFrame.BackgroundTransparency=0.03
-        userInfoFrame.BorderSizePixel=0
-        userInfoFrame.ZIndex=100
-        userInfoFrame.Parent=windowFrame
-
-        local corner=Instance.new("UICorner")
-        corner.CornerRadius=UDim.new(0,7)
-        corner.Parent=userInfoFrame
-
-        local stroke=Instance.new("UIStroke")
-        stroke.Thickness=1
-        stroke.Transparency=0.35
-        stroke.Color=Color3.fromRGB(100,100,100)
-        stroke.Parent=userInfoFrame
-
+local userInfoEnabled = true
+local userInfoFrame
+local function createUserInfo()
+    pcall(function()
+        if userInfoFrame then userInfoFrame:Destroy() end
+        if not (windowFrame and windowFrame:IsA("GuiObject")) then return end
+        userInfoFrame = Instance.new("Frame")
+        userInfoFrame.Name = "InkUserInfo"
+        -- 固定在侧栏顶部，不再覆盖最后几个功能选择
+        userInfoFrame.Position = UDim2.new(0,2,0,42)
+        userInfoFrame.Size = UDim2.new(0,156,0,52)
+        userInfoFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+        userInfoFrame.BackgroundTransparency = 0
+        userInfoFrame.BorderSizePixel = 0
+        userInfoFrame.ZIndex = 10000
+        userInfoFrame.Parent = windowFrame
+        local corner=Instance.new("UICorner"); corner.CornerRadius=UDim.new(0,7); corner.Parent=userInfoFrame
+        local stroke=Instance.new("UIStroke"); stroke.Thickness=1; stroke.Transparency=.25; stroke.Color=Color3.fromRGB(90,90,90); stroke.Parent=userInfoFrame
         local avatar=Instance.new("ImageLabel")
-        avatar.Name="Avatar"
-        avatar.Position=UDim2.fromOffset(6,6)
-        avatar.Size=UDim2.fromOffset(38,38)
-        avatar.BackgroundTransparency=1
-        avatar.ZIndex=101
-        avatar.Parent=userInfoFrame
-        local avatarCorner=Instance.new("UICorner")
-        avatarCorner.CornerRadius=UDim.new(1,0)
-        avatarCorner.Parent=avatar
-
-        pcall(function()
-            avatar.Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)
-        end)
-
+        avatar.Position=UDim2.fromOffset(6,7); avatar.Size=UDim2.fromOffset(38,38); avatar.BackgroundTransparency=1; avatar.ZIndex=10001; avatar.Parent=userInfoFrame
+        local ac=Instance.new("UICorner"); ac.CornerRadius=UDim.new(1,0); ac.Parent=avatar
+        pcall(function() avatar.Image=Players:GetUserThumbnailAsync(LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
         local name=Instance.new("TextLabel")
-        name.Name="Name"
-        name.Position=UDim2.fromOffset(50,5)
-        name.Size=UDim2.new(1,-56,0,20)
-        name.BackgroundTransparency=1
-        name.Text=LocalPlayer.DisplayName
-        name.TextColor3=Color3.fromRGB(240,240,240)
-        name.TextSize=12
-        name.Font=Enum.Font.GothamMedium
-        name.TextXAlignment=Enum.TextXAlignment.Left
-        name.TextTruncate=Enum.TextTruncate.AtEnd
-        name.ZIndex=101
-        name.Parent=userInfoFrame
-
+        name.Position=UDim2.fromOffset(50,6); name.Size=UDim2.new(1,-55,0,20); name.BackgroundTransparency=1; name.Text=LocalPlayer.DisplayName; name.TextColor3=Color3.fromRGB(240,240,240); name.TextSize=12; name.Font=Enum.Font.GothamMedium; name.TextXAlignment=Enum.TextXAlignment.Left; name.TextTruncate=Enum.TextTruncate.AtEnd; name.ZIndex=10001; name.Parent=userInfoFrame
         local username=Instance.new("TextLabel")
-        username.Name="Username"
-        username.Position=UDim2.fromOffset(50,25)
-        username.Size=UDim2.new(1,-56,0,18)
-        username.BackgroundTransparency=1
-        username.Text="@"..LocalPlayer.Name
-        username.TextColor3=Color3.fromRGB(150,150,150)
-        username.TextSize=10
-        username.Font=Enum.Font.Gotham
-        username.TextXAlignment=Enum.TextXAlignment.Left
-        username.TextTruncate=Enum.TextTruncate.AtEnd
-        username.ZIndex=101
-        username.Parent=userInfoFrame
-    end
-end)
+        username.Position=UDim2.fromOffset(50,27); username.Size=UDim2.new(1,-55,0,17); username.BackgroundTransparency=1; username.Text="@"..LocalPlayer.Name; username.TextColor3=Color3.fromRGB(155,155,155); username.TextSize=10; username.Font=Enum.Font.Gotham; username.TextXAlignment=Enum.TextXAlignment.Left; username.TextTruncate=Enum.TextTruncate.AtEnd; username.ZIndex=10001; username.Parent=userInfoFrame
+    end)
+end
+createUserInfo()
+
+local function setFPSVisible(v)
+    fpsEnabled = v
+    if fpsGui then fpsGui.Enabled = v end
+end
+local function setUserInfoVisible(v)
+    userInfoEnabled = v
+    if userInfoFrame then userInfoFrame.Visible = v end
+end
 -- ==================== 简洁UI增强结束 ====================
+
 
 local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
@@ -2860,5 +2822,21 @@ end)
 
 end,function(e)
     safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
+
+-- ==================== 最底部 UI 控制 ====================
+-- 只保留 FPS/Ping 与用户信息两个开关
+local UIControlTab = D:Tab({Title="调UI", Icon="settings"})
+UIControlTab:Toggle({
+    Title="FPS / Ping",
+    Value=true,
+    Callback=function(v) setFPSVisible(v) end
+})
+UIControlTab:Toggle({
+    Title="用户信息",
+    Value=true,
+    Callback=function(v) setUserInfoVisible(v) end
+})
+-- ==================== 最底部 UI 控制结束 ====================
+
 end)
 
