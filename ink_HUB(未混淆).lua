@@ -29,8 +29,6 @@ if not tasklib.spawn then
 end
 task=tasklib
 
-safeNotify("正在执行 ink_HUB","启动保护已开启",2)
-
 local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
@@ -121,6 +119,8 @@ if windowFrame then
         end
     end)
 end
+
+local D=C:Section({Title="功能菜单",Opened=true})
 
 -- ==================== UI 美化增强 ====================
 local UIBeauty = {
@@ -353,7 +353,6 @@ end})
 
 -- ==================== UI 美化增强结束 ====================
 
-local D=C:Section({Title="功能菜单",Opened=true})
 
 local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
