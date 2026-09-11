@@ -32,24 +32,152 @@ task=tasklib
 local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
-A:SetCore("SendNotification",{Title="正在执行 奶龙_HUB",Text="加载中...",Duration=1})
 
+-- 全新启动动画：不再使用 Roblox 系统弹窗
 pcall(function()
-    local startupSound = Instance.new("Sound")
-    startupSound.Name = "奶龙_HUB_StartupSound"
-    startupSound.SoundId = "rbxassetid://84267705669861"
-    startupSound.Volume = 5
-    startupSound.Looped = false
-    startupSound.Parent = game:GetService("SoundService")
-    startupSound:Play()
-    startupSound.Ended:Connect(function()
-        startupSound:Destroy()
+    local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
+    local CoreGui = game:GetService("CoreGui")
+    local playerGui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+
+    local oldGui = CoreGui:FindFirstChild("NailongHubStartup")
+    if oldGui then oldGui:Destroy() end
+    if playerGui then
+        local oldPlayerGui = playerGui:FindFirstChild("NailongHubStartup")
+        if oldPlayerGui then oldPlayerGui:Destroy() end
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "NailongHubStartup"
+    gui.IgnoreGuiInset = true
+    gui.ResetOnSpawn = false
+    gui.DisplayOrder = 999999
+
+    local parent = playerGui or CoreGui
+    gui.Parent = parent
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.fromScale(1,1)
+    bg.BackgroundColor3 = Color3.fromRGB(8,7,3)
+    bg.BackgroundTransparency = 0.12
+    bg.BorderSizePixel = 0
+    bg.Parent = gui
+
+    local glow = Instance.new("Frame")
+    glow.AnchorPoint = Vector2.new(0.5,0.5)
+    glow.Position = UDim2.fromScale(0.5,0.42)
+    glow.Size = UDim2.fromOffset(250,250)
+    glow.BackgroundColor3 = Color3.fromRGB(255,190,0)
+    glow.BackgroundTransparency = 0.88
+    glow.BorderSizePixel = 0
+    glow.Parent = bg
+    Instance.new("UICorner",glow).CornerRadius = UDim.new(1,0)
+
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "CenterIcon"
+    icon.AnchorPoint = Vector2.new(0.5,0.5)
+    icon.Position = UDim2.fromScale(0.5,0.42)
+    icon.Size = UDim2.fromOffset(112,112)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://844112680709"
+    icon.ImageTransparency = 1
+    icon.ScaleType = Enum.ScaleType.Fit
+    icon.Parent = bg
+
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(1,0)
+    iconCorner.Parent = icon
+
+    local ring = Instance.new("UIStroke")
+    ring.Thickness = 3
+    ring.Color = Color3.fromRGB(255,205,45)
+    ring.Transparency = 1
+    ring.Parent = icon
+
+    local title = Instance.new("TextLabel")
+    title.AnchorPoint = Vector2.new(0.5,0)
+    title.Position = UDim2.fromScale(0.5,0.55)
+    title.Size = UDim2.fromOffset(500,48)
+    title.BackgroundTransparency = 1
+    title.Text = "奶龙_HUB"
+    title.TextColor3 = Color3.fromRGB(255,220,100)
+    title.TextTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 30
+    title.Parent = bg
+
+    local sub = Instance.new("TextLabel")
+    sub.AnchorPoint = Vector2.new(0.5,0)
+    sub.Position = UDim2.fromScale(0.5,0.625)
+    sub.Size = UDim2.fromOffset(500,30)
+    sub.BackgroundTransparency = 1
+    sub.Text = "正在初始化..."
+    sub.TextColor3 = Color3.fromRGB(235,220,175)
+    sub.TextTransparency = 1
+    sub.Font = Enum.Font.Gotham
+    sub.TextSize = 15
+    sub.Parent = bg
+
+    local barBack = Instance.new("Frame")
+    barBack.AnchorPoint = Vector2.new(0.5,0)
+    barBack.Position = UDim2.fromScale(0.5,0.70)
+    barBack.Size = UDim2.fromOffset(260,5)
+    barBack.BackgroundColor3 = Color3.fromRGB(65,52,20)
+    barBack.BackgroundTransparency = 1
+    barBack.BorderSizePixel = 0
+    barBack.Parent = bg
+    Instance.new("UICorner",barBack).CornerRadius = UDim.new(1,0)
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.fromScale(0,1)
+    bar.BackgroundColor3 = Color3.fromRGB(255,195,0)
+    bar.BackgroundTransparency = 1
+    bar.BorderSizePixel = 0
+    bar.Parent = barBack
+    Instance.new("UICorner",bar).CornerRadius = UDim.new(1,0)
+
+    local function tw(obj,time,props)
+        return TweenService:Create(obj,TweenInfo.new(time,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),props)
+    end
+
+    tw(icon,0.45,{ImageTransparency=0}):Play()
+    tw(ring,0.45,{Transparency=0}):Play()
+    tw(title,0.45,{TextTransparency=0}):Play()
+    tw(sub,0.45,{TextTransparency=0}):Play()
+    tw(barBack,0.35,{BackgroundTransparency=0}):Play()
+    tw(bar,1.7,{Size=UDim2.fromScale(1,1),BackgroundTransparency=0}):Play()
+
+    pcall(function()
+        local startupSound = Instance.new("Sound")
+        startupSound.Name = "奶龙_HUB_StartupSound"
+        startupSound.SoundId = "rbxassetid://84267705669861"
+        startupSound.Volume = 5
+        startupSound.Looped = false
+        startupSound.Parent = game:GetService("SoundService")
+        startupSound:Play()
+        startupSound.Ended:Connect(function()
+            startupSound:Destroy()
+        end)
     end)
+
+    task.wait(0.65)
+    sub.Text = "加载界面..."
+    task.wait(0.65)
+    sub.Text = "准备完成"
+    task.wait(0.45)
+
+    tw(bg,0.45,{BackgroundTransparency=1}):Play()
+    tw(icon,0.35,{ImageTransparency=1}):Play()
+    tw(ring,0.35,{Transparency=1}):Play()
+    tw(title,0.35,{TextTransparency=1}):Play()
+    tw(sub,0.35,{TextTransparency=1}):Play()
+    tw(barBack,0.3,{BackgroundTransparency=1}):Play()
+    task.wait(0.5)
+
+    if gui and gui.Parent then
+        gui:Destroy()
+    end
 end)
-task.wait(0.6)
-A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
-task.wait(0.3)
-A:SetCore("SendNotification",{Title="作者声明",Text="开源的4000+\n没惹你就开源的自动给我30年寿命",Duration=3})
 
 local function gradient(text,startColor,endColor)
     local result=""
@@ -2847,9 +2975,6 @@ N:Toggle({Title="火箭筒",Value=false,Callback=function(s)
         rocketState.fireEvent=nil
     end
 end})
-
-task.wait(0.1)
-A:SetCore("SendNotification",{Title="加载成功",Text="奶龙_HUB 已正常运行",Duration=3})
 
 task.spawn(function()
     pcall(function()
