@@ -35,9 +35,6 @@ local A=game:GetService("StarterGui")
 local TweenService=game:GetService("TweenService")
 local CoreGui=game:GetService("CoreGui")
 
-local TweenService=game:GetService("TweenService")
-local CoreGui=game:GetService("CoreGui")
-
 local function gradient(text,startColor,endColor)
 
     local result=""
@@ -64,7 +61,6 @@ local winduiUrls = {
 local winduiLastError = "未知错误"
 
 for i,url in ipairs(winduiUrls) do
-    setStartupProgress(0.10 + (i-1)*0.20,"正在加载奶龙_HUB")
     local ok, result = pcall(function()
         local code = game:HttpGet(url)
         if type(code) ~= "string" or #code < 100 then
@@ -86,7 +82,6 @@ for i,url in ipairs(winduiUrls) do
 end
 
 if not B then
-    setStartupProgress(1,"奶龙_HUB 加载失败")
     warn("[ink_HUB] WindUI加载失败:", winduiLastError)
     task.wait(0.5)
 return
@@ -111,7 +106,7 @@ end)
 
 
 local C=B:CreateWindow({Icon="moon",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
-C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="crown",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
+C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
@@ -154,30 +149,6 @@ if windowFrame then
         end
     end)
 end
-
-task.wait(0.2)
-pcall(function()
-    if startupBlur then
-        TweenService:Create(startupBlur,TweenInfo.new(0.35),{Size=0}):Play()
-    end
-    if startupGui then
-        for _,obj in ipairs(startupGui:GetDescendants()) do
-            if obj:IsA("Frame") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{BackgroundTransparency=1}):Play() end)
-            elseif obj:IsA("TextLabel") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{TextTransparency=1}):Play() end)
-            elseif obj:IsA("ImageLabel") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{ImageTransparency=1}):Play() end)
-            elseif obj:IsA("UIStroke") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{Transparency=1}):Play() end)
-            end
-        end
-        task.wait(0.4)
-        startupGui:Destroy()
-    end
-    if startupBlur then startupBlur:Destroy() end
-end)
-
 local D=C:Section({Title="功能菜单",Opened=true})
 
 
