@@ -32,11 +32,26 @@ task=tasklib
 local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
-local TweenService=game:GetService("TweenService")
-local CoreGui=game:GetService("CoreGui")
+A:SetCore("SendNotification",{Title="正在执行 奶龙_HUB",Text="加载中...",Duration=1})
+
+pcall(function()
+    local startupSound = Instance.new("Sound")
+    startupSound.Name = "奶龙_HUB_StartupSound"
+    startupSound.SoundId = "rbxassetid://84267705669861"
+    startupSound.Volume = 5
+    startupSound.Looped = false
+    startupSound.Parent = game:GetService("SoundService")
+    startupSound:Play()
+    startupSound.Ended:Connect(function()
+        startupSound:Destroy()
+    end)
+end)
+task.wait(0.6)
+A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
+task.wait(0.3)
+A:SetCore("SendNotification",{Title="作者声明",Text="开源的4000+\n没惹你就开源的自动给我30年寿命",Duration=3})
 
 local function gradient(text,startColor,endColor)
-
     local result=""
     local chars={}
     for uchar in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do table.insert(chars,uchar) end
@@ -60,7 +75,7 @@ local winduiUrls = {
 
 local winduiLastError = "未知错误"
 
-for i,url in ipairs(winduiUrls) do
+for _,url in ipairs(winduiUrls) do
     local ok, result = pcall(function()
         local code = game:HttpGet(url)
         if type(code) ~= "string" or #code < 100 then
@@ -82,9 +97,11 @@ for i,url in ipairs(winduiUrls) do
 end
 
 if not B then
+    pcall(function()
+        A:SetCore("SendNotification",{Title="WindUI加载失败",Text="请检查Delta网络/HttpGet支持",Duration=5})
+    end)
     warn("[ink_HUB] WindUI加载失败:", winduiLastError)
-    task.wait(0.5)
-return
+    return
 end
 
 pcall(function() B.Transparency=0.3 end)
@@ -149,6 +166,7 @@ if windowFrame then
         end
     end)
 end
+
 local D=C:Section({Title="功能菜单",Opened=true})
 
 
@@ -156,7 +174,7 @@ local D=C:Section({Title="功能菜单",Opened=true})
 local Z = D:Tab({Title="公告", Icon="bell"})
 Z:Paragraph({
     Title = "欢迎使用 奶龙_HUB",
-    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n开源并公开的4000+\n没惹你就开源的自动给我30年寿命\n公益脚本禁止倒卖\n认准 ink_HUB",
+    Desc = "作者：墨水依旧和司空\n墨水快手号:zczczczc766\n司空快手号:smalldesikon111和smalldesikon\n开源并公开的4000+\n没惹你就开源的自动给我30年寿命\n公益脚本禁止倒卖\n认准 奶龙_HUB",
     Image = "rbxassetid://118156660240152",
     ImageSize = 100,
 })
