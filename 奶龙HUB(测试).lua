@@ -32,11 +32,10 @@ task=tasklib
 local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
-local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
 local CoreGui=game:GetService("CoreGui")
 
--- 启动动画：不再弹系统通知，改为金黄色全屏加载界面
+-- 安全启动动画：不使用系统通知，也不改动原来的 WindUI 加载逻辑
 local startupGui
 local startupProgress
 local startupText
@@ -44,32 +43,34 @@ local startupPercent
 local startupBlur
 
 pcall(function()
-    local old = CoreGui:FindFirstChild("NailongHubStartup")
+    local old=CoreGui:FindFirstChild("NailongHubStartup")
     if old then old:Destroy() end
 
     startupGui=Instance.new("ScreenGui")
     startupGui.Name="NailongHubStartup"
     startupGui.IgnoreGuiInset=true
     startupGui.ResetOnSpawn=false
-    startupGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
     startupGui.DisplayOrder=999999
+    startupGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
     startupGui.Parent=CoreGui
 
     local overlay=Instance.new("Frame")
     overlay.Size=UDim2.fromScale(1,1)
-    overlay.BackgroundColor3=Color3.fromRGB(8,7,3)
+    overlay.BackgroundColor3=Color3.fromRGB(9,8,4)
     overlay.BackgroundTransparency=0.08
     overlay.BorderSizePixel=0
     overlay.Parent=startupGui
 
+    -- 金黄色氛围光
     local glow=Instance.new("Frame")
     glow.AnchorPoint=Vector2.new(0.5,0.5)
     glow.Position=UDim2.fromScale(0.5,0.5)
-    glow.Size=UDim2.fromScale(0.72,0.72)
+    glow.Size=UDim2.fromScale(0.75,0.75)
     glow.BackgroundColor3=Color3.fromRGB(255,190,0)
-    glow.BackgroundTransparency=0.92
+    glow.BackgroundTransparency=0.93
     glow.BorderSizePixel=0
     glow.Parent=overlay
+
     local glowCorner=Instance.new("UICorner")
     glowCorner.CornerRadius=UDim.new(1,0)
     glowCorner.Parent=glow
@@ -78,8 +79,8 @@ pcall(function()
     panel.AnchorPoint=Vector2.new(0.5,0.5)
     panel.Position=UDim2.fromScale(0.5,0.5)
     panel.Size=UDim2.fromOffset(430,285)
-    panel.BackgroundColor3=Color3.fromRGB(18,15,7)
-    panel.BackgroundTransparency=0.08
+    panel.BackgroundColor3=Color3.fromRGB(20,17,8)
+    panel.BackgroundTransparency=0.05
     panel.BorderSizePixel=0
     panel.Parent=overlay
 
@@ -91,30 +92,24 @@ pcall(function()
     panelStroke.Thickness=2.5
     panelStroke.Color=Color3.fromRGB(255,195,20)
     panelStroke.Parent=panel
+
     local panelGradient=Instance.new("UIGradient")
     panelGradient.Color=ColorSequence.new({
         ColorSequenceKeypoint.new(0,Color3.fromRGB(255,220,80)),
-        ColorSequenceKeypoint.new(0.35,Color3.fromRGB(255,170,0)),
-        ColorSequenceKeypoint.new(0.65,Color3.fromRGB(255,245,160)),
-        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,175,0))
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,170,0)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,235,120))
     })
     panelGradient.Parent=panelStroke
 
+    -- 中央大图标
     local icon=Instance.new("ImageLabel")
-    icon.Name="MainIcon"
     icon.AnchorPoint=Vector2.new(0.5,0.5)
     icon.Position=UDim2.fromScale(0.5,0.30)
-    icon.Size=UDim2.fromOffset(100,100)
+    icon.Size=UDim2.fromOffset(96,96)
     icon.BackgroundTransparency=1
     icon.Image="rbxassetid://84411268070942"
     icon.ScaleType=Enum.ScaleType.Fit
     icon.Parent=panel
-
-    local iconStroke=Instance.new("UIStroke")
-    iconStroke.Thickness=2
-    iconStroke.Color=Color3.fromRGB(255,205,40)
-    iconStroke.Transparency=0.1
-    iconStroke.Parent=icon
 
     startupText=Instance.new("TextLabel")
     startupText.AnchorPoint=Vector2.new(0.5,0.5)
@@ -127,41 +122,41 @@ pcall(function()
     startupText.Font=Enum.Font.GothamBold
     startupText.Parent=panel
 
-    local barOuter=Instance.new("Frame")
-    barOuter.AnchorPoint=Vector2.new(0.5,0.5)
-    barOuter.Position=UDim2.fromScale(0.5,0.73)
-    barOuter.Size=UDim2.new(0.84,0,0,20)
-    barOuter.BackgroundColor3=Color3.fromRGB(10,9,5)
-    barOuter.BorderSizePixel=0
-    barOuter.ClipsDescendants=true
-    barOuter.Parent=panel
+    -- 长椭圆进度条
+    local bar=Instance.new("Frame")
+    bar.AnchorPoint=Vector2.new(0.5,0.5)
+    bar.Position=UDim2.fromScale(0.5,0.73)
+    bar.Size=UDim2.new(0.84,0,0,20)
+    bar.BackgroundColor3=Color3.fromRGB(8,7,4)
+    bar.BorderSizePixel=0
+    bar.ClipsDescendants=true
+    bar.Parent=panel
 
     local barCorner=Instance.new("UICorner")
     barCorner.CornerRadius=UDim.new(1,0)
-    barCorner.Parent=barOuter
+    barCorner.Parent=bar
 
     local barStroke=Instance.new("UIStroke")
     barStroke.Thickness=2
     barStroke.Color=Color3.fromRGB(255,195,20)
-    barStroke.Parent=barOuter
+    barStroke.Parent=bar
 
     startupProgress=Instance.new("Frame")
-    startupProgress.AnchorPoint=Vector2.new(0,0.5)
-    startupProgress.Position=UDim2.new(0,0,0.5,0)
     startupProgress.Size=UDim2.new(0,0,1,0)
     startupProgress.BackgroundColor3=Color3.fromRGB(255,195,20)
     startupProgress.BorderSizePixel=0
-    startupProgress.Parent=barOuter
+    startupProgress.Parent=bar
 
     local progressCorner=Instance.new("UICorner")
     progressCorner.CornerRadius=UDim.new(1,0)
     progressCorner.Parent=startupProgress
 
+    -- 前半黄色、后半白色
     local progressGradient=Instance.new("UIGradient")
     progressGradient.Color=ColorSequence.new({
-        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,185,0)),
-        ColorSequenceKeypoint.new(0.48,Color3.fromRGB(255,215,40)),
-        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,255,255)),
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,175,0)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,210,40)),
+        ColorSequenceKeypoint.new(0.501,Color3.fromRGB(255,255,255)),
         ColorSequenceKeypoint.new(1,Color3.fromRGB(245,245,245))
     })
     progressGradient.Parent=startupProgress
@@ -169,7 +164,7 @@ pcall(function()
     startupPercent=Instance.new("TextLabel")
     startupPercent.AnchorPoint=Vector2.new(0.5,0.5)
     startupPercent.Position=UDim2.fromScale(0.5,0.84)
-    startupPercent.Size=UDim2.new(0.8,0,0,22)
+    startupPercent.Size=UDim2.new(0.8,0,0,20)
     startupPercent.BackgroundTransparency=1
     startupPercent.Text="加载中 0%"
     startupPercent.TextColor3=Color3.fromRGB(220,205,160)
@@ -177,34 +172,35 @@ pcall(function()
     startupPercent.Font=Enum.Font.Gotham
     startupPercent.Parent=panel
 
-    -- 大量“奶龙_HUB”从左侧持续滚到右侧
-    local scrollLayer=Instance.new("Frame")
-    scrollLayer.Size=UDim2.fromScale(1,1)
-    scrollLayer.BackgroundTransparency=1
-    scrollLayer.ClipsDescendants=true
-    scrollLayer.ZIndex=0
-    scrollLayer.Parent=overlay
+    -- 背景滚动文字
+    local scroll=Instance.new("Frame")
+    scroll.Size=UDim2.fromScale(1,1)
+    scroll.BackgroundTransparency=1
+    scroll.ClipsDescendants=true
+    scroll.ZIndex=0
+    scroll.Parent=overlay
 
-    for i=1,13 do
+    for i=1,11 do
         local t=Instance.new("TextLabel")
         t.BackgroundTransparency=1
         t.Text="奶龙_HUB     奶龙_HUB     奶龙_HUB"
         t.TextColor3=Color3.fromRGB(255,190,0)
-        t.TextTransparency=0.72
-        t.TextSize=14+(i%3)*3
+        t.TextTransparency=0.78
+        t.TextSize=15+(i%3)*2
         t.Font=Enum.Font.GothamBold
         t.TextXAlignment=Enum.TextXAlignment.Left
         t.Size=UDim2.new(0,520,0,30)
-        t.Position=UDim2.new(0,-560,0,(i-1)*75+math.random(-15,15))
+        t.Position=UDim2.new(0,-540,0,(i-1)*82+10)
         t.ZIndex=0
-        t.Parent=scrollLayer
+        t.Parent=scroll
 
-        local duration=5.5+(i%4)*0.8
+        local y=t.Position.Y.Offset
+        local duration=5.8+(i%4)*0.7
         task.spawn(function()
             while t.Parent do
-                t.Position=UDim2.new(0,-560,0,t.Position.Y.Offset)
+                t.Position=UDim2.new(0,-540,0,y)
                 local tw=TweenService:Create(t,TweenInfo.new(duration,Enum.EasingStyle.Linear),{
-                    Position=UDim2.new(1,30,0,t.Position.Y.Offset)
+                    Position=UDim2.new(1,20,0,y)
                 })
                 tw:Play()
                 tw.Completed:Wait()
@@ -212,53 +208,54 @@ pcall(function()
         end)
     end
 
+    -- 图标轻微呼吸，不影响加载
     task.spawn(function()
-        while icon and icon.Parent do
-            TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
-                Size=UDim2.fromOffset(108,108)
-            }):Play()
-            task.wait(0.8)
+        while icon.Parent do
+            local a=TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
+                Size=UDim2.fromOffset(104,104)
+            })
+            a:Play()
+            a.Completed:Wait()
             if not icon.Parent then break end
-            TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
-                Size=UDim2.fromOffset(100,100)
-            }):Play()
-            task.wait(0.8)
+            local b=TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
+                Size=UDim2.fromOffset(96,96)
+            })
+            b:Play()
+            b.Completed:Wait()
         end
     end)
 
+    -- 模糊放在 Lighting；失败也不会影响脚本
     pcall(function()
         startupBlur=Instance.new("BlurEffect")
         startupBlur.Name="NailongHubStartupBlur"
-        startupBlur.Size=24
+        startupBlur.Size=18
         startupBlur.Parent=game:GetService("Lighting")
     end)
 end)
 
 local function setStartupProgress(value,text)
     value=math.clamp(value or 0,0,1)
-    local percent=math.floor(value*100+0.5)
     if startupProgress and startupProgress.Parent then
-        TweenService:Create(startupProgress,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{
-            Size=UDim2.new(value,0,1,0)
-        }):Play()
+        startupProgress.Size=UDim2.new(value,0,1,0)
     end
     if startupText and startupText.Parent then
         startupText.Text=text or "正在加载奶龙_HUB"
     end
     if startupPercent and startupPercent.Parent then
-        startupPercent.Text="加载中 "..percent.."%"
+        startupPercent.Text="加载中 "..math.floor(value*100+0.5).."%"
     end
 end
 
 setStartupProgress(0.08,"正在加载奶龙_HUB")
 
 pcall(function()
-    local startupSound = Instance.new("Sound")
-    startupSound.Name = "奶龙_HUB_StartupSound"
-    startupSound.SoundId = "rbxassetid://84267705669861"
-    startupSound.Volume = 0.5
-    startupSound.Looped = false
-    startupSound.Parent = game:GetService("SoundService")
+    local startupSound=Instance.new("Sound")
+    startupSound.Name="奶龙_HUB_StartupSound"
+    startupSound.SoundId="rbxassetid://84267705669861"
+    startupSound.Volume=0.5
+    startupSound.Looped=false
+    startupSound.Parent=game:GetService("SoundService")
     startupSound:Play()
     startupSound.Ended:Connect(function()
         startupSound:Destroy()
@@ -282,28 +279,25 @@ end
 
 local B=nil
 local winduiUrls = {
-    "https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua",
-    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
+    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
+    "https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"
 }
 
 local winduiLastError = "未知错误"
 
 for i,url in ipairs(winduiUrls) do
-    setStartupProgress(0.12 + (i-1)*0.18, "正在加载奶龙_HUB")
+    setStartupProgress(0.10 + (i-1)*0.20,"正在加载奶龙_HUB")
     local ok, result = pcall(function()
-        local code = safeHttpGet(url)
+        local code = game:HttpGet(url)
         if type(code) ~= "string" or #code < 100 then
-            error("UI库下载失败或返回内容为空")
+            error("UI库返回内容为空")
         end
         local loader = loadstring(code)
         if type(loader) ~= "function" then
             error("loadstring失败")
         end
-        local lib = loader()
-        if type(lib) ~= "table" then
-            error("WindUI库没有正确返回")
-        end
-        return lib
+        return loader()
     end)
     if ok and result then
         B = result
@@ -316,8 +310,8 @@ end
 
 if not B then
     setStartupProgress(1,"奶龙_HUB 加载失败")
-    warn("[奶龙_HUB] WindUI加载失败:", winduiLastError)
-    task.wait(0.8)
+    warn("[ink_HUB] WindUI加载失败:", winduiLastError)
+    task.wait(0.5)
     pcall(function() if startupBlur then startupBlur:Destroy() end end)
     pcall(function() if startupGui then startupGui:Destroy() end end)
     return
@@ -341,20 +335,8 @@ pcall(function()
 end)
 
 
-local C=B:CreateWindow({Icon="crown",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
-pcall(function()
-    C:EditOpenButton({
-        Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),
-        Icon="crown",
-        StrokeThickness=2,
-        Color=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),
-            ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),
-            ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))
-        }),
-        Draggable=true
-    })
-end)
+local C=B:CreateWindow({Icon="moon",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="crown",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
@@ -398,9 +380,8 @@ if windowFrame then
     end)
 end
 
--- 主界面完成：100%后淡出启动画面
 setStartupProgress(1,"奶龙_HUB 加载完成")
-task.wait(0.25)
+task.wait(0.2)
 pcall(function()
     if startupBlur then
         TweenService:Create(startupBlur,TweenInfo.new(0.35),{Size=0}):Play()
@@ -408,16 +389,16 @@ pcall(function()
     if startupGui then
         for _,obj in ipairs(startupGui:GetDescendants()) do
             if obj:IsA("Frame") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play() end)
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{BackgroundTransparency=1}):Play() end)
             elseif obj:IsA("TextLabel") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{TextTransparency=1}):Play() end)
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{TextTransparency=1}):Play() end)
             elseif obj:IsA("ImageLabel") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{ImageTransparency=1}):Play() end)
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{ImageTransparency=1}):Play() end)
             elseif obj:IsA("UIStroke") then
-                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{Transparency=1}):Play() end)
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.35),{Transparency=1}):Play() end)
             end
         end
-        task.wait(0.45)
+        task.wait(0.4)
         startupGui:Destroy()
     end
     if startupBlur then startupBlur:Destroy() end
@@ -2597,7 +2578,113 @@ FractureTab:Button({
     end
 })
 
--- 已移除不安全的武器相关功能
+local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
+
+local weaponCDEnabled = false
+local weaponCDThread = nil
+
+CatTab:Toggle({
+    Title = "武器无CD",
+    Value = false,
+    Callback = function(state)
+        if state then
+            weaponCDEnabled = true
+            _G.StopWeaponCD = false
+            weaponCDThread = task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+
+                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
+                for _, weapon in pairs(Weapons) do
+                    if type(weapon) == "table" then
+                        weapon.Cooldown = 0
+                    end
+                end
+
+                local oldGetServerTimeNow = workspace.GetServerTimeNow
+                workspace.GetServerTimeNow = function(self, ...)
+                    return oldGetServerTimeNow(self, ...) + 999999
+                end
+
+                local CooldownEvent = ReplicatedStorage.Events.Cooldown
+                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
+                    conn:Disable()
+                end
+
+                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
+                _G.WeaponFiring = false
+
+                function startRapidFire()
+                    if _G.WeaponFiring then return end
+                    _G.WeaponFiring = true
+                    task.spawn(function()
+                        while _G.WeaponFiring and not _G.StopWeaponCD do
+                            local cam = workspace.CurrentCamera
+                            local mouse = LocalPlayer:GetMouse()
+                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+                            WeaponEvent:FireServer(ray.Direction.Unit, true)
+                            task.wait(0.01)
+                        end
+                        _G.WeaponFiring = false
+                    end)
+                end
+
+                function stopRapidFire()
+                    _G.WeaponFiring = false
+                end
+
+                startRapidFire()
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        local char = LocalPlayer.Character
+                        if char then
+                            for _, tool in ipairs(char:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") then
+                                    tool:SetAttribute("LastActivation", 0)
+                                    tool:SetAttribute("LastUse", 0)
+                                end
+                            end
+                        end
+                        task.wait(0.1)
+                    end
+                end)
+
+                task.spawn(function()
+                    while not _G.StopWeaponCD do
+                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
+                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
+                        task.wait(0.1)
+                    end
+                end)
+
+                while not _G.StopWeaponCD do
+                    task.wait(1)
+                end
+            end)
+        else
+            weaponCDEnabled = false
+            _G.StopWeaponCD = true
+            if weaponCDThread then
+                task.cancel(weaponCDThread)
+                weaponCDThread = nil
+            end
+            if _G.WeaponFiring then
+                _G.WeaponFiring = false
+            end
+        end
+    end
+})
 
 local CleanTab = D:Tab({Title="清洁键帽", Icon="sparkles"})
 
@@ -2785,7 +2872,228 @@ BlockWarTab:Toggle({
     end
 })
 
+local weaponEnabled = false
+local weaponThread = nil
+local weaponConnections = {}
+local originalWeaponData = {}
+
+BlockWarTab:Toggle({
+    Title = "近战武器无CD",
+    Value = false,
+    Callback = function(s)
+        if s then
+            weaponEnabled = true
+            _G.StopWeapon = false
+            weaponThread = task.spawn(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local Run = game:GetService("RunService")
+                local LP = Players.LocalPlayer
+
+                pcall(function()
+                    local Reg = require(RS.Data.Registries.WeaponRegistry)
+                    if Reg and Reg.Entries then
+                        for k, v in pairs(Reg.Entries) do
+                            if not originalWeaponData[k] then
+                                originalWeaponData[k] = {
+                                    HitDelay = v.HitDelay,
+                                    HitDuration = v.HitDuration,
+                                    Cooldown = v.Cooldown,
+                                    ComboTimeout = v.ComboTimeout
+                                }
+                            end
+                            v.HitDelay = 0
+                            v.HitDuration = 0.05
+                            v.Cooldown = 0
+                            v.ComboTimeout = 0
+                        end
+                    end
+                end)
+
+                LP:SetAttribute("AttackSpeedMul", 999999)
+                local attrConn = LP:GetAttributeChangedSignal("AttackSpeedMul"):Connect(function()
+                    if not _G.StopWeapon and LP:GetAttribute("AttackSpeedMul") ~= 999999 then
+                        LP:SetAttribute("AttackSpeedMul", 999999)
+                    end
+                end)
+                table.insert(weaponConnections, attrConn)
+
+                LP:SetAttribute("StunEndsAt", 0)
+                local stunConn = LP:GetAttributeChangedSignal("StunEndsAt"):Connect(function()
+                    if not _G.StopWeapon and (LP:GetAttribute("StunEndsAt") or 0) > workspace:GetServerTimeNow() then
+                        LP:SetAttribute("StunEndsAt", 0)
+                    end
+                end)
+                table.insert(weaponConnections, stunConn)
+
+                local heartbeatConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    LP:SetAttribute("StunEndsAt", 0)
+                    pcall(function()
+                        for _, m in ipairs(getloadedmodules and getloadedmodules() or {}) do
+                            if m and m.SwingState then
+                                m.SwingState.cooldownEndsAt = -1
+                                m.SwingState.duration = 0
+                            end
+                        end
+                    end)
+                end)
+                table.insert(weaponConnections, heartbeatConn)
+
+                local CombatRemotes = RS:WaitForChild("GameEvents"):WaitForChild("CombatRemotes")
+                local AtkRemote = CombatRemotes:WaitForChild("Combat_RequestAttack")
+                local last = 0
+
+                local atkConn = Run.Heartbeat:Connect(function()
+                    if _G.StopWeapon then return end
+                    if tick() - last < 0.05 then return end
+                    local char = LP.Character
+                    local tool = char and char:FindFirstChildWhichIsA("Tool")
+                    if tool then
+                        local ok, wtype = pcall(function()
+                            return require(RS.Data.Registries.WeaponRegistry).GetTypeFromTool(tool)
+                        end)
+                        if ok and wtype then
+                            last = tick()
+                            pcall(function()
+                                AtkRemote:FireServer(wtype)
+                            end)
+                        end
+                    end
+                end)
+                table.insert(weaponConnections, atkConn)
+
+                while not _G.StopWeapon do
+                    task.wait(1)
+                end
+            end)
+        else
+            _G.StopWeapon = true
+            if weaponThread then task.cancel(weaponThread); weaponThread = nil end
+            for _, conn in ipairs(weaponConnections) do
+                pcall(function() conn:Disconnect() end)
+            end
+            weaponConnections = {}
+            pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LP = Players.LocalPlayer
+                local Reg = require(RS.Data.Registries.WeaponRegistry)
+                if Reg and Reg.Entries then
+                    for k, v in pairs(Reg.Entries) do
+                        if originalWeaponData[k] then
+                            v.HitDelay = originalWeaponData[k].HitDelay
+                            v.HitDuration = originalWeaponData[k].HitDuration
+                            v.Cooldown = originalWeaponData[k].Cooldown
+                            v.ComboTimeout = originalWeaponData[k].ComboTimeout
+                        end
+                    end
+                end
+                LP:SetAttribute("AttackSpeedMul", 1)
+                LP:SetAttribute("StunEndsAt", 0)
+            end)
+            originalWeaponData = {}
+        end
+    end
+})
+
+local Players=game:GetService("Players")
+local player=Players.LocalPlayer
+local mouse=player:GetMouse()
+
+local bombState={active=false,thread=nil,fireEvent=nil}
+local rocketState={active=false,thread=nil,fireEvent=nil}
+
+local function getBombFire()
+    local backpack=player:FindFirstChild("Backpack")
+    if not backpack then return nil end
+    local timebomb=backpack:FindFirstChild("Timebomb")
+    if not timebomb then return nil end
+    return timebomb:FindFirstChild("Fire")
+end
+
+local function getRocketFire()
+    local char=player.Character
+    if not char then return nil end
+    local launcher=char:FindFirstChild("RocketLauncher")
+    if not launcher then return nil end
+    return launcher:FindFirstChild("Fire")
+end
+
+local function bombLoop()
+    local lastRetryTime=0
+    while bombState.active do
+        local char=player.Character
+        if char then
+            local rootPart=char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+            if rootPart then
+                if not bombState.fireEvent or not bombState.fireEvent.Parent then
+                    local now=tick()
+                    if now-lastRetryTime>0.2 then
+                        lastRetryTime=now
+                        bombState.fireEvent=getBombFire()
+                    end
+                end
+                if bombState.fireEvent then
+                    bombState.fireEvent:FireServer(rootPart.CFrame)
+                end
+            end
+        end
+        task.wait(0.01)
+    end
+end
+
+local function rocketLoop()
+    while rocketState.active do
+        if rocketState.fireEvent then
+            rocketState.fireEvent:FireServer(mouse.Hit.p)
+        end
+        task.wait(0.01)
+    end
+end
+
+N:Toggle({Title="炸弹",Value=false,Callback=function()
+    if bombState.active then
+        bombState.active=false
+        if bombState.thread then
+            task.wait(0.02)
+            bombState.thread=nil
+        end
+    end
+    bombState.active=true
+    bombState.fireEvent=nil
+    bombState.thread=task.spawn(bombLoop)
+end})
+
+N:Toggle({Title="火箭筒",Value=false,Callback=function(s)
+    if s then
+        local fire=getRocketFire()
+        if not fire then
+            warn("火箭筒 Fire 获取失败")
+            return
+        end
+        rocketState.fireEvent=fire
+        rocketState.active=true
+        rocketState.thread=task.spawn(rocketLoop)
+    else
+        rocketState.active=false
+        if rocketState.thread then
+            task.wait(0.02)
+            rocketState.thread=nil
+        end
+        rocketState.fireEvent=nil
+    end
+end})
+
+task.wait(0.1)
+A:SetCore("SendNotification",{Title="加载成功",Text="奶龙_HUB 已正常运行",Duration=3})
+
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E4%BD%9C%E8%80%85%E6%A3%80%E6%B5%8B.lua"))()
+    end)
+end)
 
 end,function(e)
-    safeNotify("奶龙_HUB错误",tostring(e):sub(1,120),5)
+    safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
 end)
