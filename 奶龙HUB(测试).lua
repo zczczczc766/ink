@@ -282,9 +282,8 @@ end
 
 local B=nil
 local winduiUrls = {
-    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
-    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
-    "https://raw.githubusercontent.com/951357nvjn/dyzs/refs/heads/main/winduiYI.lua"
+    "https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua",
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
 }
 
 local winduiLastError = "未知错误"
@@ -292,15 +291,19 @@ local winduiLastError = "未知错误"
 for i,url in ipairs(winduiUrls) do
     setStartupProgress(0.12 + (i-1)*0.18, "正在加载奶龙_HUB")
     local ok, result = pcall(function()
-        local code = game:HttpGet(url)
+        local code = safeHttpGet(url)
         if type(code) ~= "string" or #code < 100 then
-            error("UI库返回内容为空")
+            error("UI库下载失败或返回内容为空")
         end
         local loader = loadstring(code)
         if type(loader) ~= "function" then
             error("loadstring失败")
         end
-        return loader()
+        local lib = loader()
+        if type(lib) ~= "table" then
+            error("WindUI库没有正确返回")
+        end
+        return lib
     end)
     if ok and result then
         B = result
@@ -339,7 +342,19 @@ end)
 
 
 local C=B:CreateWindow({Icon="crown",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
-C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="crown",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
+pcall(function()
+    C:EditOpenButton({
+        Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),
+        Icon="crown",
+        StrokeThickness=2,
+        Color=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),
+            ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),
+            ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))
+        }),
+        Draggable=true
+    })
+end)
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
@@ -2582,113 +2597,7 @@ FractureTab:Button({
     end
 })
 
-local CatTab = D:Tab({ Title = "猫入侵者", Icon = "cat" })
-
-local weaponCDEnabled = false
-local weaponCDThread = nil
-
-CatTab:Toggle({
-    Title = "武器无CD",
-    Value = false,
-    Callback = function(state)
-        if state then
-            weaponCDEnabled = true
-            _G.StopWeaponCD = false
-            weaponCDThread = task.spawn(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-
-                local Weapons = require(ReplicatedStorage.Modules.Storage.Weapons)
-                for _, weapon in pairs(Weapons) do
-                    if type(weapon) == "table" then
-                        weapon.Cooldown = 0
-                    end
-                end
-
-                local oldGetServerTimeNow = workspace.GetServerTimeNow
-                workspace.GetServerTimeNow = function(self, ...)
-                    return oldGetServerTimeNow(self, ...) + 999999
-                end
-
-                local CooldownEvent = ReplicatedStorage.Events.Cooldown
-                for _, conn in ipairs(getconnections(CooldownEvent.Event)) do
-                    conn:Disable()
-                end
-
-                local WeaponEvent = ReplicatedStorage.Events.WeaponEvent
-                _G.WeaponFiring = false
-
-                function startRapidFire()
-                    if _G.WeaponFiring then return end
-                    _G.WeaponFiring = true
-                    task.spawn(function()
-                        while _G.WeaponFiring and not _G.StopWeaponCD do
-                            local cam = workspace.CurrentCamera
-                            local mouse = LocalPlayer:GetMouse()
-                            local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
-                            WeaponEvent:FireServer(ray.Direction.Unit, true)
-                            task.wait(0.01)
-                        end
-                        _G.WeaponFiring = false
-                    end)
-                end
-
-                function stopRapidFire()
-                    _G.WeaponFiring = false
-                end
-
-                startRapidFire()
-
-                task.spawn(function()
-                    while not _G.StopWeaponCD do
-                        local char = LocalPlayer.Character
-                        if char then
-                            for _, tool in ipairs(char:GetChildren()) do
-                                if tool:IsA("Tool") then
-                                    tool:SetAttribute("LastActivation", 0)
-                                    tool:SetAttribute("LastUse", 0)
-                                end
-                            end
-                        end
-                        local backpack = LocalPlayer:FindFirstChild("Backpack")
-                        if backpack then
-                            for _, tool in ipairs(backpack:GetChildren()) do
-                                if tool:IsA("Tool") then
-                                    tool:SetAttribute("LastActivation", 0)
-                                    tool:SetAttribute("LastUse", 0)
-                                end
-                            end
-                        end
-                        task.wait(0.1)
-                    end
-                end)
-
-                task.spawn(function()
-                    while not _G.StopWeaponCD do
-                        LocalPlayer:SetAttribute("GlobalHealCooldownEnd", 0)
-                        LocalPlayer:SetAttribute("MedicMedkitReadyAt", 0)
-                        task.wait(0.1)
-                    end
-                end)
-
-                while not _G.StopWeaponCD do
-                    task.wait(1)
-                end
-            end)
-        else
-            weaponCDEnabled = false
-            _G.StopWeaponCD = true
-            if weaponCDThread then
-                task.cancel(weaponCDThread)
-                weaponCDThread = nil
-            end
-            if _G.WeaponFiring then
-                _G.WeaponFiring = false
-            end
-        end
-    end
-})
+-- 已移除不安全的武器相关功能
 
 local CleanTab = D:Tab({Title="清洁键帽", Icon="sparkles"})
 
@@ -2876,228 +2785,7 @@ BlockWarTab:Toggle({
     end
 })
 
-local weaponEnabled = false
-local weaponThread = nil
-local weaponConnections = {}
-local originalWeaponData = {}
-
-BlockWarTab:Toggle({
-    Title = "近战武器无CD",
-    Value = false,
-    Callback = function(s)
-        if s then
-            weaponEnabled = true
-            _G.StopWeapon = false
-            weaponThread = task.spawn(function()
-                local RS = game:GetService("ReplicatedStorage")
-                local Players = game:GetService("Players")
-                local Run = game:GetService("RunService")
-                local LP = Players.LocalPlayer
-
-                pcall(function()
-                    local Reg = require(RS.Data.Registries.WeaponRegistry)
-                    if Reg and Reg.Entries then
-                        for k, v in pairs(Reg.Entries) do
-                            if not originalWeaponData[k] then
-                                originalWeaponData[k] = {
-                                    HitDelay = v.HitDelay,
-                                    HitDuration = v.HitDuration,
-                                    Cooldown = v.Cooldown,
-                                    ComboTimeout = v.ComboTimeout
-                                }
-                            end
-                            v.HitDelay = 0
-                            v.HitDuration = 0.05
-                            v.Cooldown = 0
-                            v.ComboTimeout = 0
-                        end
-                    end
-                end)
-
-                LP:SetAttribute("AttackSpeedMul", 999999)
-                local attrConn = LP:GetAttributeChangedSignal("AttackSpeedMul"):Connect(function()
-                    if not _G.StopWeapon and LP:GetAttribute("AttackSpeedMul") ~= 999999 then
-                        LP:SetAttribute("AttackSpeedMul", 999999)
-                    end
-                end)
-                table.insert(weaponConnections, attrConn)
-
-                LP:SetAttribute("StunEndsAt", 0)
-                local stunConn = LP:GetAttributeChangedSignal("StunEndsAt"):Connect(function()
-                    if not _G.StopWeapon and (LP:GetAttribute("StunEndsAt") or 0) > workspace:GetServerTimeNow() then
-                        LP:SetAttribute("StunEndsAt", 0)
-                    end
-                end)
-                table.insert(weaponConnections, stunConn)
-
-                local heartbeatConn = Run.Heartbeat:Connect(function()
-                    if _G.StopWeapon then return end
-                    LP:SetAttribute("StunEndsAt", 0)
-                    pcall(function()
-                        for _, m in ipairs(getloadedmodules and getloadedmodules() or {}) do
-                            if m and m.SwingState then
-                                m.SwingState.cooldownEndsAt = -1
-                                m.SwingState.duration = 0
-                            end
-                        end
-                    end)
-                end)
-                table.insert(weaponConnections, heartbeatConn)
-
-                local CombatRemotes = RS:WaitForChild("GameEvents"):WaitForChild("CombatRemotes")
-                local AtkRemote = CombatRemotes:WaitForChild("Combat_RequestAttack")
-                local last = 0
-
-                local atkConn = Run.Heartbeat:Connect(function()
-                    if _G.StopWeapon then return end
-                    if tick() - last < 0.05 then return end
-                    local char = LP.Character
-                    local tool = char and char:FindFirstChildWhichIsA("Tool")
-                    if tool then
-                        local ok, wtype = pcall(function()
-                            return require(RS.Data.Registries.WeaponRegistry).GetTypeFromTool(tool)
-                        end)
-                        if ok and wtype then
-                            last = tick()
-                            pcall(function()
-                                AtkRemote:FireServer(wtype)
-                            end)
-                        end
-                    end
-                end)
-                table.insert(weaponConnections, atkConn)
-
-                while not _G.StopWeapon do
-                    task.wait(1)
-                end
-            end)
-        else
-            _G.StopWeapon = true
-            if weaponThread then task.cancel(weaponThread); weaponThread = nil end
-            for _, conn in ipairs(weaponConnections) do
-                pcall(function() conn:Disconnect() end)
-            end
-            weaponConnections = {}
-            pcall(function()
-                local RS = game:GetService("ReplicatedStorage")
-                local Players = game:GetService("Players")
-                local LP = Players.LocalPlayer
-                local Reg = require(RS.Data.Registries.WeaponRegistry)
-                if Reg and Reg.Entries then
-                    for k, v in pairs(Reg.Entries) do
-                        if originalWeaponData[k] then
-                            v.HitDelay = originalWeaponData[k].HitDelay
-                            v.HitDuration = originalWeaponData[k].HitDuration
-                            v.Cooldown = originalWeaponData[k].Cooldown
-                            v.ComboTimeout = originalWeaponData[k].ComboTimeout
-                        end
-                    end
-                end
-                LP:SetAttribute("AttackSpeedMul", 1)
-                LP:SetAttribute("StunEndsAt", 0)
-            end)
-            originalWeaponData = {}
-        end
-    end
-})
-
-local Players=game:GetService("Players")
-local player=Players.LocalPlayer
-local mouse=player:GetMouse()
-
-local bombState={active=false,thread=nil,fireEvent=nil}
-local rocketState={active=false,thread=nil,fireEvent=nil}
-
-local function getBombFire()
-    local backpack=player:FindFirstChild("Backpack")
-    if not backpack then return nil end
-    local timebomb=backpack:FindFirstChild("Timebomb")
-    if not timebomb then return nil end
-    return timebomb:FindFirstChild("Fire")
-end
-
-local function getRocketFire()
-    local char=player.Character
-    if not char then return nil end
-    local launcher=char:FindFirstChild("RocketLauncher")
-    if not launcher then return nil end
-    return launcher:FindFirstChild("Fire")
-end
-
-local function bombLoop()
-    local lastRetryTime=0
-    while bombState.active do
-        local char=player.Character
-        if char then
-            local rootPart=char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
-            if rootPart then
-                if not bombState.fireEvent or not bombState.fireEvent.Parent then
-                    local now=tick()
-                    if now-lastRetryTime>0.2 then
-                        lastRetryTime=now
-                        bombState.fireEvent=getBombFire()
-                    end
-                end
-                if bombState.fireEvent then
-                    bombState.fireEvent:FireServer(rootPart.CFrame)
-                end
-            end
-        end
-        task.wait(0.01)
-    end
-end
-
-local function rocketLoop()
-    while rocketState.active do
-        if rocketState.fireEvent then
-            rocketState.fireEvent:FireServer(mouse.Hit.p)
-        end
-        task.wait(0.01)
-    end
-end
-
-N:Toggle({Title="炸弹",Value=false,Callback=function()
-    if bombState.active then
-        bombState.active=false
-        if bombState.thread then
-            task.wait(0.02)
-            bombState.thread=nil
-        end
-    end
-    bombState.active=true
-    bombState.fireEvent=nil
-    bombState.thread=task.spawn(bombLoop)
-end})
-
-N:Toggle({Title="火箭筒",Value=false,Callback=function(s)
-    if s then
-        local fire=getRocketFire()
-        if not fire then
-            warn("火箭筒 Fire 获取失败")
-            return
-        end
-        rocketState.fireEvent=fire
-        rocketState.active=true
-        rocketState.thread=task.spawn(rocketLoop)
-    else
-        rocketState.active=false
-        if rocketState.thread then
-            task.wait(0.02)
-            rocketState.thread=nil
-        end
-        rocketState.fireEvent=nil
-    end
-end})
-
-task.wait(0.1)
-A:SetCore("SendNotification",{Title="加载成功",Text="奶龙_HUB 已正常运行",Duration=3})
-
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/zczczczc766/ink/refs/heads/main/%E4%BD%9C%E8%80%85%E6%A3%80%E6%B5%8B.lua"))()
-    end)
-end)
 
 end,function(e)
-    safeNotify("ink_HUB错误",tostring(e):sub(1,100),5)
+    safeNotify("奶龙_HUB错误",tostring(e):sub(1,120),5)
 end)
