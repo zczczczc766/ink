@@ -33,6 +33,19 @@ local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
 A:SetCore("SendNotification",{Title="正在执行 ink_HUB",Text="加载中...",Duration=1})
+
+pcall(function()
+    local startupSound = Instance.new("Sound")
+    startupSound.Name = "ink_HUB_StartupSound"
+    startupSound.SoundId = "rbxassetid://84267705669861"
+    startupSound.Volume = 10
+    startupSound.Looped = false
+    startupSound.Parent = game:GetService("SoundService")
+    startupSound:Play()
+    startupSound.Ended:Connect(function()
+        startupSound:Destroy()
+    end)
+end)
 task.wait(0.6)
 A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
 task.wait(0.3)
@@ -94,23 +107,42 @@ end
 pcall(function() B.Transparency=0.3 end)
 pcall(function() B:SetTheme("Dark") end)
 
-local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://99065227044934",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+local C=B:CreateWindow({Icon="moon",Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Folder="ink_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="Dark",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
 C:EditOpenButton({Title=gradient("ink_HUB",Color3.fromRGB(180,180,180),Color3.fromRGB(100,100,100)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(1,Color3.fromRGB(100,100,100))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
     local stroke=Instance.new("UIStroke")
-    stroke.Name="RainbowStroke"
+    stroke.Name="YellowStroke"
     stroke.Thickness=2
-    stroke.Color=Color3.new(1,1,1)
+    stroke.Color=Color3.fromRGB(255,255,0)
     stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-    local grad=Instance.new("UIGradient")
-    grad.Name="RainbowGradient"
-    grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,180,180)),ColorSequenceKeypoint.new(0.3,Color3.fromRGB(150,150,150)),ColorSequenceKeypoint.new(0.7,Color3.fromRGB(120,120,120)),ColorSequenceKeypoint.new(1,Color3.fromRGB(90,90,90))})
-    grad.Enabled=true
-    grad.Offset=Vector2.new(0,0)
-    grad.Parent=stroke
     stroke.Parent=windowFrame
+
+    -- 动态黄色边框：沿边框持续旋转
+    local strokeGradient=Instance.new("UIGradient")
+    strokeGradient.Name="DynamicYellowGradient"
+    strokeGradient.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.25,Color3.fromRGB(255,220,0)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,255,120)),
+        ColorSequenceKeypoint.new(0.75,Color3.fromRGB(255,220,0)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,0))
+    })
+    strokeGradient.Rotation=0
+    strokeGradient.Parent=stroke
+
+    task.spawn(function()
+        while stroke and stroke.Parent do
+            for rotation=0,360,2 do
+                if not stroke or not stroke.Parent or not strokeGradient or not strokeGradient.Parent then
+                    break
+                end
+                strokeGradient.Rotation=rotation
+                task.wait(0.015)
+            end
+        end
+    end)
     task.spawn(function()
         local rotationSpeed=40
         while stroke and stroke.Parent do
