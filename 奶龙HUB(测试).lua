@@ -32,13 +32,231 @@ task=tasklib
 local ok,err=xpcall(function()
 
 local A=game:GetService("StarterGui")
-A:SetCore("SendNotification",{Title="正在执行 奶龙_HUB",Text="加载中...",Duration=1})
+local Players=game:GetService("Players")
+local TweenService=game:GetService("TweenService")
+local CoreGui=game:GetService("CoreGui")
+
+-- 启动动画：不再弹系统通知，改为金黄色全屏加载界面
+local startupGui
+local startupProgress
+local startupText
+local startupPercent
+local startupBlur
+
+pcall(function()
+    local old = CoreGui:FindFirstChild("NailongHubStartup")
+    if old then old:Destroy() end
+
+    startupGui=Instance.new("ScreenGui")
+    startupGui.Name="NailongHubStartup"
+    startupGui.IgnoreGuiInset=true
+    startupGui.ResetOnSpawn=false
+    startupGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+    startupGui.DisplayOrder=999999
+    startupGui.Parent=CoreGui
+
+    local overlay=Instance.new("Frame")
+    overlay.Size=UDim2.fromScale(1,1)
+    overlay.BackgroundColor3=Color3.fromRGB(8,7,3)
+    overlay.BackgroundTransparency=0.08
+    overlay.BorderSizePixel=0
+    overlay.Parent=startupGui
+
+    local glow=Instance.new("Frame")
+    glow.AnchorPoint=Vector2.new(0.5,0.5)
+    glow.Position=UDim2.fromScale(0.5,0.5)
+    glow.Size=UDim2.fromScale(0.72,0.72)
+    glow.BackgroundColor3=Color3.fromRGB(255,190,0)
+    glow.BackgroundTransparency=0.92
+    glow.BorderSizePixel=0
+    glow.Parent=overlay
+    local glowCorner=Instance.new("UICorner")
+    glowCorner.CornerRadius=UDim.new(1,0)
+    glowCorner.Parent=glow
+
+    local panel=Instance.new("Frame")
+    panel.AnchorPoint=Vector2.new(0.5,0.5)
+    panel.Position=UDim2.fromScale(0.5,0.5)
+    panel.Size=UDim2.fromOffset(430,285)
+    panel.BackgroundColor3=Color3.fromRGB(18,15,7)
+    panel.BackgroundTransparency=0.08
+    panel.BorderSizePixel=0
+    panel.Parent=overlay
+
+    local panelCorner=Instance.new("UICorner")
+    panelCorner.CornerRadius=UDim.new(0,24)
+    panelCorner.Parent=panel
+
+    local panelStroke=Instance.new("UIStroke")
+    panelStroke.Thickness=2.5
+    panelStroke.Color=Color3.fromRGB(255,195,20)
+    panelStroke.Parent=panel
+    local panelGradient=Instance.new("UIGradient")
+    panelGradient.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,220,80)),
+        ColorSequenceKeypoint.new(0.35,Color3.fromRGB(255,170,0)),
+        ColorSequenceKeypoint.new(0.65,Color3.fromRGB(255,245,160)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,175,0))
+    })
+    panelGradient.Parent=panelStroke
+
+    local icon=Instance.new("ImageLabel")
+    icon.Name="MainIcon"
+    icon.AnchorPoint=Vector2.new(0.5,0.5)
+    icon.Position=UDim2.fromScale(0.5,0.30)
+    icon.Size=UDim2.fromOffset(100,100)
+    icon.BackgroundTransparency=1
+    icon.Image="rbxassetid://84411268070942"
+    icon.ScaleType=Enum.ScaleType.Fit
+    icon.Parent=panel
+
+    local iconStroke=Instance.new("UIStroke")
+    iconStroke.Thickness=2
+    iconStroke.Color=Color3.fromRGB(255,205,40)
+    iconStroke.Transparency=0.1
+    iconStroke.Parent=icon
+
+    startupText=Instance.new("TextLabel")
+    startupText.AnchorPoint=Vector2.new(0.5,0.5)
+    startupText.Position=UDim2.fromScale(0.5,0.57)
+    startupText.Size=UDim2.new(0.9,0,0,32)
+    startupText.BackgroundTransparency=1
+    startupText.Text="正在加载奶龙_HUB"
+    startupText.TextColor3=Color3.fromRGB(255,235,150)
+    startupText.TextSize=21
+    startupText.Font=Enum.Font.GothamBold
+    startupText.Parent=panel
+
+    local barOuter=Instance.new("Frame")
+    barOuter.AnchorPoint=Vector2.new(0.5,0.5)
+    barOuter.Position=UDim2.fromScale(0.5,0.73)
+    barOuter.Size=UDim2.new(0.84,0,0,20)
+    barOuter.BackgroundColor3=Color3.fromRGB(10,9,5)
+    barOuter.BorderSizePixel=0
+    barOuter.ClipsDescendants=true
+    barOuter.Parent=panel
+
+    local barCorner=Instance.new("UICorner")
+    barCorner.CornerRadius=UDim.new(1,0)
+    barCorner.Parent=barOuter
+
+    local barStroke=Instance.new("UIStroke")
+    barStroke.Thickness=2
+    barStroke.Color=Color3.fromRGB(255,195,20)
+    barStroke.Parent=barOuter
+
+    startupProgress=Instance.new("Frame")
+    startupProgress.AnchorPoint=Vector2.new(0,0.5)
+    startupProgress.Position=UDim2.new(0,0,0.5,0)
+    startupProgress.Size=UDim2.new(0,0,1,0)
+    startupProgress.BackgroundColor3=Color3.fromRGB(255,195,20)
+    startupProgress.BorderSizePixel=0
+    startupProgress.Parent=barOuter
+
+    local progressCorner=Instance.new("UICorner")
+    progressCorner.CornerRadius=UDim.new(1,0)
+    progressCorner.Parent=startupProgress
+
+    local progressGradient=Instance.new("UIGradient")
+    progressGradient.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,185,0)),
+        ColorSequenceKeypoint.new(0.48,Color3.fromRGB(255,215,40)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,255,255)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(245,245,245))
+    })
+    progressGradient.Parent=startupProgress
+
+    startupPercent=Instance.new("TextLabel")
+    startupPercent.AnchorPoint=Vector2.new(0.5,0.5)
+    startupPercent.Position=UDim2.fromScale(0.5,0.84)
+    startupPercent.Size=UDim2.new(0.8,0,0,22)
+    startupPercent.BackgroundTransparency=1
+    startupPercent.Text="加载中 0%"
+    startupPercent.TextColor3=Color3.fromRGB(220,205,160)
+    startupPercent.TextSize=13
+    startupPercent.Font=Enum.Font.Gotham
+    startupPercent.Parent=panel
+
+    -- 大量“奶龙_HUB”从左侧持续滚到右侧
+    local scrollLayer=Instance.new("Frame")
+    scrollLayer.Size=UDim2.fromScale(1,1)
+    scrollLayer.BackgroundTransparency=1
+    scrollLayer.ClipsDescendants=true
+    scrollLayer.ZIndex=0
+    scrollLayer.Parent=overlay
+
+    for i=1,13 do
+        local t=Instance.new("TextLabel")
+        t.BackgroundTransparency=1
+        t.Text="奶龙_HUB     奶龙_HUB     奶龙_HUB"
+        t.TextColor3=Color3.fromRGB(255,190,0)
+        t.TextTransparency=0.72
+        t.TextSize=14+(i%3)*3
+        t.Font=Enum.Font.GothamBold
+        t.TextXAlignment=Enum.TextXAlignment.Left
+        t.Size=UDim2.new(0,520,0,30)
+        t.Position=UDim2.new(0,-560,0,(i-1)*75+math.random(-15,15))
+        t.ZIndex=0
+        t.Parent=scrollLayer
+
+        local duration=5.5+(i%4)*0.8
+        task.spawn(function()
+            while t.Parent do
+                t.Position=UDim2.new(0,-560,0,t.Position.Y.Offset)
+                local tw=TweenService:Create(t,TweenInfo.new(duration,Enum.EasingStyle.Linear),{
+                    Position=UDim2.new(1,30,0,t.Position.Y.Offset)
+                })
+                tw:Play()
+                tw.Completed:Wait()
+            end
+        end)
+    end
+
+    task.spawn(function()
+        while icon and icon.Parent do
+            TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
+                Size=UDim2.fromOffset(108,108)
+            }):Play()
+            task.wait(0.8)
+            if not icon.Parent then break end
+            TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
+                Size=UDim2.fromOffset(100,100)
+            }):Play()
+            task.wait(0.8)
+        end
+    end)
+
+    pcall(function()
+        startupBlur=Instance.new("BlurEffect")
+        startupBlur.Name="NailongHubStartupBlur"
+        startupBlur.Size=24
+        startupBlur.Parent=game:GetService("Lighting")
+    end)
+end)
+
+local function setStartupProgress(value,text)
+    value=math.clamp(value or 0,0,1)
+    local percent=math.floor(value*100+0.5)
+    if startupProgress and startupProgress.Parent then
+        TweenService:Create(startupProgress,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{
+            Size=UDim2.new(value,0,1,0)
+        }):Play()
+    end
+    if startupText and startupText.Parent then
+        startupText.Text=text or "正在加载奶龙_HUB"
+    end
+    if startupPercent and startupPercent.Parent then
+        startupPercent.Text="加载中 "..percent.."%"
+    end
+end
+
+setStartupProgress(0.08,"正在加载奶龙_HUB")
 
 pcall(function()
     local startupSound = Instance.new("Sound")
     startupSound.Name = "奶龙_HUB_StartupSound"
     startupSound.SoundId = "rbxassetid://84267705669861"
-    startupSound.Volume = 5
+    startupSound.Volume = 0.5
     startupSound.Looped = false
     startupSound.Parent = game:GetService("SoundService")
     startupSound:Play()
@@ -46,10 +264,6 @@ pcall(function()
         startupSound:Destroy()
     end)
 end)
-task.wait(0.6)
-A:SetCore("SendNotification",{Title="脚本启动成功",Text="正在加载界面...",Duration=2})
-task.wait(0.3)
-A:SetCore("SendNotification",{Title="作者声明",Text="开源的4000+\n没惹你就开源的自动给我30年寿命",Duration=3})
 
 local function gradient(text,startColor,endColor)
     local result=""
@@ -75,7 +289,8 @@ local winduiUrls = {
 
 local winduiLastError = "未知错误"
 
-for _,url in ipairs(winduiUrls) do
+for i,url in ipairs(winduiUrls) do
+    setStartupProgress(0.12 + (i-1)*0.18, "正在加载奶龙_HUB")
     local ok, result = pcall(function()
         local code = game:HttpGet(url)
         if type(code) ~= "string" or #code < 100 then
@@ -97,10 +312,11 @@ for _,url in ipairs(winduiUrls) do
 end
 
 if not B then
-    pcall(function()
-        A:SetCore("SendNotification",{Title="WindUI加载失败",Text="请检查Delta网络/HttpGet支持",Duration=5})
-    end)
-    warn("[ink_HUB] WindUI加载失败:", winduiLastError)
+    setStartupProgress(1,"奶龙_HUB 加载失败")
+    warn("[奶龙_HUB] WindUI加载失败:", winduiLastError)
+    task.wait(0.8)
+    pcall(function() if startupBlur then startupBlur:Destroy() end end)
+    pcall(function() if startupGui then startupGui:Destroy() end end)
     return
 end
 
@@ -122,8 +338,8 @@ pcall(function()
 end)
 
 
-local C=B:CreateWindow({Icon="moon",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
-C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="moon",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
+local C=B:CreateWindow({Icon="crown",Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Author=gradient("@墨水依旧 司空",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Folder="奶龙_HUB",Size=UDim2.fromOffset(520,410),Background="rbxassetid://118156660240152",BackgroundImageTransparency=0.25,Theme="奶龙_Gold",User={Enabled=false},SideBarWidth=160,ScrollBarEnabled=true})
+C:EditOpenButton({Title=gradient("奶龙_HUB",Color3.fromRGB(255,235,120),Color3.fromRGB(255,170,0)),Icon="crown",StrokeThickness=2,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,235,120)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,190,0)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,140,0))}),Draggable=true})
 
 local windowFrame=C and (C.UIElements and C.UIElements.Main or C.Frame or C.Gui or C)
 if windowFrame then
@@ -166,6 +382,31 @@ if windowFrame then
         end
     end)
 end
+
+-- 主界面完成：100%后淡出启动画面
+setStartupProgress(1,"奶龙_HUB 加载完成")
+task.wait(0.25)
+pcall(function()
+    if startupBlur then
+        TweenService:Create(startupBlur,TweenInfo.new(0.35),{Size=0}):Play()
+    end
+    if startupGui then
+        for _,obj in ipairs(startupGui:GetDescendants()) do
+            if obj:IsA("Frame") then
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play() end)
+            elseif obj:IsA("TextLabel") then
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{TextTransparency=1}):Play() end)
+            elseif obj:IsA("ImageLabel") then
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{ImageTransparency=1}):Play() end)
+            elseif obj:IsA("UIStroke") then
+                pcall(function() TweenService:Create(obj,TweenInfo.new(0.4),{Transparency=1}):Play() end)
+            end
+        end
+        task.wait(0.45)
+        startupGui:Destroy()
+    end
+    if startupBlur then startupBlur:Destroy() end
+end)
 
 local D=C:Section({Title="功能菜单",Opened=true})
 
