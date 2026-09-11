@@ -35,234 +35,11 @@ local A=game:GetService("StarterGui")
 local TweenService=game:GetService("TweenService")
 local CoreGui=game:GetService("CoreGui")
 
--- 安全启动动画：不使用系统通知，也不改动原来的 WindUI 加载逻辑
-local startupGui
-local startupProgress
-local startupText
-local startupPercent
-local startupBlur
-
-pcall(function()
-    local old=CoreGui:FindFirstChild("NailongHubStartup")
-    if old then old:Destroy() end
-
-    startupGui=Instance.new("ScreenGui")
-    startupGui.Name="NailongHubStartup"
-    startupGui.IgnoreGuiInset=true
-    startupGui.ResetOnSpawn=false
-    startupGui.DisplayOrder=999999
-    startupGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
-    startupGui.Parent=CoreGui
-
-    local overlay=Instance.new("Frame")
-    overlay.Size=UDim2.fromScale(1,1)
-    overlay.BackgroundColor3=Color3.fromRGB(9,8,4)
-    overlay.BackgroundTransparency=0.08
-    overlay.BorderSizePixel=0
-    overlay.Parent=startupGui
-
-    -- 金黄色氛围光
-    local glow=Instance.new("Frame")
-    glow.AnchorPoint=Vector2.new(0.5,0.5)
-    glow.Position=UDim2.fromScale(0.5,0.5)
-    glow.Size=UDim2.fromScale(0.75,0.75)
-    glow.BackgroundColor3=Color3.fromRGB(255,190,0)
-    glow.BackgroundTransparency=0.93
-    glow.BorderSizePixel=0
-    glow.Parent=overlay
-
-    local glowCorner=Instance.new("UICorner")
-    glowCorner.CornerRadius=UDim.new(1,0)
-    glowCorner.Parent=glow
-
-    local panel=Instance.new("Frame")
-    panel.AnchorPoint=Vector2.new(0.5,0.5)
-    panel.Position=UDim2.fromScale(0.5,0.5)
-    panel.Size=UDim2.fromOffset(430,285)
-    panel.BackgroundColor3=Color3.fromRGB(20,17,8)
-    panel.BackgroundTransparency=0.05
-    panel.BorderSizePixel=0
-    panel.Parent=overlay
-
-    local panelCorner=Instance.new("UICorner")
-    panelCorner.CornerRadius=UDim.new(0,24)
-    panelCorner.Parent=panel
-
-    local panelStroke=Instance.new("UIStroke")
-    panelStroke.Thickness=2.5
-    panelStroke.Color=Color3.fromRGB(255,195,20)
-    panelStroke.Parent=panel
-
-    local panelGradient=Instance.new("UIGradient")
-    panelGradient.Color=ColorSequence.new({
-        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,220,80)),
-        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,170,0)),
-        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,235,120))
-    })
-    panelGradient.Parent=panelStroke
-
-    -- 中央大图标
-    local icon=Instance.new("ImageLabel")
-    icon.AnchorPoint=Vector2.new(0.5,0.5)
-    icon.Position=UDim2.fromScale(0.5,0.30)
-    icon.Size=UDim2.fromOffset(96,96)
-    icon.BackgroundTransparency=1
-    icon.Image="rbxassetid://84411268070942"
-    icon.ScaleType=Enum.ScaleType.Fit
-    icon.Parent=panel
-
-    startupText=Instance.new("TextLabel")
-    startupText.AnchorPoint=Vector2.new(0.5,0.5)
-    startupText.Position=UDim2.fromScale(0.5,0.57)
-    startupText.Size=UDim2.new(0.9,0,0,32)
-    startupText.BackgroundTransparency=1
-    startupText.Text="正在加载奶龙_HUB"
-    startupText.TextColor3=Color3.fromRGB(255,235,150)
-    startupText.TextSize=21
-    startupText.Font=Enum.Font.GothamBold
-    startupText.Parent=panel
-
-    -- 长椭圆进度条
-    local bar=Instance.new("Frame")
-    bar.AnchorPoint=Vector2.new(0.5,0.5)
-    bar.Position=UDim2.fromScale(0.5,0.73)
-    bar.Size=UDim2.new(0.84,0,0,20)
-    bar.BackgroundColor3=Color3.fromRGB(8,7,4)
-    bar.BorderSizePixel=0
-    bar.ClipsDescendants=true
-    bar.Parent=panel
-
-    local barCorner=Instance.new("UICorner")
-    barCorner.CornerRadius=UDim.new(1,0)
-    barCorner.Parent=bar
-
-    local barStroke=Instance.new("UIStroke")
-    barStroke.Thickness=2
-    barStroke.Color=Color3.fromRGB(255,195,20)
-    barStroke.Parent=bar
-
-    startupProgress=Instance.new("Frame")
-    startupProgress.Size=UDim2.new(0,0,1,0)
-    startupProgress.BackgroundColor3=Color3.fromRGB(255,195,20)
-    startupProgress.BorderSizePixel=0
-    startupProgress.Parent=bar
-
-    local progressCorner=Instance.new("UICorner")
-    progressCorner.CornerRadius=UDim.new(1,0)
-    progressCorner.Parent=startupProgress
-
-    -- 前半黄色、后半白色
-    local progressGradient=Instance.new("UIGradient")
-    progressGradient.Color=ColorSequence.new({
-        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,175,0)),
-        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,210,40)),
-        ColorSequenceKeypoint.new(0.501,Color3.fromRGB(255,255,255)),
-        ColorSequenceKeypoint.new(1,Color3.fromRGB(245,245,245))
-    })
-    progressGradient.Parent=startupProgress
-
-    startupPercent=Instance.new("TextLabel")
-    startupPercent.AnchorPoint=Vector2.new(0.5,0.5)
-    startupPercent.Position=UDim2.fromScale(0.5,0.84)
-    startupPercent.Size=UDim2.new(0.8,0,0,20)
-    startupPercent.BackgroundTransparency=1
-    startupPercent.Text="加载中 0%"
-    startupPercent.TextColor3=Color3.fromRGB(220,205,160)
-    startupPercent.TextSize=13
-    startupPercent.Font=Enum.Font.Gotham
-    startupPercent.Parent=panel
-
-    -- 背景滚动文字
-    local scroll=Instance.new("Frame")
-    scroll.Size=UDim2.fromScale(1,1)
-    scroll.BackgroundTransparency=1
-    scroll.ClipsDescendants=true
-    scroll.ZIndex=0
-    scroll.Parent=overlay
-
-    for i=1,11 do
-        local t=Instance.new("TextLabel")
-        t.BackgroundTransparency=1
-        t.Text="奶龙_HUB     奶龙_HUB     奶龙_HUB"
-        t.TextColor3=Color3.fromRGB(255,190,0)
-        t.TextTransparency=0.78
-        t.TextSize=15+(i%3)*2
-        t.Font=Enum.Font.GothamBold
-        t.TextXAlignment=Enum.TextXAlignment.Left
-        t.Size=UDim2.new(0,520,0,30)
-        t.Position=UDim2.new(0,-540,0,(i-1)*82+10)
-        t.ZIndex=0
-        t.Parent=scroll
-
-        local y=t.Position.Y.Offset
-        local duration=5.8+(i%4)*0.7
-        task.spawn(function()
-            while t.Parent do
-                t.Position=UDim2.new(0,-540,0,y)
-                local tw=TweenService:Create(t,TweenInfo.new(duration,Enum.EasingStyle.Linear),{
-                    Position=UDim2.new(1,20,0,y)
-                })
-                tw:Play()
-                tw.Completed:Wait()
-            end
-        end)
-    end
-
-    -- 图标轻微呼吸，不影响加载
-    task.spawn(function()
-        while icon.Parent do
-            local a=TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
-                Size=UDim2.fromOffset(104,104)
-            })
-            a:Play()
-            a.Completed:Wait()
-            if not icon.Parent then break end
-            local b=TweenService:Create(icon,TweenInfo.new(0.8,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{
-                Size=UDim2.fromOffset(96,96)
-            })
-            b:Play()
-            b.Completed:Wait()
-        end
-    end)
-
-    -- 模糊放在 Lighting；失败也不会影响脚本
-    pcall(function()
-        startupBlur=Instance.new("BlurEffect")
-        startupBlur.Name="NailongHubStartupBlur"
-        startupBlur.Size=18
-        startupBlur.Parent=game:GetService("Lighting")
-    end)
-end)
-
-local function setStartupProgress(value,text)
-    value=math.clamp(value or 0,0,1)
-    if startupProgress and startupProgress.Parent then
-        startupProgress.Size=UDim2.new(value,0,1,0)
-    end
-    if startupText and startupText.Parent then
-        startupText.Text=text or "正在加载奶龙_HUB"
-    end
-    if startupPercent and startupPercent.Parent then
-        startupPercent.Text="加载中 "..math.floor(value*100+0.5).."%"
-    end
-end
-
-setStartupProgress(0.08,"正在加载奶龙_HUB")
-
-pcall(function()
-    local startupSound=Instance.new("Sound")
-    startupSound.Name="奶龙_HUB_StartupSound"
-    startupSound.SoundId="rbxassetid://84267705669861"
-    startupSound.Volume=0.5
-    startupSound.Looped=false
-    startupSound.Parent=game:GetService("SoundService")
-    startupSound:Play()
-    startupSound.Ended:Connect(function()
-        startupSound:Destroy()
-    end)
-end)
+local TweenService=game:GetService("TweenService")
+local CoreGui=game:GetService("CoreGui")
 
 local function gradient(text,startColor,endColor)
+
     local result=""
     local chars={}
     for uchar in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do table.insert(chars,uchar) end
@@ -312,9 +89,7 @@ if not B then
     setStartupProgress(1,"奶龙_HUB 加载失败")
     warn("[ink_HUB] WindUI加载失败:", winduiLastError)
     task.wait(0.5)
-    pcall(function() if startupBlur then startupBlur:Destroy() end end)
-    pcall(function() if startupGui then startupGui:Destroy() end end)
-    return
+return
 end
 
 pcall(function() B.Transparency=0.3 end)
@@ -380,7 +155,6 @@ if windowFrame then
     end)
 end
 
-setStartupProgress(1,"奶龙_HUB 加载完成")
 task.wait(0.2)
 pcall(function()
     if startupBlur then
